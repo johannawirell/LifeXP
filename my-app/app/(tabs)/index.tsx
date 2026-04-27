@@ -1,5 +1,5 @@
 import PlaceholderScreen from '@/components/placeholder-screen';
 
-export default function ProfileScreen() {
-  return <PlaceholderScreen label="profil" />;
+export default function HomeScreen() {
+  return <PlaceholderScreen label="hem" />;
 }
