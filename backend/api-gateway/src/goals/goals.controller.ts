@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import axios from 'axios';
 
 @Controller('goals')
@@ -29,6 +29,26 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`, body);
+
+    return response.data;
+  }
+
+  @Get(':userId/detail/:goalId')
+  async getGoalDetail(@Param('userId') userId: string, @Param('goalId') goalId: string) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.get(`${goalsServiceUrl}/goals/${userId}/detail/${goalId}`);
+
+    return response.data;
+  }
+
+  @Patch(':userId/subtasks/:subtaskId')
+  async updateSubtaskCompletion(
+    @Param('userId') userId: string,
+    @Param('subtaskId') subtaskId: string,
+    @Body() body?: { completed?: boolean }
+  ) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/subtasks/${subtaskId}`, body);
 
     return response.data;
   }

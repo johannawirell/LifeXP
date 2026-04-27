@@ -55,12 +55,11 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     ],
   },
   {
-    title: 'Byta jobb inom 6 månader',
+    title: 'Byta jobb',
     icon: 'briefcase-outline',
     subtitle: 'Jobb',
     summaryDescription: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
-    detailDescription:
-      'Målet bryter ner jobbytet i tydliga steg så att du kan arbeta strukturerat med riktning, ansökningar, intervjuer och uppföljning.',
+    detailDescription: 'Byt riktning och satsa på något som passar dig bättre. Börja idag och bygg momentum steg för steg.',
     category: 'JOB',
     color: '#5E8BFF',
     isPopular: false,

@@ -42,6 +42,8 @@ type GoalsPageResponse = {
   completedGoals: GoalCard[];
 };
 
+type GoalDetailResponse = GoalCard;
+
 type GoalTemplateCard = {
   id: string;
   title: string;
@@ -153,7 +155,7 @@ export class GoalsQueryService {
     const activeGoals = goals.filter((goal) => goal.status === 'ACTIVE');
     const completedGoals = goals.filter((goal) => goal.status === 'COMPLETED');
 
-    const progressValues = activeGoals.map((goal) => this.getGoalProgress(goal.currentValue, goal.targetValue));
+    const progressValues = activeGoals.map((goal) => this.getGoalProgress(goal));
     const averageProgress =
       progressValues.length > 0
         ? `${Math.round((progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length) * 100)} %`
@@ -176,6 +178,103 @@ export class GoalsQueryService {
       activeGoals: activeGoals.map((goal) => this.toGoalCard(goal)),
       completedGoals: completedGoals.map((goal) => this.toGoalCard(goal)),
     };
+  }
+
+  async getGoalDetail(userId: string, goalId: string): Promise<GoalDetailResponse> {
+    const goal = await this.prisma.goal.findFirst({
+      where: { id: goalId, userId },
+      include: {
+        milestones: {
+          include: {
+            subtasks: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+            tips: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+          },
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found.');
+    }
+
+    return this.toGoalCard(goal);
+  }
+
+  async updateSubtaskCompletion(userId: string, subtaskId: string, completed: boolean) {
+    const subtask = await this.prisma.milestoneSubtask.findFirst({
+      where: {
+        id: subtaskId,
+        milestone: {
+          goal: {
+            userId,
+          },
+        },
+      },
+      include: {
+        milestone: {
+          include: {
+            goal: true,
+          },
+        },
+      },
+    });
+
+    if (!subtask) {
+      throw new NotFoundException('Subtask not found.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.milestoneSubtask.update({
+        where: { id: subtaskId },
+        data: { completed },
+      });
+
+      const milestoneSubtasks = await tx.milestoneSubtask.findMany({
+        where: { milestoneId: subtask.milestoneId },
+      });
+
+      const allSubtasksCompleted = milestoneSubtasks.length > 0 && milestoneSubtasks.every((item) => item.completed);
+
+      await tx.milestone.update({
+        where: { id: subtask.milestoneId },
+        data: {
+          completedAt: allSubtasksCompleted ? new Date() : null,
+        },
+      });
+
+      const goalMilestones = await tx.milestone.findMany({
+        where: { goalId: subtask.milestone.goalId },
+      });
+
+      const completedMilestoneCount = goalMilestones.filter((milestone) => Boolean(milestone.completedAt)).length;
+      const totalMilestones = goalMilestones.length;
+      const progressPercent = totalMilestones > 0 ? Math.round((completedMilestoneCount / totalMilestones) * 100) : 0;
+      const isGoalCompleted = totalMilestones > 0 && completedMilestoneCount === totalMilestones;
+
+      await tx.goal.update({
+        where: { id: subtask.milestone.goalId },
+        data: {
+          currentValue: completedMilestoneCount,
+          targetValue: totalMilestones,
+          percentLabel: `${progressPercent} %`,
+          status: isGoalCompleted ? 'COMPLETED' : 'ACTIVE',
+          completedAt: isGoalCompleted ? new Date() : null,
+        },
+      });
+    });
+
+    return this.getGoalsPage(userId);
   }
 
   async getGoalTemplatePage(category = 'popular'): Promise<GoalTemplatePageResponse> {
@@ -510,8 +609,8 @@ export class GoalsQueryService {
       icon: goal.icon ?? 'flag-outline',
       title: goal.title,
       subtitle: goal.subtitle ?? goal.category ?? '',
-      progress: this.getGoalProgress(goal.currentValue, goal.targetValue),
-      percentLabel: goal.percentLabel ?? `${Math.round(this.getGoalProgress(goal.currentValue, goal.targetValue) * 100)} %`,
+      progress: this.getGoalProgress(goal),
+      percentLabel: `${Math.round(this.getGoalProgress(goal) * 100)} %`,
       color: goal.cardColor ?? '#73D86A',
       leftMeta: totalMilestones > 0 ? `Steg ${completedMilestones} av ${totalMilestones}` : '',
       rightMeta: this.getRightMeta(goal, completedMilestones),
@@ -534,10 +633,26 @@ export class GoalsQueryService {
     };
   }
 
-  private getGoalProgress(currentValue: unknown, targetValue: unknown) {
-    if (typeof currentValue !== 'object' && typeof targetValue !== 'object') {
-      const current = Number(currentValue ?? 0);
-      const target = Number(targetValue ?? 0);
+  private getGoalProgress(
+    goal: Prisma.GoalGetPayload<{
+      include: {
+        milestones: {
+          include: {
+            subtasks: true;
+            tips: true;
+          };
+        };
+      };
+    }>
+  ) {
+    if (goal.milestones.length > 0) {
+      const completedMilestones = goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length;
+      return completedMilestones / goal.milestones.length;
+    }
+
+    if (typeof goal.currentValue !== 'object' && typeof goal.targetValue !== 'object') {
+      const current = Number(goal.currentValue ?? 0);
+      const target = Number(goal.targetValue ?? 0);
 
       if (target <= 0) {
         return 0;

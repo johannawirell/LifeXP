@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
-import { fetchJson } from '@/lib/api';
+import { fetchJson, patchJson } from '@/lib/api';
 
 type GoalsPageResponse = {
   overview: {
@@ -64,12 +65,14 @@ const overviewItems = [
 export default function GoalsScreen() {
   const { userId, resetSession } = useSession();
   const [goalsPage, setGoalsPage] = useState<GoalsPageResponse | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<GoalCard | null>(null);
+  const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGoalDetailLoading, setIsGoalDetailLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
-  const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
 
-  const loadGoals = async () => {
+  const loadGoals = useCallback(async () => {
     if (!userId) {
       setGoalsPage(null);
       setError('Ingen användare vald.');
@@ -87,29 +90,47 @@ export default function GoalsScreen() {
     } finally {
       setIsLoading(false);
     }
+  }, [userId]);
+
+  const loadGoalDetail = async (goalId: string) => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      setIsGoalDetailLoading(true);
+      const data = await fetchJson<GoalCard>(`/goals/${userId}/detail/${goalId}`);
+      setSelectedGoal(data);
+      setExpandedMilestoneId(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+    } finally {
+      setIsGoalDetailLoading(false);
+    }
+  };
+
+  const toggleSubtask = async (subtaskId: string, completed: boolean) => {
+    if (!userId || !selectedGoal) {
+      return;
+    }
+
+    try {
+      const data = await patchJson<GoalsPageResponse>(`/goals/${userId}/subtasks/${subtaskId}`, {
+        completed,
+      });
+      setGoalsPage(data);
+
+      const nextGoalList = [...data.activeGoals, ...data.completedGoals];
+      const refreshedGoal = nextGoalList.find((goal) => goal.id === selectedGoal.id) ?? null;
+      setSelectedGoal(refreshedGoal);
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : 'Unknown error');
+    }
   };
 
   useEffect(() => {
-    void (async () => {
-      if (!userId) {
-        setGoalsPage(null);
-        setError('Ingen användare vald.');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await fetchJson<GoalsPageResponse>(`/goals/${userId}`);
-        setGoalsPage(data);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unknown error');
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [userId]);
+    void loadGoals();
+  }, [loadGoals]);
 
   if (isLoading) {
     return (
@@ -188,7 +209,7 @@ export default function GoalsScreen() {
         ) : null}
 
         {goalCards.map((goal) => (
-          <View key={goal.id} style={styles.goalCard}>
+          <Pressable key={goal.id} style={styles.goalCard} onPress={() => void loadGoalDetail(goal.id)}>
             <View style={styles.goalHeader}>
               <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
                 <Ionicons name={goal.icon} size={30} color={goal.color} />
@@ -214,60 +235,105 @@ export default function GoalsScreen() {
               <Text style={styles.metaText}>{goal.rightMeta}</Text>
             </View>
 
-            <View style={styles.milestonesList}>
-              {goal.milestones.map((milestone) => (
-                <View key={milestone.id}>
-                  <Pressable
-                    style={styles.milestoneRow}
-                    onPress={() =>
-                      setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
-                    }>
-                    <Ionicons
-                      name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={26}
-                      color={milestone.completed ? '#7BDE72' : '#8A93A2'}
-                    />
-                    <Text style={[styles.milestoneTitle, milestone.completed ? null : styles.milestoneTitleOpen]}>
-                      {milestone.title}
-                    </Text>
-                    <Text style={styles.milestoneDate}>{milestone.completedLabel ?? ''}</Text>
-                  </Pressable>
-                  {expandedMilestoneId === milestone.id ? (
-                    <View style={styles.milestoneExpandedCard}>
-                      {milestone.description ? (
-                        <Text style={styles.milestoneExpandedDescription}>{milestone.description}</Text>
-                      ) : null}
-                      <Text style={styles.milestoneExpandedTitle}>Delmål</Text>
-                      {milestone.subtasks.map((subtask) => (
-                        <View key={subtask.id} style={styles.milestoneExpandedRow}>
-                          <Ionicons
-                            name={subtask.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                            size={18}
-                            color={subtask.completed ? '#7BDE72' : '#8A93A2'}
-                          />
-                          <Text style={styles.milestoneExpandedText}>{subtask.title}</Text>
-                        </View>
-                      ))}
-                      <Text style={styles.milestoneExpandedTitle}>Tips</Text>
-                      {milestone.tips.map((tip) => (
-                        <View key={tip.id} style={styles.milestoneExpandedRow}>
-                          <Ionicons name="bulb-outline" size={18} color="#F5C13C" />
-                          <Text style={styles.milestoneExpandedText}>{tip.text}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-
             <View style={styles.goalFooter}>
-              <Text style={styles.goalFooterText}>Visa detaljer</Text>
-              <Ionicons name="chevron-down" size={18} color="#D8DEE7" />
+              <Text style={styles.goalFooterText}>Öppna mål</Text>
+              <Ionicons name="chevron-forward" size={18} color="#D8DEE7" />
             </View>
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
+
+      <Modal visible={Boolean(selectedGoal) || isGoalDetailLoading} animationType="slide" transparent onRequestClose={() => setSelectedGoal(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedGoal?.title ?? 'Mål'}</Text>
+              <Pressable onPress={() => setSelectedGoal(null)}>
+                <Ionicons name="close" size={22} color="#F5F7FB" />
+              </Pressable>
+            </View>
+
+            {isGoalDetailLoading || !selectedGoal ? (
+              <View style={styles.feedbackState}>
+                <ActivityIndicator size="large" color="#A866FF" />
+                <Text style={styles.feedbackText}>Hämtar målinfo...</Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.goalDetailHero}>
+                  <Text style={styles.goalDetailSubtitle}>{selectedGoal.subtitle}</Text>
+                  <Text style={styles.goalDetailPercent}>{selectedGoal.percentLabel}</Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { backgroundColor: selectedGoal.color, width: `${Math.min(selectedGoal.progress * 100, 100)}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                {selectedGoal.milestones.map((milestone) => (
+                  <View key={milestone.id} style={styles.detailMilestoneCard}>
+                    <Pressable
+                      style={styles.detailMilestoneHeader}
+                      onPress={() =>
+                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
+                      }>
+                      <View style={styles.detailMilestoneTitleWrap}>
+                        <Ionicons
+                          name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={22}
+                          color={milestone.completed ? '#7BDE72' : '#8A93A2'}
+                        />
+                        <Text style={styles.detailMilestoneTitle}>{milestone.title}</Text>
+                      </View>
+                      <Ionicons
+                        name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color="#D8DEE7"
+                      />
+                    </Pressable>
+
+                    {expandedMilestoneId === milestone.id ? (
+                      <View style={styles.detailMilestoneBody}>
+                        {milestone.description ? (
+                          <Text style={styles.detailMilestoneDescription}>{milestone.description}</Text>
+                        ) : null}
+
+                        <Text style={styles.detailSectionTitle}>Delmål</Text>
+                        {milestone.subtasks.map((subtask) => (
+                          <Pressable
+                            key={subtask.id}
+                            style={styles.subtaskRow}
+                            onPress={() => void toggleSubtask(subtask.id, !subtask.completed)}>
+                            <Ionicons
+                              name={subtask.completed ? 'checkbox' : 'square-outline'}
+                              size={22}
+                              color={subtask.completed ? '#7BDE72' : '#A866FF'}
+                            />
+                            <Text style={[styles.subtaskText, subtask.completed ? styles.subtaskTextCompleted : null]}>
+                              {subtask.title}
+                            </Text>
+                          </Pressable>
+                        ))}
+
+                        <Text style={styles.detailSectionTitle}>Tips</Text>
+                        {milestone.tips.map((tip) => (
+                          <View key={tip.id} style={styles.tipRow}>
+                            <Ionicons name="bulb-outline" size={18} color="#F5C13C" />
+                            <Text style={styles.tipText}>{tip.text}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -487,7 +553,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2B313E',
     borderRadius: 999,
     height: 8,
-    marginHorizontal: 16,
     marginTop: 18,
     overflow: 'hidden',
   },
@@ -506,69 +571,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  milestonesList: {
-    gap: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 22,
-  },
-  milestoneRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  milestoneTitle: {
-    color: '#F5F7FB',
-    flex: 1,
-    fontSize: 14,
-    marginLeft: 12,
-  },
-  milestoneTitleOpen: {
-    color: '#E0E5EE',
-  },
-  milestoneDate: {
-    color: '#8A93A2',
-    fontSize: 12,
-    marginLeft: 12,
-  },
-  milestoneExpandedCard: {
-    backgroundColor: '#101621',
-    borderRadius: 14,
-    marginBottom: 8,
-    marginLeft: 34,
-    marginRight: 4,
-    marginTop: 8,
-    padding: 12,
-  },
-  milestoneExpandedDescription: {
-    color: '#C8CFDA',
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  milestoneExpandedTitle: {
-    color: '#F5F7FB',
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-    marginTop: 2,
-  },
-  milestoneExpandedRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  milestoneExpandedText: {
-    color: '#AEB6C3',
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-  },
   goalFooter: {
     alignItems: 'center',
     borderTopColor: '#1F2632',
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 18,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
@@ -576,5 +585,115 @@ const styles = StyleSheet.create({
     color: '#F5F7FB',
     fontSize: 15,
     fontWeight: '600',
+  },
+  modalBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    backgroundColor: '#111722',
+    borderRadius: 24,
+    maxHeight: '78%',
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    color: '#F5F7FB',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  goalDetailHero: {
+    marginBottom: 12,
+  },
+  goalDetailSubtitle: {
+    color: '#9AA3B2',
+    fontSize: 14,
+  },
+  goalDetailPercent: {
+    color: '#F5F7FB',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  detailMilestoneCard: {
+    backgroundColor: '#151B24',
+    borderColor: '#1F2632',
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 14,
+    overflow: 'hidden',
+  },
+  detailMilestoneHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  detailMilestoneTitleWrap: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+  },
+  detailMilestoneTitle: {
+    color: '#F5F7FB',
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  detailMilestoneBody: {
+    borderTopColor: '#1F2632',
+    borderTopWidth: 1,
+    padding: 14,
+  },
+  detailMilestoneDescription: {
+    color: '#C8CFDA',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  detailSectionTitle: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginTop: 6,
+  },
+  subtaskRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  subtaskText: {
+    color: '#F5F7FB',
+    flex: 1,
+    fontSize: 13,
+  },
+  subtaskTextCompleted: {
+    color: '#8FA38F',
+    textDecorationLine: 'line-through',
+  },
+  tipRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  tipText: {
+    color: '#AEB6C3',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
