@@ -16,16 +16,95 @@ Lokal backend-infra för NestJS microservices med:
 - `gamification-service` -> `lifexp_gamification`
 - `notification-service` -> `lifexp_notification`
 
-## Starta lokalt
+## Starta backend lokalt
 
-1. Kopiera `.env.example` till `.env`.
-2. Starta infrastrukturen:
+Kör allt från [backend](/backend).
+
+### 1. Installera beroenden
 
 ```bash
-docker compose -f backend/docker-compose.yml up -d
+cd /backend
+
+npm install
 ```
 
-3. Använd respektive `*_DATABASE_URL` i varje NestJS/Prisma-service.
+### 2. Skapa env-fil
+
+Om `.env` saknas, skapa den från `.env.example`.
+
+```bash
+cp .env.example .env
+```
+
+### 3. Starta PostgreSQL och Redis
+
+```bash
+npm run infra:up
+```
+
+Om PostgreSQL redan har en gammal Docker-volym med andra credentials, återställ den först:
+
+```bash
+docker compose -f docker-compose.yml down -v
+npm run infra:up
+```
+
+### 4. Skapa databastabeller
+
+```bash
+npm run prisma:push
+```
+
+### 5. Seeda user-service med profil-data
+
+```bash
+npm run seed:user
+```
+
+### 6. Starta tjänsterna
+
+Terminal 1:
+
+```bash
+cd backend
+npm run dev:user-service
+```
+
+Terminal 2:
+
+```bash
+cd backend
+npm run dev:api-gateway
+```
+
+### Alternativ: starta allt med ett script
+
+Det finns också ett script som kör hela backend-flödet:
+
+- startar PostgreSQL och Redis
+- väntar på att PostgreSQL är redo
+- kör Prisma push
+- kör seed för `user-service`
+- startar `user-service`
+- startar `api-gateway`
+
+Kör:
+
+```bash
+cd backend
+chmod +x start-backend.sh
+./start-backend.sh
+```
+
+Stoppa scriptet med `Ctrl+C`.
+
+### 7. Backend-endpoint
+
+När allt är igång finns profil-endpointen här:
+
+```text
+http://localhost:3000/api/profile
+```
 
 ## Databasansvar per service
 

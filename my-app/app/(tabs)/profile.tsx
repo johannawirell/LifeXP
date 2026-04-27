@@ -1,128 +1,51 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const focusStats = [
-  {
-    icon: 'locate-outline' as const,
-    title: 'Fokus',
-    level: 'Level 14',
-    progress: '1 250 / 2 000',
-    color: '#5E8BFF',
-  },
-  {
-    icon: 'flash-outline' as const,
-    title: 'Energi',
-    level: 'Level 11',
-    progress: '980 / 1 800',
-    color: '#F5B333',
-  },
-  {
-    icon: 'shield-checkmark-outline' as const,
-    title: 'Disciplin',
-    level: 'Level 13',
-    progress: '1 600 / 2 200',
-    color: '#67D86F',
-  },
-  {
-    icon: 'leaf-outline' as const,
-    title: 'Balans',
-    level: 'Level 10',
-    progress: '700 / 1 600',
-    color: '#A866FF',
-  },
-];
+import { fetchJson } from '@/lib/api';
 
-const activeGoals = [
-  {
-    icon: 'walk-outline' as const,
-    title: 'Springa 5 km',
-    subtitle: 'steg 3 av 4',
-    progress: 0.6,
-    color: '#73D86A',
-    percent: '60 %',
-  },
-  {
-    icon: 'school-outline' as const,
-    title: 'Klara kursen i Matematik 2',
-    subtitle: 'steg 2 av 5',
-    progress: 0.4,
-    color: '#B269FF',
-    percent: '40 %',
-  },
-  {
-    icon: 'ban-outline' as const,
-    title: 'Sluta med alkohol',
-    subtitle: '12 dagar i rad',
-    progress: 0.8,
-    color: '#F08A45',
-    percent: '80 %',
-  },
-];
-
-const achievements = [
-  {
-    icon: 'flame-outline' as const,
-    title: '7 dagars streak',
-    subtitle: '2+ gånger',
-    color: '#FF8A3C',
-  },
-  {
-    icon: 'trophy-outline' as const,
-    title: 'Fokusmästare',
-    subtitle: 'Uppnått Level 10 i Fokus',
-    color: '#F5C13C',
-  },
-  {
-    icon: 'locate-outline' as const,
-    title: 'Måljägare',
-    subtitle: 'Slutfört 5 mål',
-    color: '#67D86F',
-  },
-  {
-    icon: 'fitness-outline' as const,
-    title: 'Disciplinerad',
-    subtitle: '30 dagars streak',
-    color: '#62A5FF',
-  },
-  {
-    icon: 'person-outline' as const,
-    title: 'Lugn i sinnet',
-    subtitle: '10 dagar meditation',
-    color: '#A866FF',
-  },
-];
-
-const weeklyStats = [
-  {
-    icon: 'checkmark-circle-outline' as const,
-    value: '24',
-    label: 'Tasks klara',
-    detail: '+12 % från förra veckan',
-    color: '#A866FF',
-  },
-  {
-    icon: 'star-outline' as const,
-    value: '3 240',
-    label: 'XP denna vecka',
-    detail: '+18 % från förra veckan',
-    color: '#F5C13C',
-  },
-  {
-    icon: 'radio-button-on-outline' as const,
-    value: '88 %',
-    label: 'Måluppfyllelse',
-    detail: '+9 % från förra veckan',
-    color: '#67D86F',
-  },
-  {
-    icon: 'flame-outline' as const,
-    value: '12',
-    label: 'Dagar i streak',
-    detail: 'Bästa: 12 dagar',
-    color: '#FF8A3C',
-  },
-];
+type ProfileResponse = {
+  id: string;
+  displayName: string;
+  headline: string | null;
+  currentLevel: number;
+  totalXp: number;
+  nextLevelXp: number;
+  focusAreas: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    level: number;
+    currentXp: number;
+    maxXp: number;
+    color: string;
+  }[];
+  activeGoals: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    subtitle: string;
+    progress: number;
+    color: string;
+    percentLabel: string;
+  }[];
+  achievements: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    subtitle: string;
+    color: string;
+  }[];
+  weeklyStats: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    value: string;
+    label: string;
+    detail: string;
+    color: string;
+  }[];
+};
 
 function SectionHeader({ title, action }: { title: string; action?: string }) {
   return (
@@ -139,6 +62,59 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
 }
 
 export default function ProfileScreen() {
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await fetchJson<ProfileResponse>('/profile');
+      setProfile(data);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadProfile();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.feedbackState}>
+          <ActivityIndicator size="large" color="#A866FF" />
+          <Text style={styles.feedbackText}>Hämtar profil från backend...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.feedbackState}>
+          <Ionicons name="cloud-offline-outline" size={42} color="#A866FF" />
+          <Text style={styles.feedbackTitle}>Backend svarar inte</Text>
+          <Text style={styles.feedbackText}>
+            Starta `api-gateway` och `user-service`, och kontrollera att PostgreSQL är igång.
+          </Text>
+          <Text style={styles.feedbackError}>{error ?? 'Ingen profil hittades.'}</Text>
+          <Pressable onPress={() => void loadProfile()} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Försök igen</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const xpLeft = Math.max(profile.nextLevelXp - profile.totalXp, 0);
+  const levelProgress = profile.nextLevelXp > 0 ? (profile.totalXp / profile.nextLevelXp) * 100 : 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -159,49 +135,63 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeText}>12</Text>
+                <Text style={styles.levelBadgeText}>{profile.currentLevel}</Text>
               </View>
             </View>
 
             <View style={styles.heroInfo}>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>Alex</Text>
+                <Text style={styles.name}>{profile.displayName}</Text>
                 <Ionicons name="pencil" size={15} color="#A866FF" />
               </View>
-              <Text style={styles.tagline}>Fokuserad • Disciplinerad • På väg upp</Text>
+              <Text style={styles.tagline}>{profile.headline ?? ''}</Text>
 
               <View style={styles.levelRow}>
-                <Text style={styles.levelText}>Level 12</Text>
-                <Text style={styles.xpText}>2 450 / 3 000 XP</Text>
+                <Text style={styles.levelText}>Level {profile.currentLevel}</Text>
+                <Text style={styles.xpText}>
+                  {profile.totalXp.toLocaleString('sv-SE')} / {profile.nextLevelXp.toLocaleString('sv-SE')} XP
+                </Text>
               </View>
               <View style={styles.largeProgressTrack}>
-                <View style={styles.largeProgressFill} />
+                <View style={[styles.largeProgressFill, { width: `${Math.min(levelProgress, 100)}%` }]} />
               </View>
-              <Text style={styles.levelHint}>550 XP kvar till Level 13</Text>
+              <Text style={styles.levelHint}>
+                {`${xpLeft.toLocaleString('sv-SE')} XP kvar till Level ${profile.currentLevel + 1}`}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.statsGrid}>
-          {focusStats.map((item) => (
+          {profile.focusAreas.map((item) => (
             <View key={item.title} style={styles.statCard}>
               <Ionicons name={item.icon} size={28} color={item.color} />
               <Text style={styles.statTitle}>{item.title}</Text>
-              <Text style={styles.statLevel}>{item.level}</Text>
+              <Text style={styles.statLevel}>Level {item.level}</Text>
               <View style={styles.smallProgressTrack}>
-                <View style={[styles.smallProgressFill, { backgroundColor: item.color, width: '58%' }]} />
+                <View
+                  style={[
+                    styles.smallProgressFill,
+                    {
+                      backgroundColor: item.color,
+                      width: `${Math.min((item.currentXp / item.maxXp) * 100, 100)}%`,
+                    },
+                  ]}
+                />
               </View>
-              <Text style={styles.statProgress}>{item.progress}</Text>
+              <Text style={styles.statProgress}>
+                {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')}
+              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.sectionCard}>
           <SectionHeader title="Aktiva mål" action="Visa alla" />
-          {activeGoals.map((goal, index) => (
+          {profile.activeGoals.map((goal, index) => (
             <View
-              key={goal.title}
-              style={[styles.goalRow, index < activeGoals.length - 1 ? styles.goalRowBorder : null]}>
+              key={goal.id}
+              style={[styles.goalRow, index < profile.activeGoals.length - 1 ? styles.goalRowBorder : null]}>
               <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
                 <Ionicons name={goal.icon} size={24} color={goal.color} />
               </View>
@@ -216,11 +206,11 @@ export default function ProfileScreen() {
                     <View
                       style={[
                         styles.goalProgressFill,
-                        { backgroundColor: goal.color, width: `${goal.progress * 100}%` },
+                        { backgroundColor: goal.color, width: `${Math.min(goal.progress * 100, 100)}%` },
                       ]}
                     />
                   </View>
-                  <Text style={styles.goalPercent}>{goal.percent}</Text>
+                  <Text style={styles.goalPercent}>{goal.percentLabel}</Text>
                 </View>
               </View>
             </View>
@@ -230,8 +220,8 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <SectionHeader title="Prestationer" action="Visa alla" />
           <View style={styles.achievementRow}>
-            {achievements.map((item) => (
-              <View key={item.title} style={styles.achievementCard}>
+            {profile.achievements.map((item) => (
+              <View key={item.id} style={styles.achievementCard}>
                 <View style={[styles.achievementIconWrap, { borderColor: item.color }]}>
                   <Ionicons name={item.icon} size={26} color={item.color} />
                 </View>
@@ -245,10 +235,10 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <SectionHeader title="Statistik" action="Denna vecka" />
           <View style={styles.weeklyStatsRow}>
-            {weeklyStats.map((item, index) => (
+            {profile.weeklyStats.map((item, index) => (
               <View
-                key={item.label}
-                style={[styles.weeklyStatCard, index < weeklyStats.length - 1 ? styles.weeklyStatDivider : null]}>
+                key={item.id}
+                style={[styles.weeklyStatCard, index < profile.weeklyStats.length - 1 ? styles.weeklyStatDivider : null]}>
                 <Ionicons name={item.icon} size={20} color={item.color} />
                 <Text style={styles.weeklyValue}>{item.value}</Text>
                 <Text style={styles.weeklyLabel}>{item.label}</Text>
@@ -274,6 +264,43 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 120,
     paddingHorizontal: 8,
+  },
+  feedbackState: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  feedbackTitle: {
+    color: '#F5F7FB',
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 18,
+  },
+  feedbackText: {
+    color: '#97A0AE',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  feedbackError: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 12,
+    marginTop: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  retryButtonText: {
+    color: '#F7F3FF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   topBar: {
     alignItems: 'center',
