@@ -3,6 +3,7 @@ import { PrismaClient } from '../generated/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.goalTemplate.deleteMany();
   await prisma.milestone.deleteMany({
     where: {
       goal: {
@@ -206,6 +207,71 @@ async function main() {
         title: 'Dag 7',
         completedAt: new Date('2026-04-07'),
         position: 6,
+      },
+    ],
+  });
+
+  await prisma.goalTemplate.createMany({
+    data: [
+      {
+        title: 'Springa 5 km',
+        icon: 'walk-outline',
+        subtitle: 'Träning',
+        description: 'Bygg upp din kondition och spring 5 km utan att stanna.',
+        category: 'Träning',
+        color: '#73D86A',
+        isPopular: true,
+        position: 0,
+      },
+      {
+        title: 'Klara en kurs',
+        icon: 'school-outline',
+        subtitle: 'Plugg',
+        description: 'Följ en plan och klara din kurs med bra resultat.',
+        category: 'Plugg',
+        color: '#B269FF',
+        isPopular: true,
+        position: 1,
+      },
+      {
+        title: 'Sluta med alkohol',
+        icon: 'ban-outline',
+        subtitle: 'Hälsa',
+        description: 'Bygg nya vanor och bli helt fri från alkohol.',
+        category: 'Hälsa',
+        color: '#F08A45',
+        isPopular: true,
+        position: 2,
+      },
+      {
+        title: 'Bli redo för en befordran',
+        icon: 'briefcase-outline',
+        subtitle: 'Jobb',
+        description: 'Utveckla dina skills och ta nästa steg i karriären.',
+        category: 'Jobb',
+        color: '#5E8BFF',
+        isPopular: true,
+        position: 3,
+      },
+      {
+        title: 'Bygga muskler',
+        icon: 'barbell-outline',
+        subtitle: 'Träning',
+        description: 'Träna regelbundet och bygg styrka över tid.',
+        category: 'Träning',
+        color: '#F5C13C',
+        isPopular: true,
+        position: 4,
+      },
+      {
+        title: 'Minska stress',
+        icon: 'leaf-outline',
+        subtitle: 'Hälsa',
+        description: 'Skapa lugn i vardagen och må bättre mentalt.',
+        category: 'Hälsa',
+        color: '#67D86F',
+        isPopular: true,
+        position: 5,
       },
     ],
   });

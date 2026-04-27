@@ -12,4 +12,9 @@ export class GoalsController {
   getGoalsPage(@Param('userId') userId: string) {
     return goalsQueryService.getGoalsPage(userId);
   }
+
+  @Get('templates/list')
+  getGoalTemplates() {
+    return goalsQueryService.getGoalTemplatePage();
+  }
 }

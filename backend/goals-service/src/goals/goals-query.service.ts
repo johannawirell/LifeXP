@@ -31,6 +31,22 @@ type GoalsPageResponse = {
   completedGoals: GoalCard[];
 };
 
+type GoalTemplateCard = {
+  id: string;
+  title: string;
+  icon: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  color: string;
+};
+
+type GoalTemplatePageResponse = {
+  steps: { id: number; label: string; complete: boolean }[];
+  categories: { key: string; label: string; icon: string; active: boolean }[];
+  templates: GoalTemplateCard[];
+};
+
 export class GoalsQueryService {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -74,6 +90,39 @@ export class GoalsQueryService {
       },
       activeGoals: activeGoals.map((goal) => this.toGoalCard(goal)),
       completedGoals: completedGoals.map((goal) => this.toGoalCard(goal)),
+    };
+  }
+
+  async getGoalTemplatePage(): Promise<GoalTemplatePageResponse> {
+    const templates = await this.prisma.goalTemplate.findMany({
+      orderBy: [{ isPopular: 'desc' }, { position: 'asc' }],
+    });
+
+    const categories = [
+      { key: 'popular', label: 'Populära', icon: 'star-outline', active: true },
+      { key: 'job', label: 'Jobb', icon: 'briefcase-outline', active: false },
+      { key: 'study', label: 'Plugg', icon: 'school-outline', active: false },
+      { key: 'training', label: 'Träning', icon: 'barbell-outline', active: false },
+      { key: 'health', label: 'Hälsa', icon: 'heart-outline', active: false },
+      { key: 'relationship', label: 'Relationer', icon: 'people-outline', active: false },
+    ];
+
+    return {
+      steps: [
+        { id: 1, label: 'Välj mål', complete: true },
+        { id: 2, label: 'Anpassa', complete: false },
+        { id: 3, label: 'Klart!', complete: false },
+      ],
+      categories,
+      templates: templates.map((template) => ({
+        id: template.id,
+        title: template.title,
+        icon: template.icon,
+        subtitle: template.subtitle,
+        description: template.description,
+        category: template.category,
+        color: template.color,
+      })),
     };
   }
 

@@ -78,6 +78,22 @@ model GoalSchedule {
   @@index([goalId])
 }
 
+model GoalTemplate {
+  id          String   @id @default(uuid())
+  title       String
+  icon        String
+  subtitle    String
+  description String
+  category    String
+  color       String
+  isPopular   Boolean  @default(false)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, position])
+}
+
 enum GoalStatus {
   DRAFT
   ACTIVE
