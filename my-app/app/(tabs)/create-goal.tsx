@@ -487,10 +487,12 @@ export default function CreateGoalScreen() {
             </View>
 
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Milestones</Text>
-              <Pressable style={styles.secondaryButton} onPress={addMilestone}>
-                <Text style={styles.secondaryButtonText}>Lägg till milestone</Text>
-              </Pressable>
+              <View style={styles.milestonesHeaderRow}>
+                <Text style={styles.detailCardTitle}>Milestones</Text>
+                <Pressable style={styles.addIconButton} onPress={addMilestone}>
+                  <Ionicons name="add" size={18} color="#F7F3FF" />
+                </Pressable>
+              </View>
               {draft.milestones.map((milestone) => (
                 <View key={milestone.id} style={styles.milestoneEditorCard}>
                   <View style={styles.milestoneEditorRow}>
@@ -773,24 +775,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
-  secondaryButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#1E1930',
-    borderRadius: 12,
+  milestonesHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
-  secondaryButtonText: {
-    color: '#C9A9FF',
-    fontSize: 12,
-    fontWeight: '700',
+  addIconButton: {
+    alignItems: 'center',
+    backgroundColor: '#8B4EF4',
+    borderRadius: 999,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
   detailCardTitle: {
     color: '#F5F7FB',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 10,
   },
   detailDescription: {
     color: '#CBD2DD',
