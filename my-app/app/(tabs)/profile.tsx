@@ -3,9 +3,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSession } from '@/context/session-context';
 import { fetchJson } from '@/lib/api';
-
-const PROTOTYPE_USER_ID = 'demo-auth-user-1';
 
 type ProfileResponse = {
   id: string;
@@ -64,15 +63,31 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
 }
 
 export default function ProfileScreen() {
+  const { mode, userId, resetSession } = useSession();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const loadProfile = async () => {
+    if (mode === 'empty') {
+      setProfile(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!userId) {
+      setProfile(null);
+      setError('Ingen användare vald.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchJson<ProfileResponse>(`/profile/${PROTOTYPE_USER_ID}`);
+      const data = await fetchJson<ProfileResponse>(`/profile/${userId}`);
       setProfile(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
@@ -82,8 +97,50 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
-    void loadProfile();
-  }, []);
+    void (async () => {
+      if (mode === 'empty') {
+        setProfile(null);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        setProfile(null);
+        setError('Ingen användare vald.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await fetchJson<ProfileResponse>(`/profile/${userId}`);
+        setProfile(data);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [mode, userId]);
+
+  if (mode === 'empty') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.feedbackState}>
+          <Ionicons name="person-outline" size={46} color="#A866FF" />
+          <Text style={styles.feedbackTitle}>Ny användare</Text>
+          <Text style={styles.feedbackText}>
+            Profilen är tom just nu. Skapa dina första mål för att börja bygga din nivå, statistik och prestationer.
+          </Text>
+          <Pressable onPress={resetSession} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Byt läge</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -122,10 +179,28 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={() => setIsSettingsOpen(false)}>
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Profil</Text>
-          <Ionicons name="settings-outline" size={22} color="#F5F7FB" />
+          <View style={styles.settingsWrap}>
+            <Pressable onPress={() => setIsSettingsOpen((current) => !current)} style={styles.settingsButton}>
+              <Ionicons name="settings-outline" size={22} color="#F5F7FB" />
+            </Pressable>
+            {isSettingsOpen ? (
+              <View style={styles.settingsMenu}>
+                <Pressable
+                  onPress={() => {
+                    setIsSettingsOpen(false);
+                    resetSession();
+                  }}
+                  style={styles.settingsMenuItem}>
+                  <Ionicons name="log-out-outline" size={18} color="#F7F3FF" />
+                  <Text style={styles.settingsMenuText}>Logga ut</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         <View style={styles.heroCard}>
@@ -310,6 +385,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 8,
     paddingTop: 4,
+    zIndex: 10,
+  },
+  settingsWrap: {
+    alignItems: 'flex-end',
+    position: 'relative',
+  },
+  settingsButton: {
+    padding: 4,
+  },
+  settingsMenu: {
+    backgroundColor: '#151B24',
+    borderColor: '#262E3A',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 10,
+    minWidth: 128,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    position: 'absolute',
+    right: 0,
+    top: 28,
+  },
+  settingsMenuItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 6,
+  },
+  settingsMenuText: {
+    color: '#F7F3FF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   screenTitle: {
     color: '#F5F7FB',

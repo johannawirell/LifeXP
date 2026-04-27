@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSession } from '@/context/session-context';
 import { fetchJson } from '@/lib/api';
 
 type GoalTemplatePageResponse = {
@@ -27,6 +28,7 @@ type GoalTemplatePageResponse = {
 };
 
 export default function CreateGoalScreen() {
+  const { mode } = useSession();
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,9 +82,15 @@ export default function CreateGoalScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
-          <Text style={styles.screenTitle}>Lägg till mål</Text>
-          <View style={styles.topBarSpacer} />
-        </View>
+        <Text style={styles.screenTitle}>Lägg till mål</Text>
+        <View style={styles.topBarSpacer} />
+      </View>
+
+        {mode === 'empty' ? (
+          <View style={styles.modeBadge}>
+            <Text style={styles.modeBadgeText}>Ny användare</Text>
+          </View>
+        ) : null}
 
         <View style={styles.stepsRow}>
           {page.steps.map((step, index) => (
@@ -221,6 +229,20 @@ const styles = StyleSheet.create({
   },
   topBarSpacer: {
     width: 24,
+  },
+  modeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1E1930',
+    borderRadius: 999,
+    marginLeft: 20,
+    marginTop: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  modeBadgeText: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   stepsRow: {
     flexDirection: 'row',

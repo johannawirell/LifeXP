@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
+
+import { useSession } from '@/context/session-context';
 
 function PlusTabButton({ onPress }: BottomTabBarButtonProps) {
   return (
@@ -14,6 +16,12 @@ function PlusTabButton({ onPress }: BottomTabBarButtonProps) {
 }
 
 export default function TabLayout() {
+  const { mode } = useSession();
+
+  if (mode === 'guest') {
+    return <Redirect href="/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -24,15 +32,6 @@ export default function TabLayout() {
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Hem',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={28} color={color} />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="goals"
         options={{

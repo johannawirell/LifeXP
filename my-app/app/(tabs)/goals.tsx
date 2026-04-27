@@ -10,9 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSession } from '@/context/session-context';
 import { fetchJson } from '@/lib/api';
-
-const PROTOTYPE_USER_ID = 'demo-auth-user-1';
 
 type GoalsPageResponse = {
   overview: {
@@ -53,16 +52,40 @@ const overviewItems = [
 ] as const;
 
 export default function GoalsScreen() {
+  const { mode, userId, resetSession } = useSession();
   const [goalsPage, setGoalsPage] = useState<GoalsPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
 
   const loadGoals = async () => {
+    if (mode === 'empty') {
+      setGoalsPage({
+        overview: {
+          activeGoals: 0,
+          averageProgress: '0 %',
+          completedMilestones: 0,
+          streakDays: 0,
+        },
+        activeGoals: [],
+        completedGoals: [],
+      });
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!userId) {
+      setGoalsPage(null);
+      setError('Ingen användare vald.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchJson<GoalsPageResponse>(`/goals/${PROTOTYPE_USER_ID}`);
+      const data = await fetchJson<GoalsPageResponse>(`/goals/${userId}`);
       setGoalsPage(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
@@ -72,8 +95,42 @@ export default function GoalsScreen() {
   };
 
   useEffect(() => {
-    void loadGoals();
-  }, []);
+    void (async () => {
+      if (mode === 'empty') {
+        setGoalsPage({
+          overview: {
+            activeGoals: 0,
+            averageProgress: '0 %',
+            completedMilestones: 0,
+            streakDays: 0,
+          },
+          activeGoals: [],
+          completedGoals: [],
+        });
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        setGoalsPage(null);
+        setError('Ingen användare vald.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await fetchJson<GoalsPageResponse>(`/goals/${userId}`);
+        setGoalsPage(data);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [mode, userId]);
 
   if (isLoading) {
     return (
@@ -137,6 +194,19 @@ export default function GoalsScreen() {
             </View>
           ))}
         </View>
+
+        {goalCards.length === 0 ? (
+          <View style={styles.emptyGoalsCard}>
+            <Ionicons name="flag-outline" size={32} color="#A866FF" />
+            <Text style={styles.emptyGoalsTitle}>Inga mål ännu</Text>
+            <Text style={styles.emptyGoalsText}>
+              Du börjar från början. Använd `+`-fliken för att skapa ditt första mål.
+            </Text>
+            <Pressable onPress={resetSession} style={styles.emptyGoalsButton}>
+              <Text style={styles.emptyGoalsButtonText}>Byt läge</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {goalCards.map((goal) => (
           <View key={goal.id} style={styles.goalCard}>
@@ -324,6 +394,42 @@ const styles = StyleSheet.create({
     fontSize: 8,
     marginTop: 6,
     textAlign: 'center',
+  },
+  emptyGoalsCard: {
+    alignItems: 'center',
+    backgroundColor: '#151B24',
+    borderColor: '#1F2632',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginHorizontal: 20,
+    marginTop: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+  },
+  emptyGoalsTitle: {
+    color: '#F5F7FB',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 14,
+  },
+  emptyGoalsText: {
+    color: '#9AA3B2',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  emptyGoalsButton: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 12,
+    marginTop: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  emptyGoalsButtonText: {
+    color: '#F7F3FF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   goalCard: {
     backgroundColor: '#151B24',
