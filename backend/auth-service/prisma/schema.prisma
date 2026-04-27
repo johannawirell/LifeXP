@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+model UserAuth {
+  id              String          @id @default(uuid())
+  userId          String          @unique
+  email           String          @unique
+  emailVerifiedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  providers       OAuthProvider[]
+  refreshTokens   RefreshToken[]
+  sessions        Session[]
+}
+
+model OAuthProvider {
+  id                 String   @id @default(uuid())
+  userAuthId         String
+  provider           String
+  providerUserId     String
+  accessToken        String?
+  refreshToken       String?
+  accessTokenExpires DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userAuth           UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userAuthId])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userAuthId String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  userAuth   UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+
+  @@index([userAuthId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userAuthId   String
+  deviceId     String?
+  ipAddress    String?
+  userAgent    String?
+  lastActiveAt DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  userAuth     UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+
+  @@index([userAuthId])
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  tokenHash String   @unique
+  type      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}

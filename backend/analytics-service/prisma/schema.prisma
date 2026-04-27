@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ANALYTICS_DATABASE_URL")
+}
+
+model UserMetricSnapshot {
+  id                 String   @id @default(uuid())
+  userId             String
+  snapshotDate       DateTime
+  completedGoals     Int      @default(0)
+  activeGoals        Int      @default(0)
+  completionRate     Decimal  @default(0)
+  totalXp            Int      @default(0)
+  currentStreakDays  Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  @@unique([userId, snapshotDate])
+  @@index([snapshotDate])
+}
+
+model GoalTrend {
+  id                  String   @id @default(uuid())
+  goalId              String
+  userId              String
+  trendDate           DateTime
+  progressValue       Decimal?
+  completionRate      Decimal?
+  createdAt           DateTime @default(now())
+
+  @@unique([goalId, trendDate])
+  @@index([userId, trendDate])
+}
+
+model WeeklyReport {
+  id             String   @id @default(uuid())
+  userId         String
+  weekStart      DateTime
+  weekEnd        DateTime
+  summary        Json
+  generatedAt    DateTime @default(now())
+
+  @@unique([userId, weekStart, weekEnd])
+}

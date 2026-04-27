@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("GAMIFICATION_DATABASE_URL")
+}
+
+model UserGamification {
+  id              String          @id @default(uuid())
+  userId          String          @unique
+  totalXp         Int             @default(0)
+  currentLevel    Int             @default(1)
+  currentStreak   Int             @default(0)
+  bestStreak      Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  xpEntries       XpEntry[]
+  achievements    UserAchievement[]
+}
+
+model XpEntry {
+  id                 String            @id @default(uuid())
+  userGamificationId String
+  amount             Int
+  sourceType         XpSourceType
+  sourceId           String?
+  createdAt          DateTime          @default(now())
+  userGamification   UserGamification  @relation(fields: [userGamificationId], references: [id], onDelete: Cascade)
+
+  @@index([userGamificationId, createdAt])
+}
+
+model AchievementDefinition {
+  id            String            @id @default(uuid())
+  code          String            @unique
+  title         String
+  description   String?
+  xpReward      Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  userAwards    UserAchievement[]
+}
+
+model UserAchievement {
+  id                      String                @id @default(uuid())
+  userGamificationId      String
+  achievementDefinitionId String
+  awardedAt               DateTime              @default(now())
+  userGamification        UserGamification      @relation(fields: [userGamificationId], references: [id], onDelete: Cascade)
+  achievementDefinition   AchievementDefinition @relation(fields: [achievementDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([userGamificationId, achievementDefinitionId])
+}
+
+enum XpSourceType {
+  GOAL_CREATED
+  GOAL_COMPLETED
+  MILESTONE_COMPLETED
+  STREAK_REWARD
+  ACHIEVEMENT_REWARD
+  MANUAL_ADJUSTMENT
+}

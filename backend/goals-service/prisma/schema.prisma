@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("GOALS_DATABASE_URL")
+}
+
+model Goal {
+  id              String         @id @default(uuid())
+  userId          String
+  title           String
+  description     String?
+  category        String?
+  status          GoalStatus     @default(ACTIVE)
+  targetValue     Decimal?
+  currentValue    Decimal?
+  unit            String?
+  startDate       DateTime?
+  targetDate      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  milestones      Milestone[]
+  progressEntries ProgressEntry[]
+  schedules       GoalSchedule[]
+
+  @@index([userId, status])
+}
+
+model Milestone {
+  id          String      @id @default(uuid())
+  goalId      String
+  title       String
+  description String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  position    Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  goal        Goal        @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+}
+
+model ProgressEntry {
+  id         String    @id @default(uuid())
+  goalId      String
+  value       Decimal?
+  note        String?
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, recordedAt])
+}
+
+model GoalSchedule {
+  id             String    @id @default(uuid())
+  goalId          String
+  frequency       String
+  interval        Int       @default(1)
+  daysOfWeek      String[]
+  reminderTime    String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  goal            Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+}
+
+enum GoalStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
