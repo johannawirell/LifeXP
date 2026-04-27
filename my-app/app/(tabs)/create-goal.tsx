@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -95,6 +96,28 @@ export default function CreateGoalScreen() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
 
+  const selectedMilestone =
+    draft?.milestones.find((milestone) => milestone.id === expandedMilestoneId) ?? null;
+
+  const getDynamicDetailValue = (label: string, value: string) => {
+    if (!draft) {
+      return value;
+    }
+
+    if (label !== 'Upplägg') {
+      return value;
+    }
+
+    const milestoneCount = draft.milestones.length;
+    const match = value.match(/^\d+\s+(.+)$/);
+
+    if (match) {
+      return `${milestoneCount} ${match[1]}`;
+    }
+
+    return `${milestoneCount} milestones`;
+  };
+
   const loadTemplates = async (category: string) => {
     try {
       setIsLoading(true);
@@ -176,6 +199,113 @@ export default function CreateGoalScreen() {
                 ? {
                     ...milestone,
                     tips: milestone.tips.map((tip) => (tip.id === tipId ? { ...tip, text } : tip)),
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const addMilestone = () => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: [
+              ...current.milestones,
+              {
+                id: `new-milestone-${Date.now()}`,
+                title: 'Ny milestone',
+                description: '',
+                subtasks: [{ id: `new-subtask-${Date.now()}`, title: 'Nytt delmål' }],
+                tips: [{ id: `new-tip-${Date.now()}`, text: 'Nytt tips' }],
+              },
+            ],
+          }
+        : current
+    );
+  };
+
+  const removeMilestone = (milestoneId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.filter((milestone) => milestone.id !== milestoneId),
+          }
+        : current
+    );
+    setExpandedMilestoneId((current) => (current === milestoneId ? null : current));
+  };
+
+  const addSubtask = (milestoneId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    subtasks: [
+                      ...milestone.subtasks,
+                      { id: `new-subtask-${Date.now()}`, title: 'Nytt delmål' },
+                    ],
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const removeSubtask = (milestoneId: string, subtaskId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    subtasks: milestone.subtasks.filter((subtask) => subtask.id !== subtaskId),
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const addTip = (milestoneId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    tips: [...milestone.tips, { id: `new-tip-${Date.now()}`, text: 'Nytt tips' }],
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const removeTip = (milestoneId: string, tipId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    tips: milestone.tips.filter((tip) => tip.id !== tipId),
                   }
                 : milestone
             ),
@@ -340,7 +470,7 @@ export default function CreateGoalScreen() {
               {selectedTemplate.summaryDetails.map((detail) => (
                 <View key={detail.id} style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{detail.label}</Text>
-                  <Text style={styles.detailValue}>{detail.value}</Text>
+                  <Text style={styles.detailValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
                 </View>
               ))}
             </View>
@@ -358,56 +488,28 @@ export default function CreateGoalScreen() {
 
             <View style={styles.detailCard}>
               <Text style={styles.detailCardTitle}>Milestones</Text>
+              <Pressable style={styles.secondaryButton} onPress={addMilestone}>
+                <Text style={styles.secondaryButtonText}>Lägg till milestone</Text>
+              </Pressable>
               {draft.milestones.map((milestone) => (
                 <View key={milestone.id} style={styles.milestoneEditorCard}>
-                  <Pressable
-                    style={styles.milestoneEditorHeader}
-                    onPress={() =>
-                      setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
-                    }>
-                    <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
-                    <Ionicons
-                      name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
-                      size={18}
-                      color="#D8DEE7"
-                    />
-                  </Pressable>
-
-                  {expandedMilestoneId === milestone.id ? (
-                    <View>
-                      <TextInput
-                        value={milestone.title}
-                        onChangeText={(text) => updateMilestoneTitle(milestone.id, text)}
-                        style={styles.input}
-                        placeholder="Milestone"
-                        placeholderTextColor="#6F7887"
+                  <View style={styles.milestoneEditorRow}>
+                    <Pressable
+                      style={styles.milestoneEditorHeader}
+                      onPress={() =>
+                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
+                      }>
+                      <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
+                      <Ionicons
+                        name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color="#D8DEE7"
                       />
-
-                      <Text style={styles.editorSectionTitle}>Delmål</Text>
-                      {milestone.subtasks.map((subtask) => (
-                        <TextInput
-                          key={subtask.id}
-                          value={subtask.title}
-                          onChangeText={(text) => updateSubtaskTitle(milestone.id, subtask.id, text)}
-                          style={styles.input}
-                          placeholder="Delmål"
-                          placeholderTextColor="#6F7887"
-                        />
-                      ))}
-
-                      <Text style={styles.editorSectionTitle}>Tips</Text>
-                      {milestone.tips.map((tip) => (
-                        <TextInput
-                          key={tip.id}
-                          value={tip.text}
-                          onChangeText={(text) => updateTipText(milestone.id, tip.id, text)}
-                          style={styles.input}
-                          placeholder="Tips"
-                          placeholderTextColor="#6F7887"
-                        />
-                      ))}
-                    </View>
-                  ) : null}
+                    </Pressable>
+                    <Pressable style={styles.trashButton} onPress={() => removeMilestone(milestone.id)} hitSlop={8}>
+                      <Ionicons name="trash-outline" size={18} color="#A866FF" />
+                    </Pressable>
+                  </View>
                 </View>
               ))}
             </View>
@@ -421,6 +523,71 @@ export default function CreateGoalScreen() {
           </>
         )}
       </ScrollView>
+      <Modal visible={Boolean(selectedMilestone)} animationType="slide" transparent onRequestClose={() => setExpandedMilestoneId(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Redigera milestone</Text>
+              <Pressable onPress={() => setExpandedMilestoneId(null)}>
+                <Ionicons name="close" size={22} color="#F5F7FB" />
+              </Pressable>
+            </View>
+            {selectedMilestone ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <TextInput
+                  value={selectedMilestone.title}
+                  onChangeText={(text) => updateMilestoneTitle(selectedMilestone.id, text)}
+                  style={styles.input}
+                  placeholder="Milestone"
+                  placeholderTextColor="#6F7887"
+                />
+
+                <View style={styles.modalSectionHeader}>
+                  <Text style={styles.editorSectionTitle}>Delmål</Text>
+                  <Pressable onPress={() => addSubtask(selectedMilestone.id)}>
+                    <Text style={styles.inlineActionText}>Lägg till</Text>
+                  </Pressable>
+                </View>
+                {selectedMilestone.subtasks.map((subtask) => (
+                  <View key={subtask.id} style={styles.inlineEditorRow}>
+                    <TextInput
+                      value={subtask.title}
+                      onChangeText={(text) => updateSubtaskTitle(selectedMilestone.id, subtask.id, text)}
+                      style={[styles.input, styles.inlineInput]}
+                      placeholder="Delmål"
+                      placeholderTextColor="#6F7887"
+                    />
+                    <Pressable onPress={() => removeSubtask(selectedMilestone.id, subtask.id)} hitSlop={8}>
+                      <Ionicons name="remove-circle-outline" size={20} color="#F08A45" />
+                    </Pressable>
+                  </View>
+                ))}
+
+                <View style={styles.modalSectionHeader}>
+                  <Text style={styles.editorSectionTitle}>Tips</Text>
+                  <Pressable onPress={() => addTip(selectedMilestone.id)}>
+                    <Text style={styles.inlineActionText}>Lägg till</Text>
+                  </Pressable>
+                </View>
+                {selectedMilestone.tips.map((tip) => (
+                  <View key={tip.id} style={styles.inlineEditorRow}>
+                    <TextInput
+                      value={tip.text}
+                      onChangeText={(text) => updateTipText(selectedMilestone.id, tip.id, text)}
+                      style={[styles.input, styles.inlineInput]}
+                      placeholder="Tips"
+                      placeholderTextColor="#6F7887"
+                    />
+                    <Pressable onPress={() => removeTip(selectedMilestone.id, tip.id)} hitSlop={8}>
+                      <Ionicons name="remove-circle-outline" size={20} color="#F08A45" />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -606,6 +773,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
+  secondaryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1E1930',
+    borderRadius: 12,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   detailCardTitle: {
     color: '#F5F7FB',
     fontSize: 18,
@@ -653,9 +833,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: 12,
   },
+  milestoneEditorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
   milestoneEditorHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    flex: 1,
     justifyContent: 'space-between',
   },
   milestoneEditorHeaderText: {
@@ -664,7 +850,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  trashButton: {
+    alignItems: 'center',
+    backgroundColor: '#251A38',
+    borderRadius: 999,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
   editorSectionTitle: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 14,
+  },
+  modalBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    backgroundColor: '#111722',
+    borderRadius: 24,
+    maxHeight: '72%',
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    color: '#F5F7FB',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalSectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  inlineEditorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  inlineInput: {
+    flex: 1,
+  },
+  inlineActionText: {
     color: '#C9A9FF',
     fontSize: 12,
     fontWeight: '700',
