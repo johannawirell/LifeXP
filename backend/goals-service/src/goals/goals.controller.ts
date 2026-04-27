@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { PrismaClient } from '../../generated/client';
 
 import { GoalsQueryService } from './goals-query.service';
@@ -14,7 +14,7 @@ export class GoalsController {
   }
 
   @Get('templates/list')
-  getGoalTemplates() {
-    return goalsQueryService.getGoalTemplatePage();
+  getGoalTemplates(@Query('category') category?: string) {
+    return goalsQueryService.getGoalTemplatePage(category);
   }
 }

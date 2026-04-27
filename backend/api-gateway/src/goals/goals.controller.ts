@@ -1,12 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import axios from 'axios';
 
 @Controller('goals')
 export class GoalsController {
   @Get('templates/list')
-  async getGoalTemplates() {
+  async getGoalTemplates(@Query('category') category?: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
-    const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`);
+    const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`, {
+      params: category ? { category } : undefined,
+    });
 
     return response.data;
   }

@@ -16,6 +16,7 @@ import { fetchJson } from '@/lib/api';
 type GoalTemplatePageResponse = {
   steps: { id: number; label: string; complete: boolean }[];
   categories: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; active: boolean }[];
+  selectedCategory: string;
   templates: {
     id: string;
     title: string;
@@ -24,6 +25,7 @@ type GoalTemplatePageResponse = {
     description: string;
     category: string;
     color: string;
+    milestones: { id: string; title: string }[];
   }[];
 };
 
@@ -32,12 +34,13 @@ export default function CreateGoalScreen() {
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('popular');
 
-  const loadTemplates = async () => {
+  const loadTemplates = async (category: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchJson<GoalTemplatePageResponse>('/goals/templates/list');
+      const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?category=${category}`);
       setPage(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
@@ -47,8 +50,8 @@ export default function CreateGoalScreen() {
   };
 
   useEffect(() => {
-    void loadTemplates();
-  }, []);
+    void loadTemplates(selectedCategory);
+  }, [selectedCategory]);
 
   if (isLoading) {
     return (
@@ -69,7 +72,7 @@ export default function CreateGoalScreen() {
           <Text style={styles.feedbackTitle}>Målmallar kunde inte hämtas</Text>
           <Text style={styles.feedbackText}>Kontrollera att `goals-service` och `api-gateway` kör.</Text>
           <Text style={styles.feedbackError}>{error ?? 'Ingen data hittades.'}</Text>
-          <Pressable onPress={() => void loadTemplates()} style={styles.retryButton}>
+          <Pressable onPress={() => void loadTemplates(selectedCategory)} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Försök igen</Text>
           </Pressable>
         </View>
@@ -111,18 +114,25 @@ export default function CreateGoalScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
           {page.categories.map((category) => (
-            <View key={category.key} style={styles.categoryItem}>
-              <View style={[styles.categoryIconWrap, category.active ? styles.categoryIconWrapActive : null]}>
+            <Pressable
+              key={category.key}
+              style={styles.categoryItem}
+              onPress={() => setSelectedCategory(category.key)}>
+              <View
+                style={[
+                  styles.categoryIconWrap,
+                  category.key === page.selectedCategory ? styles.categoryIconWrapActive : null,
+                ]}>
                 <Ionicons
                   name={category.icon}
                   size={24}
-                  color={category.active ? '#A866FF' : '#9AA3B2'}
+                  color={category.key === page.selectedCategory ? '#A866FF' : '#9AA3B2'}
                 />
               </View>
-              <Text style={[styles.categoryText, category.active ? styles.categoryTextActive : null]}>
+              <Text style={[styles.categoryText, category.key === page.selectedCategory ? styles.categoryTextActive : null]}>
                 {category.label}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
 
@@ -136,6 +146,14 @@ export default function CreateGoalScreen() {
               <Text style={styles.templateDescription}>{template.description}</Text>
               <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
                 <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
+              </View>
+              <View style={styles.templateMilestonesList}>
+                {template.milestones.slice(0, 3).map((milestone) => (
+                  <View key={milestone.id} style={styles.templateMilestoneRow}>
+                    <Ionicons name="ellipse" size={6} color="#9AA3B2" />
+                    <Text style={styles.templateMilestoneText}>{milestone.title}</Text>
+                  </View>
+                ))}
               </View>
             </View>
             <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
@@ -386,6 +404,21 @@ const styles = StyleSheet.create({
   templateTagText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  templateMilestonesList: {
+    gap: 6,
+    marginTop: 12,
+  },
+  templateMilestoneRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  templateMilestoneText: {
+    color: '#9AA3B2',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
   },
   createOwnCard: {
     alignItems: 'center',

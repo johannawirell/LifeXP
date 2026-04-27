@@ -84,14 +84,28 @@ model GoalTemplate {
   icon        String
   subtitle    String
   description String
-  category    String
+  category    GoalTemplateCategory
   color       String
   isPopular   Boolean  @default(false)
   position    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  milestones  GoalTemplateMilestone[]
 
   @@index([category, position])
+}
+
+model GoalTemplateMilestone {
+  id             String       @id @default(uuid())
+  goalTemplateId String
+  title          String
+  description    String?
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  goalTemplate   GoalTemplate @relation(fields: [goalTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([goalTemplateId, position])
 }
 
 enum GoalStatus {
@@ -100,4 +114,12 @@ enum GoalStatus {
   PAUSED
   COMPLETED
   ARCHIVED
+}
+
+enum GoalTemplateCategory {
+  JOB
+  STUDY
+  TRAINING
+  HEALTH
+  RELATIONSHIP
 }

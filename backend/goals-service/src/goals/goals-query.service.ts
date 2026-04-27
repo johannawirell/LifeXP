@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '../../generated/client';
+import { PrismaClient, Prisma, GoalTemplateCategory } from '../../generated/client';
 
 type GoalsOverview = {
   activeGoals: number;
@@ -39,11 +39,16 @@ type GoalTemplateCard = {
   description: string;
   category: string;
   color: string;
+  milestones: {
+    id: string;
+    title: string;
+  }[];
 };
 
 type GoalTemplatePageResponse = {
   steps: { id: number; label: string; complete: boolean }[];
   categories: { key: string; label: string; icon: string; active: boolean }[];
+  selectedCategory: string;
   templates: GoalTemplateCard[];
 };
 
@@ -93,18 +98,30 @@ export class GoalsQueryService {
     };
   }
 
-  async getGoalTemplatePage(): Promise<GoalTemplatePageResponse> {
+  async getGoalTemplatePage(category = 'popular'): Promise<GoalTemplatePageResponse> {
+    const normalizedCategory = category.toLowerCase();
     const templates = await this.prisma.goalTemplate.findMany({
+      where:
+        normalizedCategory === 'popular'
+          ? { isPopular: true }
+          : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
+      include: {
+        milestones: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
       orderBy: [{ isPopular: 'desc' }, { position: 'asc' }],
     });
 
     const categories = [
-      { key: 'popular', label: 'Populära', icon: 'star-outline', active: true },
-      { key: 'job', label: 'Jobb', icon: 'briefcase-outline', active: false },
-      { key: 'study', label: 'Plugg', icon: 'school-outline', active: false },
-      { key: 'training', label: 'Träning', icon: 'barbell-outline', active: false },
-      { key: 'health', label: 'Hälsa', icon: 'heart-outline', active: false },
-      { key: 'relationship', label: 'Relationer', icon: 'people-outline', active: false },
+      { key: 'popular', label: 'Populära', icon: 'star-outline', active: normalizedCategory === 'popular' },
+      { key: 'job', label: 'Jobb', icon: 'briefcase-outline', active: normalizedCategory === 'job' },
+      { key: 'study', label: 'Plugg', icon: 'school-outline', active: normalizedCategory === 'study' },
+      { key: 'training', label: 'Träning', icon: 'barbell-outline', active: normalizedCategory === 'training' },
+      { key: 'health', label: 'Hälsa', icon: 'heart-outline', active: normalizedCategory === 'health' },
+      { key: 'relationship', label: 'Relationer', icon: 'people-outline', active: normalizedCategory === 'relationship' },
     ];
 
     return {
@@ -114,16 +131,55 @@ export class GoalsQueryService {
         { id: 3, label: 'Klart!', complete: false },
       ],
       categories,
+      selectedCategory: normalizedCategory,
       templates: templates.map((template) => ({
         id: template.id,
         title: template.title,
         icon: template.icon,
         subtitle: template.subtitle,
         description: template.description,
-        category: template.category,
+        category: this.mapCategoryEnumToLabel(template.category),
         color: template.color,
+        milestones: template.milestones.map((milestone) => ({
+          id: milestone.id,
+          title: milestone.title,
+        })),
       })),
     };
+  }
+
+  private mapCategoryKeyToEnum(category: string): GoalTemplateCategory {
+    switch (category) {
+      case 'job':
+        return 'JOB';
+      case 'study':
+        return 'STUDY';
+      case 'training':
+        return 'TRAINING';
+      case 'health':
+        return 'HEALTH';
+      case 'relationship':
+        return 'RELATIONSHIP';
+      default:
+        return 'TRAINING';
+    }
+  }
+
+  private mapCategoryEnumToLabel(category: GoalTemplateCategory): string {
+    switch (category) {
+      case 'JOB':
+        return 'Jobb';
+      case 'STUDY':
+        return 'Plugg';
+      case 'TRAINING':
+        return 'Träning';
+      case 'HEALTH':
+        return 'Hälsa';
+      case 'RELATIONSHIP':
+        return 'Relationer';
+      default:
+        return 'Träning';
+    }
   }
 
   private toGoalCard(
