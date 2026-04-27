@@ -75,4 +75,29 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
       { title: 'Justera planen efter första månaden' },
     ],
   },
+  {
+    title: 'Gå upp 5 kg',
+    icon: 'fitness-outline',
+    subtitle: 'Hälsa',
+    summaryDescription: 'Skapa hållbara vanor kring kost, rörelse och återhämtning.',
+    detailDescription:
+      'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
+    category: 'HEALTH',
+    color: '#F08A45',
+    isPopular: false,
+    details: [
+      { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
+      { label: 'Målnivå', value: '5 kg', visibility: 'SUMMARY' },
+      { label: 'Fokus', value: 'Kost, aktivitet och veckovis uppföljning', visibility: 'DETAIL' },
+      { label: 'Passar dig som', value: 'vill gå upp i vikt med hållbara vanor', visibility: 'DETAIL' },
+    ],
+    milestones: [
+      { title: 'Sätt ett realistiskt kalori- och aktivitetsmål' },
+      { title: 'Planera måltider för veckan' },
+      { title: 'Rör dig minst 30 minuter om dagen' },
+      { title: 'Följ upp vikt och mått varje vecka' },
+      { title: 'Justera planen efter första månaden' },
+    ],
+  },
 ];

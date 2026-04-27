@@ -51,4 +51,26 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
       { title: 'Bygg en återkommande social rutin' },
     ],
   },
+  {title: 'Förbättra relationen med familjen',
+    icon: 'home-outline',
+    subtitle: 'Relationer',
+    summaryDescription: 'Skapa mer kvalitetstid, bättre kommunikation och tydliga vanor tillsammans.',
+    detailDescription:
+      'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
+    category: 'RELATIONSHIP',
+    color: '#FF77C8',
+    isPopular: true,
+    details: [
+      { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
+      { label: 'Fokusområde', value: 'Familjerelationer', visibility: 'SUMMARY' },
+      { label: 'Fokus', value: 'Kommunikation, kvalitetstid och gemensamma rutiner', visibility: 'DETAIL' },
+    ],
+    milestones: [
+      { title: 'Prata om vad ni vill förbättra i relationen' },
+      { title: 'Planera in regelbunden kvalitetstid tillsammans' },
+      { title: 'Skapa bättre vanor för kommunikation' },
+      { title: 'Justera gemensamma rutiner' }, 
+    ],
+  },
 ];

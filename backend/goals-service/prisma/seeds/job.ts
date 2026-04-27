@@ -19,7 +19,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     milestones: [
       {
         title: 'Definiera rollen du vill nå',
-        subtasks: ['Skriv ner vilken roll du siktar på', 'Lista varför den rollen passar dig', 'Välj 2-3 krav från jobbannonser'],
+        subtasks: ['Skriv ner vilken roll du siktar på', 'Definiera varför du vill nå den rollen', 'Identifiera vilka kompetenser som behövs'],
         tips: ['Utgå från riktiga jobbannonser.', 'Jämför gärna flera roller innan du bestämmer dig.'],
       },
       {
@@ -66,7 +66,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
-      { label: 'Tidsram', value: '6 månader', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'CV, ansökningar och intervjuträning', visibility: 'DETAIL' },
 
     ],
@@ -78,17 +78,17 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
       },
       {
         title: 'Uppdatera CV och LinkedIn',
-        subtasks: ['Skriv om sammanfattningen', 'Lyft resultat i erfarenheter', 'Uppdatera rubrik och profilbild'],
+        subtasks: ['Uppdatera din profil', 'Uppdatera ditt CV', 'Börja följ relevanta företag', 'Nätverka med personer i branschen'],
         tips: ['Anpassa rubriken mot den roll du söker.', 'Fokusera på resultat, inte bara ansvar.'],
       },
       {
-        title: 'Sök ett visst antal jobb varje vecka',
+        title: 'Sök minst 1 jobb varje vecka',
         subtasks: ['Sätt ett veckomål', 'Blocka tid i kalendern', 'Följ upp hur många ansökningar du skickat'],
         tips: ['Hellre jämn takt än intensiva ryck.', 'Skriv upp vilka ansökningar som är viktigast.'],
       },
       {
         title: 'Öva på intervjufrågor',
-        subtasks: ['Välj vanliga frågor', 'Skriv stödord till svaren', 'Öva högt med timer'],
+        subtasks: ['Välj vanliga frågor', 'Skriv stödord till svaren'],
         tips: ['Öva på konkreta exempel.', 'Spela gärna in dig själv när du tränar.'],
       },
       {
@@ -96,6 +96,44 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
         subtasks: ['Anteckna direkt efter intervjun', 'Skicka uppföljning vid behov', 'Justera svaren inför nästa intervju'],
         tips: ['Reflektera direkt medan allt är färskt.', 'Se varje intervju som träning, inte bara utvärdering.'],
       },
+    ],
+  },
+  {
+    title: 'Utveckla dig inom ditt nuvarande område',
+    icon: 'briefcase-outline',
+    subtitle: 'Jobb',
+    summaryDescription: 'Bygg en konkret plan för att utveckla dina färdigheter inom ditt nuvarande område.',
+    detailDescription: 'Fokusera på att förbättra och fördjupa dina kompetenser för att bli mer framgångsrik i din nuvarande roll.',
+    category: 'JOB',
+    color: '#5E8BFF',
+    isPopular: false,
+    details: [
+      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
+      { label: 'Fokus', value: 'Kompetensutveckling', visibility: 'DETAIL' },
+
+    ],
+    milestones: [
+      { title: 'Kolla på en som har den kompetensen du vill utveckla', 
+        subtasks: ['Välj en person som är duktig på det du vill lära dig', 'Studera hur de jobbar och vad de fokuserar på', 'Försök förstå deras tänk och metod'], 
+        tips: ['Välj någon som inspirerar dig.', 'Var nyfiken på både vad och hur de gör.'] 
+      },
+{
+        title: 'Definiera vilken kompetens du vill utveckla',
+        subtasks: ['Identifiera styrkor och svagheter', 'Sätt upp konkreta mål', 'Välj relevanta kurser eller projekt'],
+        tips: ['Var specifik med vad du vill uppnå.', 'Fokusera på kompetenser som ger mest värde.'],
+      },
+      {
+        title: 'Skapa en plan för att utveckla kompetensen',
+        subtasks: ['Identifiera resurser och verktyg', 'Prata med närmaste chef hur du kan nå detta mål', 'Följ upp framsteg regelbundet'],
+        tips: ['Var realistisk med tidsramar.', 'Justera planen vid behov.'],
+      },
+      {
+        title: 'Genomför planen och följ upp dina framsteg',
+        subtasks: ['Följ din plan och gör det du bestämt dig för', 'Dokumentera vad du lärt dig och hur du utvecklats', 'Be om feedback från kollegor eller chefer'],
+        tips: ['Var konsekvent i ditt arbete.', 'Var öppen för feedback och lär av den.'],
+      },
+   
     ],
   },
 ];
