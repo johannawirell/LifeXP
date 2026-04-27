@@ -5,13 +5,21 @@ export type GoalTemplateMilestoneSeed = {
   description?: string;
 };
 
+export type GoalTemplateDetailSeed = {
+  label: string;
+  value: string;
+  visibility: 'SUMMARY' | 'DETAIL' | 'BOTH';
+};
+
 export type GoalTemplateSeed = {
   title: string;
   icon: string;
   subtitle: string;
-  description: string;
+  summaryDescription: string;
+  detailDescription: string;
   category: GoalTemplateCategory;
   color: string;
   isPopular: boolean;
+  details: GoalTemplateDetailSeed[];
   milestones: GoalTemplateMilestoneSeed[];
 };

@@ -4,6 +4,7 @@ import { goalTemplateSeeds } from './seeds';
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.goalTemplateDetail.deleteMany();
   await prisma.goalTemplateMilestone.deleteMany();
   await prisma.goalTemplate.deleteMany();
   await prisma.milestone.deleteMany({
@@ -218,7 +219,8 @@ async function main() {
       title: template.title,
       icon: template.icon,
       subtitle: template.subtitle,
-      description: template.description,
+      summaryDescription: template.summaryDescription,
+      detailDescription: template.detailDescription,
       category: template.category,
       color: template.color,
       isPopular: template.isPopular,
@@ -235,6 +237,18 @@ async function main() {
         goalTemplateId: byTitle[template.title],
         title: milestone.title,
         description: milestone.description,
+        position: index,
+      }))
+    ),
+  });
+
+  await prisma.goalTemplateDetail.createMany({
+    data: goalTemplateSeeds.flatMap((template) =>
+      template.details.map((detail, index) => ({
+        goalTemplateId: byTitle[template.title],
+        label: detail.label,
+        value: detail.value,
+        visibility: detail.visibility,
         position: index,
       }))
     ),

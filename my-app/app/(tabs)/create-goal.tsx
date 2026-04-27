@@ -1,40 +1,80 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
-import { fetchJson } from '@/lib/api';
+import { fetchJson, postJson } from '@/lib/api';
+
+type GoalTemplateSummary = {
+  id: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  subtitle: string;
+  summaryDescription: string;
+  category: string;
+  color: string;
+  summaryDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+  milestones: {
+    id: string;
+    title: string;
+  }[];
+};
 
 type GoalTemplatePageResponse = {
   steps: { id: number; label: string; complete: boolean }[];
   categories: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; active: boolean }[];
   selectedCategory: string;
-  templates: {
+  templates: GoalTemplateSummary[];
+};
+
+type GoalTemplateDetailResponse = {
+  id: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  subtitle: string;
+  summaryDescription: string;
+  detailDescription: string;
+  category: string;
+  color: string;
+  summaryDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+  detailDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+  milestones: {
     id: string;
     title: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    subtitle: string;
-    description: string;
-    category: string;
-    color: string;
-    milestones: { id: string; title: string }[];
+    description?: string;
   }[];
 };
 
+type CreateGoalResponse = {
+  goalId: string;
+  userId: string;
+  templateId: string;
+  message: string;
+};
+
 export default function CreateGoalScreen() {
-  const { mode } = useSession();
+  const { mode, userId } = useSession();
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('popular');
+  const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplateDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('popular');
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false);
 
   const loadTemplates = async (category: string) => {
     try {
@@ -46,6 +86,40 @@ export default function CreateGoalScreen() {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTemplateDetail = async (templateId: string) => {
+    try {
+      setIsDetailLoading(true);
+      setError(null);
+      const data = await fetchJson<GoalTemplateDetailResponse>(`/goals/templates/${templateId}`);
+      setSelectedTemplate(data);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const handleCreateGoal = async () => {
+    if (!userId || !selectedTemplate) {
+      return;
+    }
+
+    try {
+      setIsCreatingGoal(true);
+      await postJson<CreateGoalResponse>(`/goals/${userId}/from-template/${selectedTemplate.id}`);
+      Alert.alert('Mål tillagt', 'Målet har lagts till i din lista.');
+      setSelectedTemplate(null);
+      router.push('/(tabs)/goals');
+    } catch (createError) {
+      Alert.alert(
+        'Målet kunde inte läggas till',
+        createError instanceof Error ? createError.message : 'Unknown error'
+      );
+    } finally {
+      setIsCreatingGoal(false);
     }
   };
 
@@ -80,14 +154,18 @@ export default function CreateGoalScreen() {
     );
   }
 
+  const isDetailView = Boolean(selectedTemplate) || isDetailLoading;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
-          <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
-        <Text style={styles.screenTitle}>Lägg till mål</Text>
-        <View style={styles.topBarSpacer} />
-      </View>
+          <Pressable onPress={() => (selectedTemplate ? setSelectedTemplate(null) : router.back())}>
+            <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
+          </Pressable>
+          <Text style={styles.screenTitle}>{selectedTemplate ? 'Måldetaljer' : 'Lägg till mål'}</Text>
+          <View style={styles.topBarSpacer} />
+        </View>
 
         {mode === 'empty' ? (
           <View style={styles.modeBadge}>
@@ -96,89 +174,156 @@ export default function CreateGoalScreen() {
         ) : null}
 
         <View style={styles.stepsRow}>
-          {page.steps.map((step, index) => (
-            <View key={step.id} style={styles.stepItem}>
-              <View style={[styles.stepCircle, step.complete ? styles.stepCircleActive : null]}>
-                <Text style={[styles.stepNumber, step.complete ? styles.stepNumberActive : null]}>{step.id}</Text>
+          {page.steps.map((step, index) => {
+            const isActive = selectedTemplate ? step.id <= 2 : step.id === 1;
+
+            return (
+              <View key={step.id} style={styles.stepItem}>
+                <View style={[styles.stepCircle, isActive ? styles.stepCircleActive : null]}>
+                  <Text style={[styles.stepNumber, isActive ? styles.stepNumberActive : null]}>{step.id}</Text>
+                </View>
+                {index < page.steps.length - 1 ? <View style={styles.stepLine} /> : null}
+                <Text style={[styles.stepLabel, isActive ? styles.stepLabelActive : null]}>{step.label}</Text>
               </View>
-              {index < page.steps.length - 1 ? <View style={styles.stepLine} /> : null}
-              <Text style={[styles.stepLabel, step.complete ? styles.stepLabelActive : null]}>{step.label}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.divider} />
 
-        <Text style={styles.sectionTitle}>Välj ett mål</Text>
-        <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
+        {!isDetailView ? (
+          <>
+            <Text style={styles.sectionTitle}>Välj ett mål</Text>
+            <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          {page.categories.map((category) => (
-            <Pressable
-              key={category.key}
-              style={styles.categoryItem}
-              onPress={() => setSelectedCategory(category.key)}>
-              <View
-                style={[
-                  styles.categoryIconWrap,
-                  category.key === page.selectedCategory ? styles.categoryIconWrapActive : null,
-                ]}>
-                <Ionicons
-                  name={category.icon}
-                  size={24}
-                  color={category.key === page.selectedCategory ? '#A866FF' : '#9AA3B2'}
-                />
-              </View>
-              <Text style={[styles.categoryText, category.key === page.selectedCategory ? styles.categoryTextActive : null]}>
-                {category.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {page.templates.map((template) => (
-          <View key={template.id} style={styles.templateCard}>
-            <View style={[styles.templateIconWrap, { backgroundColor: `${template.color}22` }]}>
-              <Ionicons name={template.icon} size={28} color={template.color} />
-            </View>
-            <View style={styles.templateContent}>
-              <Text style={styles.templateTitle}>{template.title}</Text>
-              <Text style={styles.templateDescription}>{template.description}</Text>
-              <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
-                <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
-              </View>
-              <View style={styles.templateMilestonesList}>
-                {template.milestones.slice(0, 3).map((milestone) => (
-                  <View key={milestone.id} style={styles.templateMilestoneRow}>
-                    <Ionicons name="ellipse" size={6} color="#9AA3B2" />
-                    <Text style={styles.templateMilestoneText}>{milestone.title}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+              {page.categories.map((category) => (
+                <Pressable key={category.key} style={styles.categoryItem} onPress={() => setSelectedCategory(category.key)}>
+                  <View
+                    style={[
+                      styles.categoryIconWrap,
+                      category.key === page.selectedCategory ? styles.categoryIconWrapActive : null,
+                    ]}>
+                    <Ionicons
+                      name={category.icon}
+                      size={24}
+                      color={category.key === page.selectedCategory ? '#A866FF' : '#9AA3B2'}
+                    />
                   </View>
-                ))}
+                  <Text style={[styles.categoryText, category.key === page.selectedCategory ? styles.categoryTextActive : null]}>
+                    {category.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {page.templates.map((template) => (
+              <Pressable key={template.id} style={styles.templateCard} onPress={() => void loadTemplateDetail(template.id)}>
+                <View style={[styles.templateIconWrap, { backgroundColor: `${template.color}22` }]}>
+                  <Ionicons name={template.icon} size={28} color={template.color} />
+                </View>
+                <View style={styles.templateContent}>
+                  <Text style={styles.templateTitle}>{template.title}</Text>
+                  <Text style={styles.templateDescription}>{template.summaryDescription}</Text>
+                  <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
+                    <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
+                  </View>
+                  <View style={styles.templateMilestonesList}>
+                    {template.summaryDetails.map((detail) => (
+                      <View key={detail.id} style={styles.templateMilestoneRow}>
+                        <Ionicons name="ellipse" size={6} color="#9AA3B2" />
+                        <Text style={styles.templateMilestoneText}>
+                          {detail.label}: {detail.value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
+              </Pressable>
+            ))}
+
+            <View style={styles.createOwnCard}>
+              <Ionicons name="add" size={30} color="#A866FF" />
+              <View style={styles.createOwnTextWrap}>
+                <Text style={styles.createOwnTitle}>Skapa eget mål</Text>
+                <Text style={styles.createOwnSubtitle}>Sätt ditt eget mål helt från början</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
-          </View>
-        ))}
 
-        <View style={styles.createOwnCard}>
-          <Ionicons name="add" size={30} color="#A866FF" />
-          <View style={styles.createOwnTextWrap}>
-            <Text style={styles.createOwnTitle}>Skapa eget mål</Text>
-            <Text style={styles.createOwnSubtitle}>Sätt ditt eget mål helt från början</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoIconWrap}>
+                <Ionicons name="star-outline" size={22} color="#A866FF" />
+              </View>
+              <View style={styles.infoTextWrap}>
+                <Text style={styles.infoTitle}>Alla mål bryts ner i delmål</Text>
+                <Text style={styles.infoSubtitle}>
+                  Vi skapar en personlig plan som hjälper dig att nå ditt mål steg för steg.
+                </Text>
+              </View>
+            </View>
+          </>
+        ) : isDetailLoading || !selectedTemplate ? (
+          <View style={styles.feedbackState}>
+            <ActivityIndicator size="large" color="#A866FF" />
+            <Text style={styles.feedbackText}>Hämtar måldetaljer...</Text>
           </View>
-        </View>
+        ) : (
+          <>
+            <View style={styles.detailHeader}>
+              <View style={[styles.detailIconWrap, { backgroundColor: `${selectedTemplate.color}22` }]}>
+                <Ionicons name={selectedTemplate.icon} size={32} color={selectedTemplate.color} />
+              </View>
+              <Text style={styles.detailTitle}>{selectedTemplate.title}</Text>
+              <Text style={styles.detailSubtitle}>{selectedTemplate.summaryDescription}</Text>
+            </View>
 
-        <View style={styles.infoCard}>
-          <View style={styles.infoIconWrap}>
-            <Ionicons name="star-outline" size={22} color="#A866FF" />
-          </View>
-          <View style={styles.infoTextWrap}>
-            <Text style={styles.infoTitle}>Alla mål bryts ner i delmål</Text>
-            <Text style={styles.infoSubtitle}>
-              Vi skapar en personlig plan som hjälper dig att nå ditt mål steg för steg.
-            </Text>
-          </View>
-        </View>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailCardTitle}>Översiktsläge</Text>
+              {selectedTemplate.summaryDetails.map((detail) => (
+                <View key={detail.id} style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{detail.label}</Text>
+                  <Text style={styles.detailValue}>{detail.value}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.detailCard}>
+              <Text style={styles.detailCardTitle}>Detaljläge</Text>
+              <Text style={styles.detailDescription}>{selectedTemplate.detailDescription}</Text>
+              {selectedTemplate.detailDetails.map((detail) => (
+                <View key={detail.id} style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{detail.label}</Text>
+                  <Text style={styles.detailValue}>{detail.value}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.detailCard}>
+              <Text style={styles.detailCardTitle}>Delmål</Text>
+              {selectedTemplate.milestones.map((milestone, index) => (
+                <View key={milestone.id} style={styles.milestoneDetailRow}>
+                  <View style={styles.milestoneIndex}>
+                    <Text style={styles.milestoneIndexText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.milestoneDetailTextWrap}>
+                    <Text style={styles.milestoneDetailTitle}>{milestone.title}</Text>
+                    {milestone.description ? (
+                      <Text style={styles.milestoneDetailDescription}>{milestone.description}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => void handleCreateGoal()}
+              style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
+              disabled={isCreatingGoal}>
+              <Text style={styles.addGoalButtonText}>{isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}</Text>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -359,6 +504,7 @@ const styles = StyleSheet.create({
   },
   categoryTextActive: {
     color: '#F5F7FB',
+    fontWeight: '700',
   },
   templateCard: {
     alignItems: 'center',
@@ -478,5 +624,122 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
+  },
+  detailHeader: {
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 28,
+  },
+  detailIconWrap: {
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 68,
+    justifyContent: 'center',
+    width: 68,
+  },
+  detailTitle: {
+    color: '#F5F7FB',
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  detailSubtitle: {
+    color: '#CBD2DD',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  detailCard: {
+    backgroundColor: '#151B24',
+    borderColor: '#1F2632',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginHorizontal: 20,
+    marginTop: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  detailCardTitle: {
+    color: '#F5F7FB',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  detailDescription: {
+    color: '#CBD2DD',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  detailRow: {
+    borderTopColor: '#252B38',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  detailLabel: {
+    color: '#9AA3B2',
+    flex: 1,
+    fontSize: 12,
+  },
+  detailValue: {
+    color: '#F5F7FB',
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  milestoneDetailRow: {
+    borderTopColor: '#252B38',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    paddingVertical: 12,
+  },
+  milestoneIndex: {
+    alignItems: 'center',
+    backgroundColor: '#2A1E45',
+    borderRadius: 999,
+    height: 24,
+    justifyContent: 'center',
+    marginRight: 12,
+    width: 24,
+  },
+  milestoneIndexText: {
+    color: '#C9A9FF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  milestoneDetailTextWrap: {
+    flex: 1,
+  },
+  milestoneDetailTitle: {
+    color: '#F5F7FB',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  milestoneDetailDescription: {
+    color: '#9AA3B2',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  addGoalButton: {
+    alignItems: 'center',
+    backgroundColor: '#8B4EF4',
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginTop: 18,
+    paddingVertical: 16,
+  },
+  addGoalButtonDisabled: {
+    opacity: 0.6,
+  },
+  addGoalButtonText: {
+    color: '#F7F3FF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

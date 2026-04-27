@@ -79,18 +79,20 @@ model GoalSchedule {
 }
 
 model GoalTemplate {
-  id          String   @id @default(uuid())
-  title       String
-  icon        String
-  subtitle    String
-  description String
-  category    GoalTemplateCategory
-  color       String
-  isPopular   Boolean  @default(false)
-  position    Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  milestones  GoalTemplateMilestone[]
+  id                 String               @id @default(uuid())
+  title              String
+  icon               String
+  subtitle           String
+  summaryDescription String
+  detailDescription  String
+  category           GoalTemplateCategory
+  color              String
+  isPopular          Boolean              @default(false)
+  position           Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  milestones         GoalTemplateMilestone[]
+  details            GoalTemplateDetail[]
 
   @@index([category, position])
 }
@@ -108,6 +110,20 @@ model GoalTemplateMilestone {
   @@index([goalTemplateId, position])
 }
 
+model GoalTemplateDetail {
+  id             String                       @id @default(uuid())
+  goalTemplateId String
+  label          String
+  value          String
+  visibility     GoalTemplateDetailVisibility
+  position       Int                          @default(0)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  goalTemplate   GoalTemplate                 @relation(fields: [goalTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([goalTemplateId, visibility, position])
+}
+
 enum GoalStatus {
   DRAFT
   ACTIVE
@@ -122,4 +138,10 @@ enum GoalTemplateCategory {
   TRAINING
   HEALTH
   RELATIONSHIP
+}
+
+enum GoalTemplateDetailVisibility {
+  SUMMARY
+  DETAIL
+  BOTH
 }

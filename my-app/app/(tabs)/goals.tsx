@@ -52,29 +52,13 @@ const overviewItems = [
 ] as const;
 
 export default function GoalsScreen() {
-  const { mode, userId, resetSession } = useSession();
+  const { userId, resetSession } = useSession();
   const [goalsPage, setGoalsPage] = useState<GoalsPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
 
   const loadGoals = async () => {
-    if (mode === 'empty') {
-      setGoalsPage({
-        overview: {
-          activeGoals: 0,
-          averageProgress: '0 %',
-          completedMilestones: 0,
-          streakDays: 0,
-        },
-        activeGoals: [],
-        completedGoals: [],
-      });
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
     if (!userId) {
       setGoalsPage(null);
       setError('Ingen användare vald.');
@@ -96,22 +80,6 @@ export default function GoalsScreen() {
 
   useEffect(() => {
     void (async () => {
-      if (mode === 'empty') {
-        setGoalsPage({
-          overview: {
-            activeGoals: 0,
-            averageProgress: '0 %',
-            completedMilestones: 0,
-            streakDays: 0,
-          },
-          activeGoals: [],
-          completedGoals: [],
-        });
-        setError(null);
-        setIsLoading(false);
-        return;
-      }
-
       if (!userId) {
         setGoalsPage(null);
         setError('Ingen användare vald.');
@@ -130,7 +98,7 @@ export default function GoalsScreen() {
         setIsLoading(false);
       }
     })();
-  }, [mode, userId]);
+  }, [userId]);
 
   if (isLoading) {
     return (

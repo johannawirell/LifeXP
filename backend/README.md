@@ -133,6 +133,15 @@ När allt är igång finns profil-endpointen här:
 http://localhost:3000/api/profile/demo-auth-user-1
 ```
 
+Mål-relaterade endpoints:
+
+```text
+http://localhost:3000/api/goals/demo-auth-user-1
+http://localhost:3000/api/goals/templates/list
+http://localhost:3000/api/goals/templates/<templateId>
+POST http://localhost:3000/api/goals/<userId>/from-template/<templateId>
+```
+
 ## Databasansvar per service
 
 ### auth-service

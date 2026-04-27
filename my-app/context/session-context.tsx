@@ -18,7 +18,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SessionContextValue>(
     () => ({
       mode,
-      userId: mode === 'demo' ? 'demo-auth-user-1' : null,
+      userId: mode === 'demo' ? 'demo-auth-user-1' : mode === 'empty' ? 'empty-auth-user-1' : null,
       startDemoMode: () => setMode('demo'),
       startEmptyMode: () => setMode('empty'),
       resetSession: () => setMode('guest'),

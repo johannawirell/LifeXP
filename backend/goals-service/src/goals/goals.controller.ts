@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { PrismaClient } from '../../generated/client';
 
 import { GoalsQueryService } from './goals-query.service';
@@ -8,13 +8,23 @@ const goalsQueryService = new GoalsQueryService(prisma);
 
 @Controller('goals')
 export class GoalsController {
-  @Get(':userId')
-  getGoalsPage(@Param('userId') userId: string) {
-    return goalsQueryService.getGoalsPage(userId);
-  }
-
   @Get('templates/list')
   getGoalTemplates(@Query('category') category?: string) {
     return goalsQueryService.getGoalTemplatePage(category);
+  }
+
+  @Get('templates/:templateId')
+  getGoalTemplateDetail(@Param('templateId') templateId: string) {
+    return goalsQueryService.getGoalTemplateDetail(templateId);
+  }
+
+  @Post(':userId/from-template/:templateId')
+  createGoalFromTemplate(@Param('userId') userId: string, @Param('templateId') templateId: string) {
+    return goalsQueryService.createGoalFromTemplate(userId, templateId);
+  }
+
+  @Get(':userId')
+  getGoalsPage(@Param('userId') userId: string) {
+    return goalsQueryService.getGoalsPage(userId);
   }
 }

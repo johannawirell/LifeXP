@@ -74,6 +74,8 @@ API_GATEWAY_PID=$!
 echo "Backend is starting."
 echo "Scriptet har kört: infra, prisma generate, prisma push, seed:all och alla tjänster."
 echo "Profile endpoint: http://localhost:3000/api/profile/demo-auth-user-1"
+echo "Goals endpoint: http://localhost:3000/api/goals/demo-auth-user-1"
+echo "Goal templates endpoint: http://localhost:3000/api/goals/templates/list"
 echo "Press Ctrl+C to stop the services started by this script."
 
 wait "$USER_SERVICE_PID" "$GOALS_SERVICE_PID" "$ANALYTICS_SERVICE_PID" "$GAMIFICATION_SERVICE_PID" "$API_GATEWAY_PID"

@@ -5,10 +5,18 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     title: 'Bli redo för en befordran',
     icon: 'briefcase-outline',
     subtitle: 'Jobb',
-    description: 'Utveckla dina skills och ta nästa steg i karriären.',
+    summaryDescription: 'Utveckla dina skills och ta nästa steg i karriären.',
+    detailDescription:
+      'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du bygger synlighet inför nästa steg.',
     category: 'JOB',
     color: '#5E8BFF',
     isPopular: true,
+    details: [
+      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: '5 utvecklingssteg', visibility: 'SUMMARY' },
+      { label: 'Fokus', value: 'Karriärutveckling och synlighet', visibility: 'DETAIL' },
+      { label: 'Passar dig som', value: 'vill växa i nuvarande roll eller förbereda dig för nästa nivå', visibility: 'DETAIL' },
+    ],
     milestones: [
       { title: 'Definiera rollen du vill ta nästa steg mot' },
       { title: 'Identifiera vilka skills som saknas' },
@@ -21,10 +29,18 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     title: 'Byta jobb inom 6 månader',
     icon: 'briefcase-outline',
     subtitle: 'Jobb',
-    description: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
+    summaryDescription: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
+    detailDescription:
+      'Målet bryter ner jobbytet i tydliga steg så att du kan arbeta strukturerat med riktning, ansökningar, intervjuer och uppföljning.',
     category: 'JOB',
     color: '#5E8BFF',
     isPopular: false,
+    details: [
+      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
+      { label: 'Tidsram', value: '6 månader', visibility: 'SUMMARY' },
+      { label: 'Fokus', value: 'CV, ansökningar och intervjuträning', visibility: 'DETAIL' },
+      { label: 'Passar dig som', value: 'vill byta roll, bransch eller arbetsgivare', visibility: 'DETAIL' },
+    ],
     milestones: [
       { title: 'Bestäm vilken typ av roller du söker' },
       { title: 'Uppdatera CV och LinkedIn' },

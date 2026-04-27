@@ -35,3 +35,15 @@ export async function fetchJson<T>(path: string): Promise<T> {
 
   return response.json() as Promise<T>;
 }
+
+export async function postJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+  }
+
+  return response.json() as Promise<T>;
+}

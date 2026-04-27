@@ -1,4 +1,5 @@
-import { PrismaClient, Prisma, GoalTemplateCategory } from '../../generated/client';
+import { NotFoundException } from '@nestjs/common';
+import { PrismaClient, Prisma, GoalTemplateCategory, GoalTemplateDetailVisibility } from '../../generated/client';
 
 type GoalsOverview = {
   activeGoals: number;
@@ -36,9 +37,14 @@ type GoalTemplateCard = {
   title: string;
   icon: string;
   subtitle: string;
-  description: string;
+  summaryDescription: string;
   category: string;
   color: string;
+  summaryDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
   milestones: {
     id: string;
     title: string;
@@ -50,6 +56,32 @@ type GoalTemplatePageResponse = {
   categories: { key: string; label: string; icon: string; active: boolean }[];
   selectedCategory: string;
   templates: GoalTemplateCard[];
+};
+
+type GoalTemplateDetailResponse = {
+  id: string;
+  title: string;
+  icon: string;
+  subtitle: string;
+  summaryDescription: string;
+  detailDescription: string;
+  category: string;
+  color: string;
+  summaryDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+  detailDetails: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+  milestones: {
+    id: string;
+    title: string;
+    description?: string;
+  }[];
 };
 
 export class GoalsQueryService {
@@ -106,6 +138,11 @@ export class GoalsQueryService {
           ? { isPopular: true }
           : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
       include: {
+        details: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
         milestones: {
           orderBy: {
             position: 'asc',
@@ -137,14 +174,128 @@ export class GoalsQueryService {
         title: template.title,
         icon: template.icon,
         subtitle: template.subtitle,
-        description: template.description,
+        summaryDescription: template.summaryDescription,
         category: this.mapCategoryEnumToLabel(template.category),
         color: template.color,
+        summaryDetails: template.details
+          .filter((detail) => this.isVisibleInSummary(detail.visibility))
+          .map((detail) => ({
+            id: detail.id,
+            label: detail.label,
+            value: detail.value,
+          })),
         milestones: template.milestones.map((milestone) => ({
           id: milestone.id,
           title: milestone.title,
         })),
       })),
+    };
+  }
+
+  async getGoalTemplateDetail(templateId: string): Promise<GoalTemplateDetailResponse> {
+    const template = await this.prisma.goalTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        details: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
+        milestones: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!template) {
+      throw new NotFoundException('Goal template not found.');
+    }
+
+    return {
+      id: template.id,
+      title: template.title,
+      icon: template.icon,
+      subtitle: template.subtitle,
+      summaryDescription: template.summaryDescription,
+      detailDescription: template.detailDescription,
+      category: this.mapCategoryEnumToLabel(template.category),
+      color: template.color,
+      summaryDetails: template.details
+        .filter((detail) => this.isVisibleInSummary(detail.visibility))
+        .map((detail) => ({
+          id: detail.id,
+          label: detail.label,
+          value: detail.value,
+        })),
+      detailDetails: template.details
+        .filter((detail) => this.isVisibleInDetail(detail.visibility))
+        .map((detail) => ({
+          id: detail.id,
+          label: detail.label,
+          value: detail.value,
+        })),
+      milestones: template.milestones.map((milestone) => ({
+        id: milestone.id,
+        title: milestone.title,
+        description: milestone.description ?? undefined,
+      })),
+    };
+  }
+
+  async createGoalFromTemplate(userId: string, templateId: string) {
+    const template = await this.prisma.goalTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        milestones: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!template) {
+      throw new NotFoundException('Goal template not found.');
+    }
+
+    const createdGoal = await this.prisma.$transaction(async (tx) => {
+      const goal = await tx.goal.create({
+        data: {
+          userId,
+          title: template.title,
+          subtitle: template.subtitle,
+          description: template.detailDescription,
+          category: this.mapCategoryEnumToLabel(template.category),
+          icon: template.icon,
+          status: 'ACTIVE',
+          targetValue: template.milestones.length,
+          currentValue: 0,
+          percentLabel: '0 %',
+          cardColor: template.color,
+        },
+      });
+
+      if (template.milestones.length > 0) {
+        await tx.milestone.createMany({
+          data: template.milestones.map((milestone, index) => ({
+            goalId: goal.id,
+            title: milestone.title,
+            description: milestone.description,
+            position: index,
+          })),
+        });
+      }
+
+      return goal;
+    });
+
+    return {
+      goalId: createdGoal.id,
+      userId,
+      templateId,
+      message: 'Goal created from template.',
     };
   }
 
@@ -180,6 +331,14 @@ export class GoalsQueryService {
       default:
         return 'Träning';
     }
+  }
+
+  private isVisibleInSummary(visibility: GoalTemplateDetailVisibility) {
+    return visibility === 'SUMMARY' || visibility === 'BOTH';
+  }
+
+  private isVisibleInDetail(visibility: GoalTemplateDetailVisibility) {
+    return visibility === 'DETAIL' || visibility === 'BOTH';
   }
 
   private toGoalCard(
