@@ -277,6 +277,30 @@ export class GoalsQueryService {
     return this.getGoalsPage(userId);
   }
 
+  async deleteGoal(userId: string, goalId: string) {
+    const goal = await this.prisma.goal.findFirst({
+      where: {
+        id: goalId,
+        userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found.');
+    }
+
+    await this.prisma.goal.delete({
+      where: {
+        id: goalId,
+      },
+    });
+
+    return this.getGoalsPage(userId);
+  }
+
   async getGoalTemplatePage(category = 'popular'): Promise<GoalTemplatePageResponse> {
     const normalizedCategory = category.toLowerCase();
     const templates = await this.prisma.goalTemplate.findMany({

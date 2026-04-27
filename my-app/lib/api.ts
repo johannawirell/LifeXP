@@ -67,3 +67,15 @@ export async function patchJson<T>(path: string, body?: unknown): Promise<T> {
 
   return response.json() as Promise<T>;
 }
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+  }
+
+  return response.json() as Promise<T>;
+}

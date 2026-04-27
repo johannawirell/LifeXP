@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -12,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
-import { fetchJson, patchJson } from '@/lib/api';
+import { deleteJson, fetchJson, patchJson } from '@/lib/api';
 
 type GoalsPageResponse = {
   overview: {
@@ -128,6 +129,41 @@ export default function GoalsScreen() {
     }
   };
 
+  const confirmDeleteGoal = () => {
+    if (!selectedGoal) {
+      return;
+    }
+
+    Alert.alert('Ta bort mål', `Är du säker på att du vill ta bort "${selectedGoal.title}"?`, [
+      {
+        text: 'Avbryt',
+        style: 'cancel',
+      },
+      {
+        text: 'Ta bort',
+        style: 'destructive',
+        onPress: () => {
+          void deleteGoal(selectedGoal.id);
+        },
+      },
+    ]);
+  };
+
+  const deleteGoal = async (goalId: string) => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const data = await deleteJson<GoalsPageResponse>(`/goals/${userId}/${goalId}`);
+      setGoalsPage(data);
+      setSelectedGoal(null);
+      setExpandedMilestoneId(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unknown error');
+    }
+  };
+
   useEffect(() => {
     void loadGoals();
   }, [loadGoals]);
@@ -184,27 +220,37 @@ export default function GoalsScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.sectionTitle}>Översikt</Text>
-        <View style={styles.overviewCard}>
-          {overviewItems.map((item) => (
-            <View key={item.key} style={styles.overviewItem}>
-              <Ionicons name={item.icon} size={24} color={item.color} />
-              <Text style={styles.overviewValue}>{String(goalsPage.overview[item.key])}</Text>
-              <Text style={styles.overviewLabel}>{item.label}</Text>
+        {selectedTab === 'active' ? (
+          <>
+            <Text style={styles.sectionTitle}>Översikt</Text>
+            <View style={styles.overviewCard}>
+              {overviewItems.map((item) => (
+                <View key={item.key} style={styles.overviewItem}>
+                  <Ionicons name={item.icon} size={24} color={item.color} />
+                  <Text style={styles.overviewValue}>{String(goalsPage.overview[item.key])}</Text>
+                  <Text style={styles.overviewLabel}>{item.label}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        ) : null}
 
         {goalCards.length === 0 ? (
           <View style={styles.emptyGoalsCard}>
             <Ionicons name="flag-outline" size={32} color="#A866FF" />
-            <Text style={styles.emptyGoalsTitle}>Inga mål ännu</Text>
-            <Text style={styles.emptyGoalsText}>
-              Du börjar från början. Använd `+`-fliken för att skapa ditt första mål.
+            <Text style={styles.emptyGoalsTitle}>
+              {selectedTab === 'active' ? 'Inga mål ännu' : 'Inga avslutade mål ännu'}
             </Text>
-            <Pressable onPress={resetSession} style={styles.emptyGoalsButton}>
-              <Text style={styles.emptyGoalsButtonText}>Byt läge</Text>
-            </Pressable>
+            <Text style={styles.emptyGoalsText}>
+              {selectedTab === 'active'
+                ? 'Du börjar från början. Använd `+`-fliken för att skapa ditt första mål.'
+                : 'Fortsätt jobba med målen du har satt. När du klarar dem dyker de upp här.'}
+            </Text>
+            {selectedTab === 'active' ? (
+              <Pressable onPress={resetSession} style={styles.emptyGoalsButton}>
+                <Text style={styles.emptyGoalsButtonText}>Byt läge</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -234,9 +280,7 @@ export default function GoalsScreen() {
               <Text style={styles.metaText}>{goal.leftMeta}</Text>
               <Text style={styles.metaText}>{goal.rightMeta}</Text>
             </View>
-
-            <View style={styles.goalFooter}>
-              <Text style={styles.goalFooterText}>Öppna mål</Text>
+            <View style={styles.goalCardChevron}>
               <Ionicons name="chevron-forward" size={18} color="#D8DEE7" />
             </View>
           </Pressable>
@@ -248,9 +292,16 @@ export default function GoalsScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedGoal?.title ?? 'Mål'}</Text>
-              <Pressable onPress={() => setSelectedGoal(null)}>
-                <Ionicons name="close" size={22} color="#F5F7FB" />
-              </Pressable>
+              <View style={styles.modalActions}>
+                {selectedGoal ? (
+                  <Pressable onPress={confirmDeleteGoal} style={styles.iconActionButton}>
+                    <Ionicons name="trash-outline" size={20} color="#C9A9FF" />
+                  </Pressable>
+                ) : null}
+                <Pressable onPress={() => setSelectedGoal(null)} style={styles.iconActionButton}>
+                  <Ionicons name="close" size={22} color="#F5F7FB" />
+                </Pressable>
+              </View>
             </View>
 
             {isGoalDetailLoading || !selectedGoal ? (
@@ -550,11 +601,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   progressTrack: {
+    alignSelf: 'center',
     backgroundColor: '#2B313E',
     borderRadius: 999,
     height: 8,
     marginTop: 18,
     overflow: 'hidden',
+    width: '80%',
   },
   progressFill: {
     borderRadius: 999,
@@ -571,20 +624,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  goalFooter: {
-    alignItems: 'center',
-    borderTopColor: '#1F2632',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18,
+  goalCardChevron: {
+    alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  goalFooterText: {
-    color: '#F5F7FB',
-    fontSize: 15,
-    fontWeight: '600',
+    paddingBottom: 16,
+    paddingTop: 10,
   },
   modalBackdrop: {
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -605,6 +649,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 6,
+  },
+  modalActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconActionButton: {
+    alignItems: 'center',
+    backgroundColor: '#1A2130',
+    borderRadius: 12,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
   },
   modalTitle: {
     color: '#F5F7FB',

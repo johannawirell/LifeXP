@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { PrismaClient } from '../../generated/client';
 
 import { GoalsQueryService } from './goals-query.service';
@@ -39,6 +39,11 @@ export class GoalsController {
     @Body() body?: { completed?: boolean }
   ) {
     return goalsQueryService.updateSubtaskCompletion(userId, subtaskId, Boolean(body?.completed));
+  }
+
+  @Delete(':userId/:goalId')
+  deleteGoal(@Param('userId') userId: string, @Param('goalId') goalId: string) {
+    return goalsQueryService.deleteGoal(userId, goalId);
   }
 
   @Get(':userId')

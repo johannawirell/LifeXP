@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import axios from 'axios';
 
 @Controller('goals')
@@ -49,6 +49,14 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/subtasks/${subtaskId}`, body);
+
+    return response.data;
+  }
+
+  @Delete(':userId/:goalId')
+  async deleteGoal(@Param('userId') userId: string, @Param('goalId') goalId: string) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.delete(`${goalsServiceUrl}/goals/${userId}/${goalId}`);
 
     return response.data;
   }
