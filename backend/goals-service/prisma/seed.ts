@@ -2,27 +2,59 @@ import { PrismaClient } from '../generated/client';
 import { goalTemplateSeeds } from './seeds';
 
 const prisma = new PrismaClient();
+const demoUserId = 'demo-auth-user-1';
+
+function buildDefaultSubtasks(title: string) {
+  return [`Förbered: ${title}`, `Genomför: ${title}`, `Följ upp: ${title}`];
+}
+
+function buildDefaultTips(title: string) {
+  return [
+    `Boka in tid i kalendern för "${title}".`,
+    `Bryt ner "${title}" i små steg om det känns stort.`,
+  ];
+}
 
 async function main() {
+  await prisma.goalTemplateMilestoneSubtask.deleteMany();
+  await prisma.goalTemplateMilestoneTip.deleteMany();
   await prisma.goalTemplateDetail.deleteMany();
   await prisma.goalTemplateMilestone.deleteMany();
   await prisma.goalTemplate.deleteMany();
+  await prisma.milestoneSubtask.deleteMany({
+    where: {
+      milestone: {
+        goal: {
+          userId: demoUserId,
+        },
+      },
+    },
+  });
+  await prisma.milestoneTip.deleteMany({
+    where: {
+      milestone: {
+        goal: {
+          userId: demoUserId,
+        },
+      },
+    },
+  });
   await prisma.milestone.deleteMany({
     where: {
       goal: {
-        userId: 'demo-auth-user-1',
+        userId: demoUserId,
       },
     },
   });
 
   await prisma.goal.deleteMany({
-    where: { userId: 'demo-auth-user-1' },
+    where: { userId: demoUserId },
   });
 
   await prisma.goal.createMany({
     data: [
       {
-        userId: 'demo-auth-user-1',
+        userId: demoUserId,
         title: 'Springa 5 km',
         subtitle: 'Träning',
         icon: 'walk-outline',
@@ -33,7 +65,7 @@ async function main() {
         cardColor: '#73D86A',
       },
       {
-        userId: 'demo-auth-user-1',
+        userId: demoUserId,
         title: 'Klara kursen i Matematik 2',
         subtitle: 'Plugg',
         icon: 'school-outline',
@@ -44,7 +76,7 @@ async function main() {
         cardColor: '#B269FF',
       },
       {
-        userId: 'demo-auth-user-1',
+        userId: demoUserId,
         title: 'Sluta med alkohol',
         subtitle: 'Hälsa',
         icon: 'ban-outline',
@@ -57,7 +89,7 @@ async function main() {
         streakDays: 7,
       },
       {
-        userId: 'demo-auth-user-1',
+        userId: demoUserId,
         title: 'Meditera varje dag',
         subtitle: 'Balans',
         icon: 'leaf-outline',
@@ -71,16 +103,16 @@ async function main() {
   });
 
   const runGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: 'demo-auth-user-1', title: 'Springa 5 km' },
+    where: { userId: demoUserId, title: 'Springa 5 km' },
   });
   const mathGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: 'demo-auth-user-1', title: 'Klara kursen i Matematik 2' },
+    where: { userId: demoUserId, title: 'Klara kursen i Matematik 2' },
   });
   const alcoholGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: 'demo-auth-user-1', title: 'Sluta med alkohol' },
+    where: { userId: demoUserId, title: 'Sluta med alkohol' },
   });
   const meditationGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: 'demo-auth-user-1', title: 'Meditera varje dag' },
+    where: { userId: demoUserId, title: 'Meditera varje dag' },
   });
 
   await prisma.milestone.createMany({
@@ -214,6 +246,36 @@ async function main() {
     ],
   });
 
+  const demoMilestones = await prisma.milestone.findMany({
+    where: {
+      goal: {
+        userId: demoUserId,
+      },
+    },
+    orderBy: [{ goalId: 'asc' }, { position: 'asc' }],
+  });
+
+  await prisma.milestoneSubtask.createMany({
+    data: demoMilestones.flatMap((milestone) =>
+      buildDefaultSubtasks(milestone.title).map((title, index) => ({
+        milestoneId: milestone.id,
+        title,
+        completed: Boolean(milestone.completedAt) && index === 0,
+        position: index,
+      }))
+    ),
+  });
+
+  await prisma.milestoneTip.createMany({
+    data: demoMilestones.flatMap((milestone) =>
+      buildDefaultTips(milestone.title).map((text, index) => ({
+        milestoneId: milestone.id,
+        text,
+        position: index,
+      }))
+    ),
+  });
+
   await prisma.goalTemplate.createMany({
     data: goalTemplateSeeds.map((template, index) => ({
       title: template.title,
@@ -252,6 +314,48 @@ async function main() {
         position: index,
       }))
     ),
+  });
+
+  const templateMilestones = await prisma.goalTemplateMilestone.findMany({
+    include: {
+      goalTemplate: true,
+    },
+    orderBy: [{ goalTemplateId: 'asc' }, { position: 'asc' }],
+  });
+
+  const templateMilestoneSeedMap = new Map(
+    goalTemplateSeeds.flatMap((template) =>
+      template.milestones.map((milestone) => [
+        `${template.title}::${milestone.title}`,
+        milestone,
+      ])
+    )
+  );
+
+  await prisma.goalTemplateMilestoneSubtask.createMany({
+    data: templateMilestones.flatMap((milestone) => {
+      const seedMilestone = templateMilestoneSeedMap.get(`${milestone.goalTemplate.title}::${milestone.title}`);
+      const subtasks = seedMilestone?.subtasks ?? buildDefaultSubtasks(milestone.title);
+
+      return subtasks.map((title, index) => ({
+        goalTemplateMilestoneId: milestone.id,
+        title,
+        position: index,
+      }));
+    }),
+  });
+
+  await prisma.goalTemplateMilestoneTip.createMany({
+    data: templateMilestones.flatMap((milestone) => {
+      const seedMilestone = templateMilestoneSeedMap.get(`${milestone.goalTemplate.title}::${milestone.title}`);
+      const tips = seedMilestone?.tips ?? buildDefaultTips(milestone.title);
+
+      return tips.map((text, index) => ({
+        goalTemplateMilestoneId: milestone.id,
+        text,
+        position: index,
+      }));
+    }),
   });
 }
 

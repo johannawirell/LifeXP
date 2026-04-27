@@ -36,18 +36,45 @@ model Goal {
 }
 
 model Milestone {
-  id          String      @id @default(uuid())
+  id          String            @id @default(uuid())
   goalId      String
   title       String
   description String?
   dueDate     DateTime?
   completedAt DateTime?
-  position    Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  goal        Goal        @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  position    Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  goal        Goal              @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  subtasks    MilestoneSubtask[]
+  tips        MilestoneTip[]
 
   @@index([goalId])
+}
+
+model MilestoneSubtask {
+  id          String    @id @default(uuid())
+  milestoneId String
+  title       String
+  completed   Boolean   @default(false)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId, position])
+}
+
+model MilestoneTip {
+  id          String    @id @default(uuid())
+  milestoneId String
+  text        String
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId, position])
 }
 
 model ProgressEntry {
@@ -98,16 +125,42 @@ model GoalTemplate {
 }
 
 model GoalTemplateMilestone {
-  id             String       @id @default(uuid())
+  id             String                       @id @default(uuid())
   goalTemplateId String
   title          String
   description    String?
-  position       Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  goalTemplate   GoalTemplate @relation(fields: [goalTemplateId], references: [id], onDelete: Cascade)
+  position       Int                          @default(0)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  goalTemplate   GoalTemplate                 @relation(fields: [goalTemplateId], references: [id], onDelete: Cascade)
+  subtasks       GoalTemplateMilestoneSubtask[]
+  tips           GoalTemplateMilestoneTip[]
 
   @@index([goalTemplateId, position])
+}
+
+model GoalTemplateMilestoneSubtask {
+  id                     String                @id @default(uuid())
+  goalTemplateMilestoneId String
+  title                  String
+  position               Int                   @default(0)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  goalTemplateMilestone  GoalTemplateMilestone @relation(fields: [goalTemplateMilestoneId], references: [id], onDelete: Cascade)
+
+  @@index([goalTemplateMilestoneId, position])
+}
+
+model GoalTemplateMilestoneTip {
+  id                     String                @id @default(uuid())
+  goalTemplateMilestoneId String
+  text                   String
+  position               Int                   @default(0)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  goalTemplateMilestone  GoalTemplateMilestone @relation(fields: [goalTemplateMilestoneId], references: [id], onDelete: Cascade)
+
+  @@index([goalTemplateMilestoneId, position])
 }
 
 model GoalTemplateDetail {
@@ -138,6 +191,7 @@ enum GoalTemplateCategory {
   TRAINING
   HEALTH
   RELATIONSHIP
+  FINANCE
 }
 
 enum GoalTemplateDetailVisibility {

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { PrismaClient } from '../../generated/client';
 
 import { GoalsQueryService } from './goals-query.service';
@@ -19,8 +19,12 @@ export class GoalsController {
   }
 
   @Post(':userId/from-template/:templateId')
-  createGoalFromTemplate(@Param('userId') userId: string, @Param('templateId') templateId: string) {
-    return goalsQueryService.createGoalFromTemplate(userId, templateId);
+  createGoalFromTemplate(
+    @Param('userId') userId: string,
+    @Param('templateId') templateId: string,
+    @Body() body?: unknown
+  ) {
+    return goalsQueryService.createGoalFromTemplate(userId, templateId, body as never);
   }
 
   @Get(':userId')

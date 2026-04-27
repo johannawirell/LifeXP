@@ -3,6 +3,8 @@ import type { GoalTemplateCategory } from '../../generated/client';
 export type GoalTemplateMilestoneSeed = {
   title: string;
   description?: string;
+  subtasks?: string[];
+  tips?: string[];
 };
 
 export type GoalTemplateDetailSeed = {

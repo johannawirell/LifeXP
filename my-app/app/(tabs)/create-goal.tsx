@@ -1,7 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
@@ -23,6 +32,8 @@ type GoalTemplateSummary = {
   milestones: {
     id: string;
     title: string;
+    subtasks: { id: string; title: string }[];
+    tips: { id: string; text: string }[];
   }[];
 };
 
@@ -42,20 +53,26 @@ type GoalTemplateDetailResponse = {
   detailDescription: string;
   category: string;
   color: string;
-  summaryDetails: {
-    id: string;
-    label: string;
-    value: string;
-  }[];
-  detailDetails: {
-    id: string;
-    label: string;
-    value: string;
-  }[];
+  summaryDetails: { id: string; label: string; value: string }[];
+  detailDetails: { id: string; label: string; value: string }[];
   milestones: {
     id: string;
     title: string;
     description?: string;
+    subtasks: { id: string; title: string }[];
+    tips: { id: string; text: string }[];
+  }[];
+};
+
+type EditableTemplateDraft = {
+  id: string;
+  title: string;
+  milestones: {
+    id: string;
+    title: string;
+    description?: string;
+    subtasks: { id: string; title: string }[];
+    tips: { id: string; text: string }[];
   }[];
 };
 
@@ -71,6 +88,8 @@ export default function CreateGoalScreen() {
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('popular');
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplateDetailResponse | null>(null);
+  const [draft, setDraft] = useState<EditableTemplateDraft | null>(null);
+  const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -95,6 +114,18 @@ export default function CreateGoalScreen() {
       setError(null);
       const data = await fetchJson<GoalTemplateDetailResponse>(`/goals/templates/${templateId}`);
       setSelectedTemplate(data);
+      setDraft({
+        id: data.id,
+        title: data.title,
+        milestones: data.milestones.map((milestone) => ({
+          id: milestone.id,
+          title: milestone.title,
+          description: milestone.description,
+          subtasks: milestone.subtasks.map((subtask) => ({ ...subtask })),
+          tips: milestone.tips.map((tip) => ({ ...tip })),
+        })),
+      });
+      setExpandedMilestoneId(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
@@ -102,16 +133,76 @@ export default function CreateGoalScreen() {
     }
   };
 
+  const updateMilestoneTitle = (milestoneId: string, title: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId ? { ...milestone, title } : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const updateSubtaskTitle = (milestoneId: string, subtaskId: string, title: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    subtasks: milestone.subtasks.map((subtask) =>
+                      subtask.id === subtaskId ? { ...subtask, title } : subtask
+                    ),
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
+  const updateTipText = (milestoneId: string, tipId: string, text: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId
+                ? {
+                    ...milestone,
+                    tips: milestone.tips.map((tip) => (tip.id === tipId ? { ...tip, text } : tip)),
+                  }
+                : milestone
+            ),
+          }
+        : current
+    );
+  };
+
   const handleCreateGoal = async () => {
-    if (!userId || !selectedTemplate) {
+    if (!userId || !selectedTemplate || !draft) {
       return;
     }
 
     try {
       setIsCreatingGoal(true);
-      await postJson<CreateGoalResponse>(`/goals/${userId}/from-template/${selectedTemplate.id}`);
+      await postJson<CreateGoalResponse>(`/goals/${userId}/from-template/${selectedTemplate.id}`, {
+        title: draft.title,
+        milestones: draft.milestones.map((milestone) => ({
+          title: milestone.title,
+          description: milestone.description,
+          subtasks: milestone.subtasks.map((subtask) => subtask.title),
+          tips: milestone.tips.map((tip) => tip.text),
+        })),
+      });
       Alert.alert('Mål tillagt', 'Målet har lagts till i din lista.');
       setSelectedTemplate(null);
+      setDraft(null);
       router.push('/(tabs)/goals');
     } catch (createError) {
       Alert.alert(
@@ -160,10 +251,20 @@ export default function CreateGoalScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
-          <Pressable onPress={() => (selectedTemplate ? setSelectedTemplate(null) : router.back())}>
+          <Pressable
+            onPress={() => {
+              if (selectedTemplate) {
+                setSelectedTemplate(null);
+                setDraft(null);
+                setExpandedMilestoneId(null);
+                return;
+              }
+
+              router.back();
+            }}>
             <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
           </Pressable>
-          <Text style={styles.screenTitle}>{selectedTemplate ? 'Måldetaljer' : 'Lägg till mål'}</Text>
+          <Text style={styles.screenTitle}>{selectedTemplate ? 'Redigera mål' : 'Lägg till mål'}</Text>
           <View style={styles.topBarSpacer} />
         </View>
 
@@ -172,24 +273,6 @@ export default function CreateGoalScreen() {
             <Text style={styles.modeBadgeText}>Ny användare</Text>
           </View>
         ) : null}
-
-        <View style={styles.stepsRow}>
-          {page.steps.map((step, index) => {
-            const isActive = selectedTemplate ? step.id <= 2 : step.id === 1;
-
-            return (
-              <View key={step.id} style={styles.stepItem}>
-                <View style={[styles.stepCircle, isActive ? styles.stepCircleActive : null]}>
-                  <Text style={[styles.stepNumber, isActive ? styles.stepNumberActive : null]}>{step.id}</Text>
-                </View>
-                {index < page.steps.length - 1 ? <View style={styles.stepLine} /> : null}
-                <Text style={[styles.stepLabel, isActive ? styles.stepLabelActive : null]}>{step.label}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.divider} />
 
         {!isDetailView ? (
           <>
@@ -228,58 +311,32 @@ export default function CreateGoalScreen() {
                   <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
                     <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
                   </View>
-                  <View style={styles.templateMilestonesList}>
-                    {template.summaryDetails.map((detail) => (
-                      <View key={detail.id} style={styles.templateMilestoneRow}>
-                        <Ionicons name="ellipse" size={6} color="#9AA3B2" />
-                        <Text style={styles.templateMilestoneText}>
-                          {detail.label}: {detail.value}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
+                  <Text style={styles.templateMetaText}>{template.milestones.length} milestones</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
             ))}
-
-            <View style={styles.createOwnCard}>
-              <Ionicons name="add" size={30} color="#A866FF" />
-              <View style={styles.createOwnTextWrap}>
-                <Text style={styles.createOwnTitle}>Skapa eget mål</Text>
-                <Text style={styles.createOwnSubtitle}>Sätt ditt eget mål helt från början</Text>
-              </View>
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={styles.infoIconWrap}>
-                <Ionicons name="star-outline" size={22} color="#A866FF" />
-              </View>
-              <View style={styles.infoTextWrap}>
-                <Text style={styles.infoTitle}>Alla mål bryts ner i delmål</Text>
-                <Text style={styles.infoSubtitle}>
-                  Vi skapar en personlig plan som hjälper dig att nå ditt mål steg för steg.
-                </Text>
-              </View>
-            </View>
           </>
-        ) : isDetailLoading || !selectedTemplate ? (
+        ) : isDetailLoading || !selectedTemplate || !draft ? (
           <View style={styles.feedbackState}>
             <ActivityIndicator size="large" color="#A866FF" />
             <Text style={styles.feedbackText}>Hämtar måldetaljer...</Text>
           </View>
         ) : (
           <>
-            <View style={styles.detailHeader}>
-              <View style={[styles.detailIconWrap, { backgroundColor: `${selectedTemplate.color}22` }]}>
-                <Ionicons name={selectedTemplate.icon} size={32} color={selectedTemplate.color} />
-              </View>
-              <Text style={styles.detailTitle}>{selectedTemplate.title}</Text>
-              <Text style={styles.detailSubtitle}>{selectedTemplate.summaryDescription}</Text>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailCardTitle}>Måltitel</Text>
+              <TextInput
+                value={draft.title}
+                onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
+                style={styles.input}
+                placeholder="Måltitel"
+                placeholderTextColor="#6F7887"
+              />
             </View>
 
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Översiktsläge</Text>
+              <Text style={styles.detailCardTitle}>Översikt</Text>
               {selectedTemplate.summaryDetails.map((detail) => (
                 <View key={detail.id} style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{detail.label}</Text>
@@ -300,18 +357,57 @@ export default function CreateGoalScreen() {
             </View>
 
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Delmål</Text>
-              {selectedTemplate.milestones.map((milestone, index) => (
-                <View key={milestone.id} style={styles.milestoneDetailRow}>
-                  <View style={styles.milestoneIndex}>
-                    <Text style={styles.milestoneIndexText}>{index + 1}</Text>
-                  </View>
-                  <View style={styles.milestoneDetailTextWrap}>
-                    <Text style={styles.milestoneDetailTitle}>{milestone.title}</Text>
-                    {milestone.description ? (
-                      <Text style={styles.milestoneDetailDescription}>{milestone.description}</Text>
-                    ) : null}
-                  </View>
+              <Text style={styles.detailCardTitle}>Milestones</Text>
+              {draft.milestones.map((milestone) => (
+                <View key={milestone.id} style={styles.milestoneEditorCard}>
+                  <Pressable
+                    style={styles.milestoneEditorHeader}
+                    onPress={() =>
+                      setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
+                    }>
+                    <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
+                    <Ionicons
+                      name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color="#D8DEE7"
+                    />
+                  </Pressable>
+
+                  {expandedMilestoneId === milestone.id ? (
+                    <View>
+                      <TextInput
+                        value={milestone.title}
+                        onChangeText={(text) => updateMilestoneTitle(milestone.id, text)}
+                        style={styles.input}
+                        placeholder="Milestone"
+                        placeholderTextColor="#6F7887"
+                      />
+
+                      <Text style={styles.editorSectionTitle}>Delmål</Text>
+                      {milestone.subtasks.map((subtask) => (
+                        <TextInput
+                          key={subtask.id}
+                          value={subtask.title}
+                          onChangeText={(text) => updateSubtaskTitle(milestone.id, subtask.id, text)}
+                          style={styles.input}
+                          placeholder="Delmål"
+                          placeholderTextColor="#6F7887"
+                        />
+                      ))}
+
+                      <Text style={styles.editorSectionTitle}>Tips</Text>
+                      {milestone.tips.map((tip) => (
+                        <TextInput
+                          key={tip.id}
+                          value={tip.text}
+                          onChangeText={(text) => updateTipText(milestone.id, tip.id, text)}
+                          style={styles.input}
+                          placeholder="Tips"
+                          placeholderTextColor="#6F7887"
+                        />
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -407,62 +503,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  stepsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginTop: 28,
-  },
-  stepItem: {
-    alignItems: 'center',
-    flex: 1,
-    position: 'relative',
-  },
-  stepCircle: {
-    alignItems: 'center',
-    backgroundColor: '#151B24',
-    borderColor: '#3A4250',
-    borderRadius: 22,
-    borderWidth: 2,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-    zIndex: 2,
-  },
-  stepCircleActive: {
-    backgroundColor: '#8B4EF4',
-    borderColor: '#8B4EF4',
-  },
-  stepNumber: {
-    color: '#D6DCE7',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  stepNumberActive: {
-    color: '#F7F3FF',
-  },
-  stepLine: {
-    backgroundColor: '#343C49',
-    height: 2,
-    left: '50%',
-    position: 'absolute',
-    top: 22,
-    width: '100%',
-  },
-  stepLabel: {
-    color: '#8A93A2',
-    fontSize: 12,
-    marginTop: 12,
-  },
-  stepLabelActive: {
-    color: '#F5F7FB',
-    fontWeight: '600',
-  },
-  divider: {
-    backgroundColor: '#1E2530',
-    height: 1,
-    marginTop: 26,
-  },
   sectionTitle: {
     color: '#F5F7FB',
     fontSize: 20,
@@ -551,105 +591,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  templateMilestonesList: {
-    gap: 6,
-    marginTop: 12,
-  },
-  templateMilestoneRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  templateMilestoneText: {
+  templateMetaText: {
     color: '#9AA3B2',
-    flex: 1,
     fontSize: 12,
-    lineHeight: 16,
-  },
-  createOwnCard: {
-    alignItems: 'center',
-    borderColor: '#8B4EF4',
-    borderRadius: 18,
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 18,
-    paddingHorizontal: 22,
-    paddingVertical: 22,
-  },
-  createOwnTextWrap: {
-    marginLeft: 16,
-  },
-  createOwnTitle: {
-    color: '#A866FF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  createOwnSubtitle: {
-    color: '#D2D8E2',
-    fontSize: 13,
-    marginTop: 6,
-  },
-  infoCard: {
-    backgroundColor: '#171B2A',
-    borderColor: '#252B3A',
-    borderRadius: 20,
-    borderWidth: 1,
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  infoIconWrap: {
-    alignItems: 'center',
-    backgroundColor: '#2A1E45',
-    borderRadius: 16,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  infoTextWrap: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  infoTitle: {
-    color: '#F5F7FB',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  infoSubtitle: {
-    color: '#C8CFDA',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  detailHeader: {
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 28,
-  },
-  detailIconWrap: {
-    alignItems: 'center',
-    borderRadius: 18,
-    height: 68,
-    justifyContent: 'center',
-    width: 68,
-  },
-  detailTitle: {
-    color: '#F5F7FB',
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  detailSubtitle: {
-    color: '#CBD2DD',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
-    textAlign: 'center',
+    marginTop: 10,
   },
   detailCard: {
     backgroundColor: '#151B24',
@@ -665,13 +610,13 @@ const styles = StyleSheet.create({
     color: '#F5F7FB',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   detailDescription: {
     color: '#CBD2DD',
     fontSize: 13,
     lineHeight: 20,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   detailRow: {
     borderTopColor: '#252B38',
@@ -692,39 +637,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'right',
   },
-  milestoneDetailRow: {
-    borderTopColor: '#252B38',
-    borderTopWidth: 1,
-    flexDirection: 'row',
+  input: {
+    backgroundColor: '#0F141D',
+    borderColor: '#2A3040',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#F5F7FB',
+    fontSize: 14,
+    marginTop: 10,
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  milestoneIndex: {
+  milestoneEditorCard: {
+    borderTopColor: '#252B38',
+    borderTopWidth: 1,
+    paddingTop: 12,
+  },
+  milestoneEditorHeader: {
     alignItems: 'center',
-    backgroundColor: '#2A1E45',
-    borderRadius: 999,
-    height: 24,
-    justifyContent: 'center',
-    marginRight: 12,
-    width: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  milestoneIndexText: {
-    color: '#C9A9FF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  milestoneDetailTextWrap: {
-    flex: 1,
-  },
-  milestoneDetailTitle: {
+  milestoneEditorHeaderText: {
     color: '#F5F7FB',
+    flex: 1,
     fontSize: 14,
     fontWeight: '600',
   },
-  milestoneDetailDescription: {
-    color: '#9AA3B2',
+  editorSectionTitle: {
+    color: '#C9A9FF',
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    fontWeight: '700',
+    marginTop: 14,
   },
   addGoalButton: {
     alignItems: 'center',

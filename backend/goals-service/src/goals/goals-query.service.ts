@@ -21,8 +21,18 @@ type GoalCard = {
   milestones: {
     id: string;
     title: string;
+    description?: string;
     completed: boolean;
     completedLabel?: string;
+    subtasks: {
+      id: string;
+      title: string;
+      completed: boolean;
+    }[];
+    tips: {
+      id: string;
+      text: string;
+    }[];
   }[];
 };
 
@@ -48,6 +58,14 @@ type GoalTemplateCard = {
   milestones: {
     id: string;
     title: string;
+    subtasks: {
+      id: string;
+      title: string;
+    }[];
+    tips: {
+      id: string;
+      text: string;
+    }[];
   }[];
 };
 
@@ -81,6 +99,24 @@ type GoalTemplateDetailResponse = {
     id: string;
     title: string;
     description?: string;
+    subtasks: {
+      id: string;
+      title: string;
+    }[];
+    tips: {
+      id: string;
+      text: string;
+    }[];
+  }[];
+};
+
+type CreateGoalFromTemplateInput = {
+  title?: string;
+  milestones?: {
+    title: string;
+    description?: string;
+    subtasks?: string[];
+    tips?: string[];
   }[];
 };
 
@@ -92,6 +128,18 @@ export class GoalsQueryService {
       where: { userId },
       include: {
         milestones: {
+          include: {
+            subtasks: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+            tips: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+          },
           orderBy: {
             position: 'asc',
           },
@@ -144,6 +192,18 @@ export class GoalsQueryService {
           },
         },
         milestones: {
+          include: {
+            subtasks: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+            tips: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+          },
           orderBy: {
             position: 'asc',
           },
@@ -158,6 +218,7 @@ export class GoalsQueryService {
       { key: 'study', label: 'Plugg', icon: 'school-outline', active: normalizedCategory === 'study' },
       { key: 'training', label: 'Träning', icon: 'barbell-outline', active: normalizedCategory === 'training' },
       { key: 'health', label: 'Hälsa', icon: 'heart-outline', active: normalizedCategory === 'health' },
+      { key: 'finance', label: 'Ekonomi', icon: 'wallet-outline', active: normalizedCategory === 'finance' },
       { key: 'relationship', label: 'Relationer', icon: 'people-outline', active: normalizedCategory === 'relationship' },
     ];
 
@@ -187,6 +248,14 @@ export class GoalsQueryService {
         milestones: template.milestones.map((milestone) => ({
           id: milestone.id,
           title: milestone.title,
+          subtasks: milestone.subtasks.map((subtask) => ({
+            id: subtask.id,
+            title: subtask.title,
+          })),
+          tips: milestone.tips.map((tip) => ({
+            id: tip.id,
+            text: tip.text,
+          })),
         })),
       })),
     };
@@ -202,6 +271,18 @@ export class GoalsQueryService {
           },
         },
         milestones: {
+          include: {
+            subtasks: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+            tips: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+          },
           orderBy: {
             position: 'asc',
           },
@@ -240,15 +321,35 @@ export class GoalsQueryService {
         id: milestone.id,
         title: milestone.title,
         description: milestone.description ?? undefined,
+        subtasks: milestone.subtasks.map((subtask) => ({
+          id: subtask.id,
+          title: subtask.title,
+        })),
+        tips: milestone.tips.map((tip) => ({
+          id: tip.id,
+          text: tip.text,
+        })),
       })),
     };
   }
 
-  async createGoalFromTemplate(userId: string, templateId: string) {
+  async createGoalFromTemplate(userId: string, templateId: string, input?: CreateGoalFromTemplateInput) {
     const template = await this.prisma.goalTemplate.findUnique({
       where: { id: templateId },
       include: {
         milestones: {
+          include: {
+            subtasks: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+            tips: {
+              orderBy: {
+                position: 'asc',
+              },
+            },
+          },
           orderBy: {
             position: 'asc',
           },
@@ -260,32 +361,62 @@ export class GoalsQueryService {
       throw new NotFoundException('Goal template not found.');
     }
 
+    const sourceMilestones = input?.milestones?.length
+      ? input.milestones
+      : template.milestones.map((milestone) => ({
+          title: milestone.title,
+          description: milestone.description ?? undefined,
+          subtasks: milestone.subtasks.map((subtask) => subtask.title),
+          tips: milestone.tips.map((tip) => tip.text),
+        }));
+
     const createdGoal = await this.prisma.$transaction(async (tx) => {
       const goal = await tx.goal.create({
         data: {
           userId,
-          title: template.title,
+          title: input?.title?.trim() || template.title,
           subtitle: template.subtitle,
           description: template.detailDescription,
           category: this.mapCategoryEnumToLabel(template.category),
           icon: template.icon,
           status: 'ACTIVE',
-          targetValue: template.milestones.length,
+          targetValue: sourceMilestones.length,
           currentValue: 0,
           percentLabel: '0 %',
           cardColor: template.color,
         },
       });
 
-      if (template.milestones.length > 0) {
-        await tx.milestone.createMany({
-          data: template.milestones.map((milestone, index) => ({
-            goalId: goal.id,
-            title: milestone.title,
-            description: milestone.description,
-            position: index,
-          })),
-        });
+      if (sourceMilestones.length > 0) {
+        for (const [index, milestone] of sourceMilestones.entries()) {
+          const createdMilestone = await tx.milestone.create({
+            data: {
+              goalId: goal.id,
+              title: milestone.title,
+              description: milestone.description,
+              position: index,
+            },
+          });
+
+          const subtasks = milestone.subtasks?.length ? milestone.subtasks : [`Förbered: ${milestone.title}`];
+          const tips = milestone.tips?.length ? milestone.tips : [`Boka tid för "${milestone.title}".`];
+
+          await tx.milestoneSubtask.createMany({
+            data: subtasks.map((title, subtaskIndex) => ({
+              milestoneId: createdMilestone.id,
+              title,
+              position: subtaskIndex,
+            })),
+          });
+
+          await tx.milestoneTip.createMany({
+            data: tips.map((text, tipIndex) => ({
+              milestoneId: createdMilestone.id,
+              text,
+              position: tipIndex,
+            })),
+          });
+        }
       }
 
       return goal;
@@ -309,6 +440,8 @@ export class GoalsQueryService {
         return 'TRAINING';
       case 'health':
         return 'HEALTH';
+      case 'finance':
+        return 'FINANCE';
       case 'relationship':
         return 'RELATIONSHIP';
       default:
@@ -326,6 +459,8 @@ export class GoalsQueryService {
         return 'Träning';
       case 'HEALTH':
         return 'Hälsa';
+      case 'FINANCE':
+        return 'Ekonomi';
       case 'RELATIONSHIP':
         return 'Relationer';
       default:
@@ -344,7 +479,12 @@ export class GoalsQueryService {
   private toGoalCard(
     goal: Prisma.GoalGetPayload<{
       include: {
-        milestones: true;
+        milestones: {
+          include: {
+            subtasks: true;
+            tips: true;
+          };
+        };
       };
     }>
   ): GoalCard {
@@ -364,8 +504,18 @@ export class GoalsQueryService {
       milestones: goal.milestones.map((milestone) => ({
         id: milestone.id,
         title: milestone.title,
+        description: milestone.description ?? undefined,
         completed: Boolean(milestone.completedAt),
         completedLabel: milestone.completedAt ? this.formatDateLabel(milestone.completedAt) : undefined,
+        subtasks: milestone.subtasks.map((subtask) => ({
+          id: subtask.id,
+          title: subtask.title,
+          completed: subtask.completed,
+        })),
+        tips: milestone.tips.map((tip) => ({
+          id: tip.id,
+          text: tip.text,
+        })),
       })),
     };
   }

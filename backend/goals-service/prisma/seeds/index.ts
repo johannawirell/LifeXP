@@ -1,4 +1,5 @@
 import type { GoalTemplateSeed } from './template-seed-types';
+import { financeGoalTemplates } from './finance';
 import { healthGoalTemplates } from './health';
 import { jobGoalTemplates } from './job';
 import { relationshipGoalTemplates } from './relationship';
@@ -10,5 +11,6 @@ export const goalTemplateSeeds: GoalTemplateSeed[] = [
   ...studyGoalTemplates,
   ...healthGoalTemplates,
   ...jobGoalTemplates,
+  ...financeGoalTemplates,
   ...relationshipGoalTemplates,
 ];

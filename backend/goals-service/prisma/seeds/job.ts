@@ -7,22 +7,23 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     subtitle: 'Jobb',
     summaryDescription: 'Utveckla dina skills och ta nästa steg i karriären.',
     detailDescription:
-      'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du bygger synlighet inför nästa steg.',
+      'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du vågar ta nästa steg.',
     category: 'JOB',
     color: '#5E8BFF',
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
       { label: 'Upplägg', value: '5 utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Karriärutveckling och synlighet', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill växa i nuvarande roll eller förbereda dig för nästa nivå', visibility: 'DETAIL' },
+      { label: 'Fokus', value: 'Karriär, utveckling', visibility: 'DETAIL' }
     ],
     milestones: [
-      { title: 'Definiera rollen du vill ta nästa steg mot' },
-      { title: 'Identifiera vilka skills som saknas' },
-      { title: 'Ta ansvar för ett synligt projekt' },
-      { title: 'Be om feedback från chef eller mentor' },
-      { title: 'Be om ett utvecklingssamtal om nästa steg' },
+      { title: 'Definiera rollen du vill nå' },
+      { title: 'Utveckla saknade kompetenser' },
+      { title: 'Visa initiativ' },
+      { title: 'Dokumentera dina framsteg' },
+      { title: 'Be om feedback' },
+      { title: 'Be om ett utvecklingssamtal' },
+      { title: 'Ta samtalet' },
     ],
   },
   {

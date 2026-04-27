@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import axios from 'axios';
 
 @Controller('goals')
@@ -22,9 +22,13 @@ export class GoalsController {
   }
 
   @Post(':userId/from-template/:templateId')
-  async createGoalFromTemplate(@Param('userId') userId: string, @Param('templateId') templateId: string) {
+  async createGoalFromTemplate(
+    @Param('userId') userId: string,
+    @Param('templateId') templateId: string,
+    @Body() body?: unknown
+  ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
-    const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`);
+    const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`, body);
 
     return response.data;
   }

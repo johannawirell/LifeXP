@@ -37,8 +37,18 @@ type GoalCard = {
   milestones: {
     id: string;
     title: string;
+    description?: string;
     completed: boolean;
     completedLabel?: string;
+    subtasks: {
+      id: string;
+      title: string;
+      completed: boolean;
+    }[];
+    tips: {
+      id: string;
+      text: string;
+    }[];
   }[];
 };
 
@@ -57,6 +67,7 @@ export default function GoalsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
+  const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
 
   const loadGoals = async () => {
     if (!userId) {
@@ -205,16 +216,47 @@ export default function GoalsScreen() {
 
             <View style={styles.milestonesList}>
               {goal.milestones.map((milestone) => (
-                <View key={milestone.id} style={styles.milestoneRow}>
-                  <Ionicons
-                    name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={26}
-                    color={milestone.completed ? '#7BDE72' : '#8A93A2'}
-                  />
-                  <Text style={[styles.milestoneTitle, milestone.completed ? null : styles.milestoneTitleOpen]}>
-                    {milestone.title}
-                  </Text>
-                  <Text style={styles.milestoneDate}>{milestone.completedLabel ?? ''}</Text>
+                <View key={milestone.id}>
+                  <Pressable
+                    style={styles.milestoneRow}
+                    onPress={() =>
+                      setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
+                    }>
+                    <Ionicons
+                      name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={26}
+                      color={milestone.completed ? '#7BDE72' : '#8A93A2'}
+                    />
+                    <Text style={[styles.milestoneTitle, milestone.completed ? null : styles.milestoneTitleOpen]}>
+                      {milestone.title}
+                    </Text>
+                    <Text style={styles.milestoneDate}>{milestone.completedLabel ?? ''}</Text>
+                  </Pressable>
+                  {expandedMilestoneId === milestone.id ? (
+                    <View style={styles.milestoneExpandedCard}>
+                      {milestone.description ? (
+                        <Text style={styles.milestoneExpandedDescription}>{milestone.description}</Text>
+                      ) : null}
+                      <Text style={styles.milestoneExpandedTitle}>Delmål</Text>
+                      {milestone.subtasks.map((subtask) => (
+                        <View key={subtask.id} style={styles.milestoneExpandedRow}>
+                          <Ionicons
+                            name={subtask.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={18}
+                            color={subtask.completed ? '#7BDE72' : '#8A93A2'}
+                          />
+                          <Text style={styles.milestoneExpandedText}>{subtask.title}</Text>
+                        </View>
+                      ))}
+                      <Text style={styles.milestoneExpandedTitle}>Tips</Text>
+                      {milestone.tips.map((tip) => (
+                        <View key={tip.id} style={styles.milestoneExpandedRow}>
+                          <Ionicons name="bulb-outline" size={18} color="#F5C13C" />
+                          <Text style={styles.milestoneExpandedText}>{tip.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -486,6 +528,40 @@ const styles = StyleSheet.create({
     color: '#8A93A2',
     fontSize: 12,
     marginLeft: 12,
+  },
+  milestoneExpandedCard: {
+    backgroundColor: '#101621',
+    borderRadius: 14,
+    marginBottom: 8,
+    marginLeft: 34,
+    marginRight: 4,
+    marginTop: 8,
+    padding: 12,
+  },
+  milestoneExpandedDescription: {
+    color: '#C8CFDA',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  milestoneExpandedTitle: {
+    color: '#F5F7FB',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  milestoneExpandedRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  milestoneExpandedText: {
+    color: '#AEB6C3',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
   goalFooter: {
     alignItems: 'center',
