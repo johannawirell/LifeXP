@@ -13,6 +13,7 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Målnivå', value: '5 km löpning', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Kondition och uthållighet', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill komma igång med löpning eller nå en tydlig distans', visibility: 'DETAIL' },
@@ -37,7 +38,7 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'Styrka + kost', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Progressiv överbelastning och uppföljning', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill bygga styrka och muskelmassa strukturerat', visibility: 'DETAIL' },
     ],
@@ -61,6 +62,7 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Målnivå', value: 'Halvmaraton', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Långpass, veckovolym och återhämtning', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'redan springer regelbundet och vill ta nästa steg', visibility: 'DETAIL' },

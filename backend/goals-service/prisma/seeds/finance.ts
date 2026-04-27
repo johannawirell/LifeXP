@@ -13,9 +13,10 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Sparande och trygghet', visibility: 'SUMMARY' },
       { label: 'Passar dig som', value: 'vill få mer kontroll över oväntade utgifter', visibility: 'DETAIL' },
-      { label: 'Upplägg', value: 'Kartläggning, budget och löpande sparmål', visibility: 'DETAIL' },
+      { label: 'Metod', value: 'Kartläggning, budget och löpande sparmål', visibility: 'DETAIL' },
     ],
     milestones: [
       { title: 'Räkna ut hur stor buffert du vill ha' },
@@ -37,9 +38,10 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Avbetalning och överblick', visibility: 'SUMMARY' },
       { label: 'Passar dig som', value: 'vill få kontroll över lån, krediter eller andra skulder', visibility: 'DETAIL' },
-      { label: 'Upplägg', value: 'Skuldlista, prioritering och uppföljning', visibility: 'DETAIL' },
+      { label: 'Metod', value: 'Skuldlista, prioritering och uppföljning', visibility: 'DETAIL' },
     ],
     milestones: [
       { title: 'Lista alla skulder och räntor' },

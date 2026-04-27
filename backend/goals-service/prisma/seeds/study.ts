@@ -13,7 +13,7 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'delmål', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Studieplan, veckomål och examination', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill ta kontroll över en pågående kurs', visibility: 'DETAIL' },
     ],
@@ -37,6 +37,7 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Tidsfokus', value: 'Terminsplanering', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Kurser, deadlines och veckovis uppföljning', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill få struktur över hela studieperioden', visibility: 'DETAIL' },
@@ -61,6 +62,7 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Måltyp', value: 'Körkort', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Teori, körlektioner och prov', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill göra körkortet mer strukturerat', visibility: 'DETAIL' },

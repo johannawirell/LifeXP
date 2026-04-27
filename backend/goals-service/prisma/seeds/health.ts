@@ -13,7 +13,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'Vanebrytande steg', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Triggers, planering och nyktra rutiner', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill skapa en tydlig plan för att bli alkoholfri', visibility: 'DETAIL' },
     ],
@@ -37,6 +37,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokusområde', value: 'Stress och återhämtning', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Rutiner, återhämtning och belastning', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill få bättre balans i vardagen', visibility: 'DETAIL' },
@@ -61,6 +62,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Målnivå', value: '5 kg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Kost, aktivitet och veckovis uppföljning', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill gå ner i vikt med hållbara vanor', visibility: 'DETAIL' },

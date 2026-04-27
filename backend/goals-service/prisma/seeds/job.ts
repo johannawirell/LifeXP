@@ -54,6 +54,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
       },
     ],
   },
+  
   {
     title: 'Byta jobb',
     icon: 'briefcase-outline',
@@ -67,12 +68,12 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
       { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
       { label: 'Tidsram', value: '6 månader', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'CV, ansökningar och intervjuträning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill byta roll, bransch eller arbetsgivare', visibility: 'DETAIL' },
+
     ],
     milestones: [
       {
         title: 'Bestäm vilken typ av roller du söker',
-        subtasks: ['Definiera roll, nivå och bransch', 'Skriv ner vad du inte vill ha', 'Välj 10 relevanta företag'],
+        subtasks: ['Definiera roll, nivå och bransch', 'Skriv ner vad du inte vill ha', 'Välj 5 relevanta företag'],
         tips: ['Var hellre tydlig än för bred.', 'Utgå från vad du faktiskt vill motiveras av.'],
       },
       {

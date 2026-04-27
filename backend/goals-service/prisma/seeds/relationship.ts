@@ -13,6 +13,7 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokusområde', value: 'Partnerrelation', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Kommunikation, kvalitetstid och gemensamma rutiner', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill investera mer aktivt i er relation', visibility: 'DETAIL' },
@@ -37,6 +38,7 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
     isPopular: false,
     details: [
       { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokusområde', value: 'Nya sociala kontakter', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Initiativ, uppföljning och återkommande social vana', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill bredda ditt nätverk eller skapa fler relationer', visibility: 'DETAIL' },
