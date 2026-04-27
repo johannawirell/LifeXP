@@ -13,7 +13,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: '5 utvecklingssteg', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Karriär, utveckling', visibility: 'DETAIL' }
     ],
     milestones: [

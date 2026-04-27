@@ -13,7 +13,7 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: '5 delmål', visibility: 'SUMMARY' },
+      { label: 'Upplägg', value: 'delmål', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Studieplan, veckomål och examination', visibility: 'DETAIL' },
       { label: 'Passar dig som', value: 'vill ta kontroll över en pågående kurs', visibility: 'DETAIL' },
     ],

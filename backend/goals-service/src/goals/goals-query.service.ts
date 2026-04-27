@@ -243,7 +243,7 @@ export class GoalsQueryService {
           .map((detail) => ({
             id: detail.id,
             label: detail.label,
-            value: detail.value,
+            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
           })),
         milestones: template.milestones.map((milestone) => ({
           id: milestone.id,
@@ -308,14 +308,14 @@ export class GoalsQueryService {
         .map((detail) => ({
           id: detail.id,
           label: detail.label,
-          value: detail.value,
+          value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
         })),
       detailDetails: template.details
         .filter((detail) => this.isVisibleInDetail(detail.visibility))
         .map((detail) => ({
           id: detail.id,
           label: detail.label,
-          value: detail.value,
+          value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
         })),
       milestones: template.milestones.map((milestone) => ({
         id: milestone.id,
@@ -474,6 +474,20 @@ export class GoalsQueryService {
 
   private isVisibleInDetail(visibility: GoalTemplateDetailVisibility) {
     return visibility === 'DETAIL' || visibility === 'BOTH';
+  }
+
+  private mapDetailValue(label: string, value: string, milestoneCount: number) {
+    if (label !== 'Upplägg') {
+      return value;
+    }
+
+    const match = value.match(/^\d+\s+(.+)$/);
+
+    if (match) {
+      return `${milestoneCount} ${match[1]}`;
+    }
+
+    return `${milestoneCount} ${value}`;
   }
 
   private toGoalCard(
