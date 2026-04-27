@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -71,6 +70,7 @@ export default function GoalsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGoalDetailLoading, setIsGoalDetailLoading] = useState(false);
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
 
   const loadGoals = useCallback(async () => {
@@ -134,19 +134,7 @@ export default function GoalsScreen() {
       return;
     }
 
-    Alert.alert('Ta bort mål', `Är du säker på att du vill ta bort "${selectedGoal.title}"?`, [
-      {
-        text: 'Avbryt',
-        style: 'cancel',
-      },
-      {
-        text: 'Ta bort',
-        style: 'destructive',
-        onPress: () => {
-          void deleteGoal(selectedGoal.id);
-        },
-      },
-    ]);
+    setIsDeleteConfirmVisible(true);
   };
 
   const deleteGoal = async (goalId: string) => {
@@ -155,6 +143,7 @@ export default function GoalsScreen() {
     }
 
     try {
+      setIsDeleteConfirmVisible(false);
       const data = await deleteJson<GoalsPageResponse>(`/goals/${userId}/${goalId}`);
       setGoalsPage(data);
       setSelectedGoal(null);
@@ -382,6 +371,25 @@ export default function GoalsScreen() {
                 ))}
               </ScrollView>
             )}
+
+            {isDeleteConfirmVisible && selectedGoal ? (
+              <View style={styles.confirmOverlay}>
+                <View style={styles.confirmCard}>
+                  <Text style={styles.confirmTitle}>Ta bort mål</Text>
+                  <Text style={styles.confirmText}>
+                    Är du säker på att du vill ta bort &quot;{selectedGoal.title}&quot;?
+                  </Text>
+                  <View style={styles.confirmActions}>
+                    <Pressable onPress={() => setIsDeleteConfirmVisible(false)} style={styles.confirmSecondaryButton}>
+                      <Text style={styles.confirmSecondaryButtonText}>Avbryt</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void deleteGoal(selectedGoal.id)} style={styles.confirmPrimaryButton}>
+                      <Text style={styles.confirmPrimaryButtonText}>Ta bort</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -662,6 +670,62 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     width: 36,
+  },
+  confirmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    backgroundColor: 'rgba(9, 14, 22, 0.72)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  confirmCard: {
+    backgroundColor: '#161D28',
+    borderColor: '#252D3A',
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    width: '100%',
+  },
+  confirmTitle: {
+    color: '#F5F7FB',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  confirmText: {
+    color: '#A6AFBC',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 10,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'flex-end',
+    marginTop: 18,
+  },
+  confirmSecondaryButton: {
+    backgroundColor: '#202836',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  confirmSecondaryButtonText: {
+    color: '#D6DDE8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmPrimaryButton: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  confirmPrimaryButtonText: {
+    color: '#F7F3FF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   modalTitle: {
     color: '#F5F7FB',
