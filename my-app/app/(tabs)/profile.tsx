@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#798191',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   sectionActionText: {
     color: '#8D56F7',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
   },
   goalRow: {
@@ -580,15 +580,15 @@ const styles = StyleSheet.create({
   },
   achievementTitle: {
     color: '#DCE1EA',
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
-    lineHeight: 13,
+    lineHeight: 10,
   },
   achievementSubtitle: {
     color: '#7E8898',
-    fontSize: 8,
-    lineHeight: 11,
-    marginTop: 4,
+    fontSize: 7,
+    lineHeight: 9,
+    marginTop: 3,
   },
   weeklyStatsRow: {
     flexDirection: 'row',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   weeklyStatCard: {
     flex: 1,
     minHeight: 122,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingTop: 6,
   },
   weeklyStatDivider: {
@@ -605,19 +605,21 @@ const styles = StyleSheet.create({
   },
   weeklyValue: {
     color: '#F4F6FB',
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    marginTop: 10,
+    marginTop: 8,
   },
   weeklyLabel: {
     color: '#D8DEE7',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
-    marginTop: 4,
+    lineHeight: 12,
+    marginTop: 3,
   },
   weeklyDetail: {
     color: '#8A93A2',
-    fontSize: 9,
-    marginTop: 6,
+    fontSize: 8,
+    lineHeight: 10,
+    marginTop: 5,
   },
 });

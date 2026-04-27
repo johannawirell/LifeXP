@@ -13,7 +13,7 @@ export class ProfileController {
     const [profileResponse, goalsResponse, statsResponse, gamificationResponse] =
       await Promise.all([
         axios.get(`${userServiceUrl}/profile/${userId}`),
-        axios.get(`${goalsServiceUrl}/profile-goals/${userId}`),
+        axios.get(`${goalsServiceUrl}/goals/${userId}`),
         axios.get(`${analyticsServiceUrl}/profile-stats/${userId}`),
         axios.get(`${gamificationServiceUrl}/profile-gamification/${userId}`),
       ]);
@@ -21,7 +21,7 @@ export class ProfileController {
     return {
       ...profileResponse.data,
       ...gamificationResponse.data,
-      activeGoals: goalsResponse.data,
+      activeGoals: goalsResponse.data.activeGoals,
       weeklyStats: statsResponse.data,
     };
   }

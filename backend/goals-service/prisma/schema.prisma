@@ -13,6 +13,7 @@ model Goal {
   userId          String
   title           String
   icon            String?
+  subtitle        String?
   description     String?
   category        String?
   status          GoalStatus     @default(ACTIVE)
@@ -21,6 +22,7 @@ model Goal {
   unit            String?
   percentLabel    String?
   cardColor       String?
+  streakDays      Int?
   startDate       DateTime?
   targetDate      DateTime?
   completedAt     DateTime?
