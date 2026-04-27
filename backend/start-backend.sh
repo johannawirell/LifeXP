@@ -42,6 +42,9 @@ until docker compose -f docker-compose.yml exec -T postgres pg_isready -U postgr
   sleep 2
 done
 
+echo "Generating Prisma clients..."
+npm run prisma:generate
+
 echo "Pushing Prisma schema..."
 npm run prisma:push
 
@@ -69,6 +72,7 @@ npm run dev:api-gateway &
 API_GATEWAY_PID=$!
 
 echo "Backend is starting."
+echo "Scriptet har kört: infra, prisma generate, prisma push, seed:all och alla tjänster."
 echo "Profile endpoint: http://localhost:3000/api/profile/demo-auth-user-1"
 echo "Press Ctrl+C to stop the services started by this script."
 

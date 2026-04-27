@@ -104,6 +104,7 @@ Det finns också ett script som kör hela backend-flödet:
 
 - startar PostgreSQL och Redis
 - väntar på att PostgreSQL är redo
+- kör `prisma:generate`
 - kör Prisma push
 - kör seed för alla prototypservices
 - startar `user-service`
@@ -121,6 +122,8 @@ chmod +x start-backend.sh
 ```
 
 Stoppa scriptet med `Ctrl+C`.
+
+Du behöver inte köra `npm run seed:goals` separat om du använder scriptet. Det kör redan `seed:all`.
 
 ### 7. Backend-endpoint
 
