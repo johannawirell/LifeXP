@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchJson } from '@/lib/api';
 
+const PROTOTYPE_USER_ID = 'demo-auth-user-1';
+
 type ProfileResponse = {
   id: string;
   displayName: string;
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchJson<ProfileResponse>('/profile');
+      const data = await fetchJson<ProfileResponse>(`/profile/${PROTOTYPE_USER_ID}`);
       setProfile(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');

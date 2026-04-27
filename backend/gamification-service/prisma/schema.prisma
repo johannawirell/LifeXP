@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -14,10 +15,13 @@ model UserGamification {
   currentLevel    Int             @default(1)
   currentStreak   Int             @default(0)
   bestStreak      Int             @default(0)
+  headline        String?
+  nextLevelXp     Int             @default(0)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   xpEntries       XpEntry[]
   achievements    UserAchievement[]
+  focusAreas      FocusArea[]
 }
 
 model XpEntry {
@@ -47,11 +51,30 @@ model UserAchievement {
   id                      String                @id @default(uuid())
   userGamificationId      String
   achievementDefinitionId String
+  subtitle                String?
+  color                   String?
+  icon                    String?
+  position                Int                   @default(0)
   awardedAt               DateTime              @default(now())
   userGamification        UserGamification      @relation(fields: [userGamificationId], references: [id], onDelete: Cascade)
   achievementDefinition   AchievementDefinition @relation(fields: [achievementDefinitionId], references: [id], onDelete: Cascade)
 
   @@unique([userGamificationId, achievementDefinitionId])
+}
+
+model FocusArea {
+  id                 String            @id @default(uuid())
+  userGamificationId String
+  icon               String
+  title              String
+  level              Int
+  currentXp          Int
+  maxXp              Int
+  color              String
+  position           Int               @default(0)
+  userGamification   UserGamification  @relation(fields: [userGamificationId], references: [id], onDelete: Cascade)
+
+  @@index([userGamificationId, position])
 }
 
 enum XpSourceType {

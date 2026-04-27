@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -18,16 +19,9 @@ model UserProfile {
   locale            String?         @default("sv-SE")
   timezone          String?         @default("Europe/Stockholm")
   headline          String?         @default("Fokuserad • Disciplinerad • På väg upp")
-  currentLevel      Int             @default(12)
-  totalXp           Int             @default(2450)
-  nextLevelXp       Int             @default(3000)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   settings          UserSettings?
-  focusAreas        FocusArea[]
-  activeGoals       ActiveGoal[]
-  achievements      Achievement[]
-  weeklyStats       WeeklyStat[]
 }
 
 model UserSettings {
@@ -40,61 +34,4 @@ model UserSettings {
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
   userProfile           UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-}
-
-model FocusArea {
-  id            String      @id @default(uuid())
-  userProfileId String
-  icon          String
-  title         String
-  level         Int
-  currentXp     Int
-  maxXp         Int
-  color         String
-  position      Int         @default(0)
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@index([userProfileId, position])
-}
-
-model ActiveGoal {
-  id            String      @id @default(uuid())
-  userProfileId String
-  icon          String
-  title         String
-  subtitle      String
-  progress      Float
-  color         String
-  percentLabel  String
-  position      Int         @default(0)
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@index([userProfileId, position])
-}
-
-model Achievement {
-  id            String      @id @default(uuid())
-  userProfileId String
-  icon          String
-  title         String
-  subtitle      String
-  color         String
-  position      Int         @default(0)
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@index([userProfileId, position])
-}
-
-model WeeklyStat {
-  id            String      @id @default(uuid())
-  userProfileId String
-  icon          String
-  value         String
-  label         String
-  detail        String
-  color         String
-  position      Int         @default(0)
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@index([userProfileId, position])
 }

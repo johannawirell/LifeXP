@@ -18,12 +18,12 @@ Lokal backend-infra för NestJS microservices med:
 
 ## Starta backend lokalt
 
-Kör allt från [backend](/backend).
+Kör allt från [backend](/Users/johannawirell/Desktop/LifeXP/backend).
 
 ### 1. Installera beroenden
 
 ```bash
-cd /backend
+cd /Users/johannawirell/Desktop/LifeXP/backend
 
 npm install
 ```
@@ -55,10 +55,10 @@ npm run infra:up
 npm run prisma:push
 ```
 
-### 5. Seeda user-service med profil-data
+### 5. Seeda prototypdata i alla services
 
 ```bash
-npm run seed:user
+npm run seed:all
 ```
 
 ### 6. Starta tjänsterna
@@ -66,14 +66,35 @@ npm run seed:user
 Terminal 1:
 
 ```bash
-cd backend
+cd /Users/johannawirell/Desktop/LifeXP/backend
 npm run dev:user-service
 ```
 
 Terminal 2:
 
 ```bash
-cd backend
+cd /Users/johannawirell/Desktop/LifeXP/backend
+npm run dev:goals-service
+```
+
+Terminal 3:
+
+```bash
+cd /Users/johannawirell/Desktop/LifeXP/backend
+npm run dev:analytics-service
+```
+
+Terminal 4:
+
+```bash
+cd /Users/johannawirell/Desktop/LifeXP/backend
+npm run dev:gamification-service
+```
+
+Terminal 5:
+
+```bash
+cd /Users/johannawirell/Desktop/LifeXP/backend
 npm run dev:api-gateway
 ```
 
@@ -84,14 +105,17 @@ Det finns också ett script som kör hela backend-flödet:
 - startar PostgreSQL och Redis
 - väntar på att PostgreSQL är redo
 - kör Prisma push
-- kör seed för `user-service`
+- kör seed för alla prototypservices
 - startar `user-service`
+- startar `goals-service`
+- startar `analytics-service`
+- startar `gamification-service`
 - startar `api-gateway`
 
 Kör:
 
 ```bash
-cd backend
+cd /Users/johannawirell/Desktop/LifeXP/backend
 chmod +x start-backend.sh
 ./start-backend.sh
 ```
@@ -103,7 +127,7 @@ Stoppa scriptet med `Ctrl+C`.
 När allt är igång finns profil-endpointen här:
 
 ```text
-http://localhost:3000/api/profile
+http://localhost:3000/api/profile/demo-auth-user-1
 ```
 
 ## Databasansvar per service

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -44,4 +45,19 @@ model WeeklyReport {
   generatedAt    DateTime @default(now())
 
   @@unique([userId, weekStart, weekEnd])
+}
+
+model WeeklyStatCard {
+  id         String   @id @default(uuid())
+  userId     String
+  icon       String
+  value      String
+  label      String
+  detail     String
+  color      String
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, position])
 }

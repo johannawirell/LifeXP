@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -11,12 +12,15 @@ model Goal {
   id              String         @id @default(uuid())
   userId          String
   title           String
+  icon            String?
   description     String?
   category        String?
   status          GoalStatus     @default(ACTIVE)
   targetValue     Decimal?
   currentValue    Decimal?
   unit            String?
+  percentLabel    String?
+  cardColor       String?
   startDate       DateTime?
   targetDate      DateTime?
   completedAt     DateTime?

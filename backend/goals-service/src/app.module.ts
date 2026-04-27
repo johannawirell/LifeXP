@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { ProfileModule } from './profile/profile.module';
+import { ProfileGoalsModule } from './profile-goals/profile-goals.module';
 
 @Module({
   imports: [
@@ -9,7 +9,7 @@ import { ProfileModule } from './profile/profile.module';
       envFilePath: '../.env',
       isGlobal: true,
     }),
-    ProfileModule,
+    ProfileGoalsModule,
   ],
 })
 export class AppModule {}
