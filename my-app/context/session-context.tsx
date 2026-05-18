@@ -1,5 +1,7 @@
 import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
 
+import { disconnectLiveUpdatesSocket } from '@/lib/live-updates';
+
 type SessionMode = 'guest' | 'demo' | 'empty' | 'authenticated';
 
 type AuthSessionPayload = {
@@ -42,18 +44,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       refreshToken: authSession?.refreshToken ?? null,
       authProvider: authSession?.provider ?? null,
       startDemoMode: () => {
+        disconnectLiveUpdatesSocket();
         setAuthSession(null);
         setMode('demo');
       },
       startEmptyMode: () => {
+        disconnectLiveUpdatesSocket();
         setAuthSession(null);
         setMode('empty');
       },
       startAuthenticatedSession: (payload) => {
+        disconnectLiveUpdatesSocket();
         setAuthSession(payload);
         setMode('authenticated');
       },
       resetSession: () => {
+        disconnectLiveUpdatesSocket();
         setAuthSession(null);
         setMode('guest');
       },

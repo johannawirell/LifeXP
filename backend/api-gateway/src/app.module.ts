@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AuthModule } from './auth/auth.module';
 import { GoalsModule } from './goals/goals.module';
+import { LiveUpdatesModule } from './live-updates/live-updates.module';
 import { ProfileModule } from './profile/profile.module';
 import { StatisticsModule } from './statistics/statistics.module';
 
@@ -14,6 +15,7 @@ import { StatisticsModule } from './statistics/statistics.module';
     }),
     AuthModule,
     GoalsModule,
+    LiveUpdatesModule,
     ProfileModule,
     StatisticsModule,
   ],

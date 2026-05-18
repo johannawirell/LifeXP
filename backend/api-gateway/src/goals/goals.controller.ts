@@ -1,8 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import axios from 'axios';
 
+import { LiveUpdatesGateway } from '../live-updates/live-updates.gateway';
+
 @Controller('goals')
 export class GoalsController {
+  constructor(private readonly liveUpdatesGateway: LiveUpdatesGateway) {}
+
   @Get('templates/list')
   async getGoalTemplates(@Query('category') category?: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
@@ -29,6 +33,11 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`, body);
+    this.liveUpdatesGateway.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: 'invalidate',
+    });
 
     return response.data;
   }
@@ -37,6 +46,11 @@ export class GoalsController {
   async createCustomQuest(@Param('userId') userId: string, @Body() body?: unknown) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/quests`, body);
+    this.liveUpdatesGateway.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: 'invalidate',
+    });
 
     return response.data;
   }
@@ -65,6 +79,17 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/subtasks/${subtaskId}`, body);
+    this.liveUpdatesGateway.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: response.data?.reward ? 'reward' : 'invalidate',
+      reward: response.data?.reward
+        ? {
+            totalXp: response.data.reward.totalXp,
+            title: response.data.reward.title,
+          }
+        : null,
+    });
 
     return response.data;
   }
@@ -77,6 +102,17 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/quests/${questId}`, body);
+    this.liveUpdatesGateway.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: response.data?.reward ? 'reward' : 'invalidate',
+      reward: response.data?.reward
+        ? {
+            totalXp: response.data.reward.totalXp,
+            title: response.data.reward.title,
+          }
+        : null,
+    });
 
     return response.data;
   }
@@ -85,6 +121,11 @@ export class GoalsController {
   async deleteGoal(@Param('userId') userId: string, @Param('goalId') goalId: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.delete(`${goalsServiceUrl}/goals/${userId}/${goalId}`);
+    this.liveUpdatesGateway.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: 'invalidate',
+    });
 
     return response.data;
   }

@@ -446,7 +446,18 @@ export class GoalsQueryService {
       });
     }
 
-    return this.getGoalsPage(userId);
+    return {
+      page: await this.getGoalsPage(userId),
+      reward:
+        milestoneXpRewardToGrant > 0 || goalBonusXpToGrant > 0
+          ? {
+              milestoneXp: milestoneXpRewardToGrant,
+              goalBonusXp: goalBonusXpToGrant,
+              totalXp: milestoneXpRewardToGrant + goalBonusXpToGrant,
+              title: completedGoalTitle || completedMilestoneTitle,
+            }
+          : null,
+    };
   }
 
   async updateQuestProgress(userId: string, questId: string, payload?: UpdateQuestProgressInput) {
@@ -496,7 +507,16 @@ export class GoalsQueryService {
       });
     }
 
-    return this.getGoalsPage(userId);
+    return {
+      page: await this.getGoalsPage(userId),
+      reward: justCompleted
+        ? {
+            questXp: quest.xpReward,
+            totalXp: quest.xpReward,
+            title: quest.title,
+          }
+        : null,
+    };
   }
 
   async createCustomQuest(userId: string, input?: CreateCustomQuestInput) {

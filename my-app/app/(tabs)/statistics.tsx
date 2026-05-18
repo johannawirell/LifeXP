@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { fetchJson } from '@/lib/api';
 
 type StatisticsResponse = {
@@ -96,8 +97,28 @@ export default function StatisticsScreen() {
     void loadStats();
   }, [loadStats]);
 
+  useLiveUpdates(
+    userId,
+    useCallback(
+      async (event) => {
+        if (!event.resources.includes('statistics') || mode === 'empty' || !userId) {
+          return;
+        }
+
+        try {
+          const data = await fetchJson<StatisticsResponse>(`/statistics/${userId}`);
+          setStats(data);
+        } catch {
+          // Keep current stats visible if a pushed refresh fails.
+        }
+      },
+      [mode, userId]
+    ),
+    { enabled: mode !== 'empty' && Boolean(userId) }
+  );
+
   const selectedSummary = useMemo(
-    () => stats?.periods.find((period) => period.key === selectedPeriod) ?? null,
+    () => stats?.periods.find((period) => period.key === selectedPeriod) ?? stats?.periods[0] ?? null,
     [selectedPeriod, stats?.periods]
   );
 

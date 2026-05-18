@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { fetchJson } from '@/lib/api';
 
 type ProfileResponse = {
@@ -158,6 +159,26 @@ export default function ProfileScreen() {
     useCallback(() => {
       void loadProfile();
     }, [loadProfile])
+  );
+
+  useLiveUpdates(
+    userId,
+    useCallback(
+      async (event) => {
+        if (!event.resources.includes('profile') || mode === 'empty' || !userId) {
+          return;
+        }
+
+        try {
+          const data = await fetchJson<ProfileResponse>(`/profile/${userId}`);
+          setProfile(data);
+        } catch {
+          // Keep latest known state if a pushed refresh fails.
+        }
+      },
+      [mode, userId]
+    ),
+    { enabled: mode !== 'empty' && Boolean(userId) }
   );
 
   if (mode === 'empty') {

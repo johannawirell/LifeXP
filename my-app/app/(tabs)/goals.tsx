@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { deleteJson, fetchJson, patchJson, postJson } from '@/lib/api';
 
 type QuestCard = {
@@ -77,6 +78,17 @@ type GoalsPageResponse = {
   completedGoals: GoalCard[];
 };
 
+type GoalsMutationResponse = {
+  page: GoalsPageResponse;
+  reward?: {
+    milestoneXp?: number;
+    goalBonusXp?: number;
+    questXp?: number;
+    totalXp: number;
+    title: string;
+  } | null;
+};
+
 type GoalTab = 'active' | 'completed';
 
 const overviewItems = [
@@ -102,6 +114,7 @@ export default function GoalsScreen() {
   const [questTitle, setQuestTitle] = useState('');
   const [questDescription, setQuestDescription] = useState('');
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
+  const [rewardBanner, setRewardBanner] = useState<GoalsMutationResponse['reward']>(null);
   const routeGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
   const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
 
@@ -124,6 +137,38 @@ export default function GoalsScreen() {
       setIsLoading(false);
     }
   }, [userId]);
+
+  useLiveUpdates(
+    userId,
+    useCallback(
+      async (event) => {
+        if (!event.resources.includes('goals') || !userId) {
+          return;
+        }
+
+        try {
+          const data = await fetchJson<GoalsPageResponse>(`/goals/${userId}`);
+          setGoalsPage(data);
+
+          if (selectedGoal) {
+            const refreshedGoal = [...data.activeGoals, ...data.completedGoals].find((goal) => goal.id === selectedGoal.id) ?? null;
+            setSelectedGoal(refreshedGoal);
+          }
+
+          if (event.reward) {
+            setRewardBanner({
+              totalXp: event.reward.totalXp,
+              title: event.reward.title,
+            });
+          }
+        } catch {
+          // Keep current state if a pushed refresh fails.
+        }
+      },
+      [selectedGoal, userId]
+    ),
+    { enabled: Boolean(userId) }
+  );
 
   const loadGoalDetail = useCallback(
     async (goalId: string) => {
@@ -172,11 +217,12 @@ export default function GoalsScreen() {
     }
 
     try {
-      const data = await patchJson<GoalsPageResponse>(`/goals/${userId}/subtasks/${subtaskId}`, {
+      const data = await patchJson<GoalsMutationResponse>(`/goals/${userId}/subtasks/${subtaskId}`, {
         completed,
       });
-      setGoalsPage(data);
-      const nextGoalList = [...data.activeGoals, ...data.completedGoals];
+      setGoalsPage(data.page);
+      setRewardBanner(data.reward ?? null);
+      const nextGoalList = [...data.page.activeGoals, ...data.page.completedGoals];
       const refreshedGoal = nextGoalList.find((goal) => goal.id === selectedGoal.id) ?? null;
       setSelectedGoal(refreshedGoal);
     } catch (toggleError) {
@@ -190,11 +236,12 @@ export default function GoalsScreen() {
     }
 
     try {
-      const data = await patchJson<GoalsPageResponse>(`/goals/${userId}/quests/${quest.id}`, {
+      const data = await patchJson<GoalsMutationResponse>(`/goals/${userId}/quests/${quest.id}`, {
         completed: quest.type === 'DAILY' ? !quest.completed : undefined,
         incrementBy: quest.type === 'WEEKLY' && !quest.completed ? 1 : undefined,
       });
-      setGoalsPage(data);
+      setGoalsPage(data.page);
+      setRewardBanner(data.reward ?? null);
     } catch (questError) {
       setError(questError instanceof Error ? questError.message : 'Unknown error');
     }
@@ -206,7 +253,7 @@ export default function GoalsScreen() {
     }
 
     try {
-      const data = await postJson<GoalsPageResponse>(`/goals/${userId}/quests`, {
+      const data = await postJson<GoalsPageResponse & { questId?: string }>(`/goals/${userId}/quests`, {
         title: questTitle,
         description: questDescription,
         type: 'DAILY',
@@ -250,6 +297,20 @@ export default function GoalsScreen() {
   useEffect(() => {
     void loadGoals();
   }, [loadGoals]);
+
+  useEffect(() => {
+    if (!rewardBanner) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setRewardBanner(null);
+    }, 2600);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [rewardBanner]);
 
   useEffect(() => {
     if (routeTab === 'completed') {
@@ -304,6 +365,20 @@ export default function GoalsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {rewardBanner ? (
+          <View style={styles.rewardBanner}>
+            <Ionicons name="sparkles-outline" size={18} color="#F7F3FF" />
+            <View style={styles.rewardBannerText}>
+              <Text style={styles.rewardBannerTitle}>+{rewardBanner.totalXp} XP</Text>
+              <Text style={styles.rewardBannerSubtitle}>
+                {rewardBanner.goalBonusXp
+                  ? `${rewardBanner.title} klar. Bonus XP utdelad.`
+                  : `${rewardBanner.title} gav XP.`}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Mina mål</Text>
           <Pressable style={styles.addButton} onPress={() => router.push('/create-goal')}>
@@ -620,6 +695,20 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#090E16' },
   container: { flex: 1, backgroundColor: '#090E16' },
   content: { paddingBottom: 120, paddingHorizontal: 16 },
+  rewardBanner: {
+    alignItems: 'center',
+    backgroundColor: '#8B4EF4',
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  rewardBannerText: { flex: 1 },
+  rewardBannerTitle: { color: '#F7F3FF', fontSize: 15, fontWeight: '800' },
+  rewardBannerSubtitle: { color: '#F2E8FF', fontSize: 12, marginTop: 2 },
   feedbackState: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
   feedbackTitle: { color: '#F5F7FB', fontSize: 24, fontWeight: '700', marginTop: 18 },
   feedbackText: { color: '#97A0AE', fontSize: 14, lineHeight: 22, marginTop: 12, textAlign: 'center' },
