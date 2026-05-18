@@ -1,5 +1,14 @@
 import type { GoalDifficulty, GoalTemplateCategory } from '../../generated/client';
 
+export enum Categories  {
+  HEALTH = 'HEALTH',
+  LEARNING = 'LEARNING',
+  JOB = 'JOB',
+  TRAINING = 'TRAINING',
+  SOCIAL = 'SOCIAL',
+  FINANCE = 'FINANCE',
+}
+
 export type GoalTemplateMilestoneSeed = {
   title: string;
   description?: string;

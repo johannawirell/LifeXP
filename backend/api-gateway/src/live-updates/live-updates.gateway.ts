@@ -13,6 +13,9 @@ type LiveUpdatePayload = {
   resources: string[];
   type: 'invalidate' | 'reward';
   reward?: {
+    milestoneXp?: number;
+    goalBonusXp?: number;
+    questXp?: number;
     totalXp: number;
     title: string;
   } | null;

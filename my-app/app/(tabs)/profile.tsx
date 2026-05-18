@@ -41,6 +41,7 @@ type ProfileResponse = {
   }[];
   dailyQuests: {
     id: string;
+    goalId?: string;
     title: string;
     xpReward: number;
     progressLabel: string;
@@ -49,6 +50,7 @@ type ProfileResponse = {
   }[];
   weeklyQuests: {
     id: string;
+    goalId?: string;
     title: string;
     xpReward: number;
     progressLabel: string;
@@ -306,7 +308,7 @@ export default function ProfileScreen() {
   }
 
   const openGoalsPage = () => {
-    router.push('/goals');
+    router.push('/(tabs)/goals');
   };
 
   const openGoalFromProfile = (goalId: string) => {
@@ -315,6 +317,28 @@ export default function ProfileScreen() {
       params: {
         goalId,
         tab: 'active',
+      },
+    });
+  };
+
+  const openQuestFromProfile = (quest: { goalId?: string }, focus: 'daily' | 'weekly') => {
+    if (quest.goalId) {
+      router.push({
+        pathname: '/(tabs)/goals',
+        params: {
+          goalId: quest.goalId,
+          tab: 'active',
+          focus,
+        },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: '/(tabs)/goals',
+      params: {
+        tab: 'active',
+        focus,
       },
     });
   };
@@ -482,7 +506,10 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <SectionHeader title="Quests idag" />
           {profile.dailyQuests.slice(0, 3).map((quest, index) => (
-            <View key={quest.id} style={[styles.questRow, index < Math.min(profile.dailyQuests.length, 3) - 1 ? styles.rowBorder : null]}>
+            <Pressable
+              key={quest.id}
+              onPress={() => openQuestFromProfile(quest, 'daily')}
+              style={[styles.questRow, index < Math.min(profile.dailyQuests.length, 3) - 1 ? styles.rowBorder : null]}>
               <Ionicons
                 name={quest.completed ? 'checkmark-circle' : 'ellipse-outline'}
                 size={20}
@@ -493,7 +520,21 @@ export default function ProfileScreen() {
                 <Text style={styles.questSubtitle}>{quest.progressLabel}</Text>
               </View>
               <Text style={styles.questXp}>+{quest.xpReward}</Text>
-            </View>
+            </Pressable>
+          ))}
+          {profile.weeklyQuests.slice(0, 2).map((quest) => (
+            <Pressable key={quest.id} onPress={() => openQuestFromProfile(quest, 'weekly')} style={styles.questRow}>
+              <Ionicons
+                name={quest.completed ? 'checkmark-circle' : 'timer-outline'}
+                size={20}
+                color={quest.color}
+              />
+              <View style={styles.questTextWrap}>
+                <Text style={styles.questTitle}>{quest.title}</Text>
+                <Text style={styles.questSubtitle}>Weekly • {quest.progressLabel}</Text>
+              </View>
+              <Text style={styles.questXp}>+{quest.xpReward}</Text>
+            </Pressable>
           ))}
           <View style={styles.questSummaryRow}>
             <View style={styles.summaryPill}>

@@ -428,7 +428,13 @@ export default function CreateGoalScreen() {
       Alert.alert('Mål tillagt', 'Målet har lagts till i din lista.');
       setSelectedTemplate(null);
       setDraft(null);
-      router.replace('/(tabs)/goals');
+      router.replace({
+        pathname: '/(tabs)/goals',
+        params: {
+          tab: 'active',
+          filter: 'latest',
+        },
+      });
     } catch (createError) {
       Alert.alert(
         'Målet kunde inte läggas till',

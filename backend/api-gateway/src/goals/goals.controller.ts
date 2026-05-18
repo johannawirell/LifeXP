@@ -12,6 +12,9 @@ export class GoalsController {
     resources: string[];
     type: 'invalidate' | 'reward';
     reward?: {
+      milestoneXp?: number;
+      goalBonusXp?: number;
+      questXp?: number;
       totalXp: number;
       title: string;
     } | null;
@@ -113,6 +116,9 @@ export class GoalsController {
       type: response.data?.reward ? 'reward' : 'invalidate',
       reward: response.data?.reward
         ? {
+            milestoneXp: response.data.reward.milestoneXp,
+            goalBonusXp: response.data.reward.goalBonusXp,
+            questXp: response.data.reward.questXp,
             totalXp: response.data.reward.totalXp,
             title: response.data.reward.title,
           }
@@ -136,6 +142,9 @@ export class GoalsController {
       type: response.data?.reward ? 'reward' : 'invalidate',
       reward: response.data?.reward
         ? {
+            milestoneXp: response.data.reward.milestoneXp,
+            goalBonusXp: response.data.reward.goalBonusXp,
+            questXp: response.data.reward.questXp,
             totalXp: response.data.reward.totalXp,
             title: response.data.reward.title,
           }

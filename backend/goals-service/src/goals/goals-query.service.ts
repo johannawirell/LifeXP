@@ -20,6 +20,7 @@ type GoalsOverview = {
 
 type QuestCard = {
   id: string;
+  goalId?: string;
   title: string;
   description?: string;
   type: QuestType;
@@ -38,6 +39,7 @@ type GoalCard = {
   icon: string;
   title: string;
   subtitle: string;
+  category: string;
   difficulty: GoalDifficulty;
   progress: number;
   percentLabel: string;
@@ -46,6 +48,7 @@ type GoalCard = {
   rightMeta: string;
   totalXpReward: number;
   goalXpReward: number;
+  quests: QuestCard[];
   milestones: {
     id: string;
     title: string;
@@ -219,6 +222,7 @@ type UpdateQuestProgressInput = {
 
 type GoalWithMilestones = Prisma.GoalGetPayload<{
   include: {
+    quests: true;
     milestones: {
       include: {
         subtasks: true;
@@ -256,6 +260,9 @@ export class GoalsQueryService {
       this.prisma.goal.findMany({
         where: { userId },
         include: {
+          quests: {
+            orderBy: [{ type: 'asc' }, { position: 'asc' }],
+          },
           milestones: {
             include: {
               subtasks: {
@@ -349,6 +356,9 @@ export class GoalsQueryService {
     const goal = await this.prisma.goal.findFirst({
       where: { id: goalId, userId },
       include: {
+        quests: {
+          orderBy: [{ type: 'asc' }, { position: 'asc' }],
+        },
         milestones: {
           include: {
             subtasks: {
@@ -1277,6 +1287,7 @@ export class GoalsQueryService {
 
     return {
       id: quest.id,
+      goalId: quest.goalId ?? undefined,
       title: quest.title,
       description: quest.description ?? undefined,
       type: quest.type,
@@ -1304,6 +1315,7 @@ export class GoalsQueryService {
       icon: goal.icon ?? 'flag-outline',
       title: goal.title,
       subtitle: goal.subtitle ?? goal.category ?? '',
+      category: goal.category ?? goal.subtitle ?? '',
       difficulty: goal.difficulty,
       progress: this.getGoalProgress(goal),
       percentLabel: `${Math.round(this.getGoalProgress(goal) * 100)} %`,
@@ -1312,6 +1324,7 @@ export class GoalsQueryService {
       rightMeta: `${earnedXp} / ${goal.totalXpReward} XP`,
       totalXpReward: goal.totalXpReward,
       goalXpReward: goal.goalXpReward,
+      quests: goal.quests.map((quest) => this.toQuestCard(quest)),
       milestones: goal.milestones.map((milestone) => ({
         id: milestone.id,
         title: milestone.title,
