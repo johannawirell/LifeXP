@@ -27,6 +27,7 @@
     "seed:gamification": "npm --workspace gamification-service run seed",
     "seed:all": "npm run seed:user && npm run seed:goals && npm run seed:analytics && npm run seed:gamification"
   },
-  "devDependencies": {},
-  "dependencies": {}
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0"
+  }
 }
