@@ -1,11 +1,36 @@
+import axios from 'axios';
 import { NotFoundException } from '@nestjs/common';
-import { PrismaClient, Prisma, GoalTemplateCategory, GoalTemplateDetailVisibility } from '../../generated/client';
+import {
+  GoalDifficulty,
+  GoalTemplateCategory,
+  GoalTemplateDetailVisibility,
+  Prisma,
+  PrismaClient,
+  QuestCategory,
+  QuestType,
+} from '../../generated/client';
 
 type GoalsOverview = {
   activeGoals: number;
   averageProgress: string;
   completedMilestones: number;
   streakDays: number;
+  totalQuestXp: number;
+};
+
+type QuestCard = {
+  id: string;
+  title: string;
+  description?: string;
+  type: QuestType;
+  category: string;
+  difficulty: GoalDifficulty;
+  xpReward: number;
+  progress: number;
+  progressLabel: string;
+  completed: boolean;
+  streakCount: number;
+  color: string;
 };
 
 type GoalCard = {
@@ -13,15 +38,19 @@ type GoalCard = {
   icon: string;
   title: string;
   subtitle: string;
+  difficulty: GoalDifficulty;
   progress: number;
   percentLabel: string;
   color: string;
   leftMeta: string;
   rightMeta: string;
+  totalXpReward: number;
+  goalXpReward: number;
   milestones: {
     id: string;
     title: string;
     description?: string;
+    xpReward: number;
     completed: boolean;
     completedLabel?: string;
     subtasks: {
@@ -38,11 +67,20 @@ type GoalCard = {
 
 type GoalsPageResponse = {
   overview: GoalsOverview;
+  dailyQuests: QuestCard[];
+  weeklyQuests: QuestCard[];
   activeGoals: GoalCard[];
   completedGoals: GoalCard[];
 };
 
-type GoalDetailResponse = GoalCard;
+type GoalSummaryResponse = {
+  completedGoals: number;
+  activeGoals: number;
+  completedMilestones: number;
+  totalMilestones: number;
+  completedQuests: number;
+  totalQuestXp: number;
+};
 
 type GoalTemplateCard = {
   id: string;
@@ -51,6 +89,9 @@ type GoalTemplateCard = {
   subtitle: string;
   summaryDescription: string;
   category: string;
+  difficulty: GoalDifficulty;
+  totalXpReward: number;
+  goalXpReward: number;
   color: string;
   summaryDetails: {
     id: string;
@@ -60,6 +101,7 @@ type GoalTemplateCard = {
   milestones: {
     id: string;
     title: string;
+    xpReward: number;
     subtasks: {
       id: string;
       title: string;
@@ -86,6 +128,9 @@ type GoalTemplateDetailResponse = {
   summaryDescription: string;
   detailDescription: string;
   category: string;
+  difficulty: GoalDifficulty;
+  totalXpReward: number;
+  goalXpReward: number;
   color: string;
   summaryDetails: {
     id: string;
@@ -101,6 +146,7 @@ type GoalTemplateDetailResponse = {
     id: string;
     title: string;
     description?: string;
+    xpReward: number;
     subtasks: {
       id: string;
       title: string;
@@ -117,56 +163,104 @@ type CreateGoalFromTemplateInput = {
   milestones?: {
     title: string;
     description?: string;
+    xpReward?: number;
     subtasks?: string[];
     tips?: string[];
   }[];
+};
+
+type CreateCustomQuestInput = {
+  title?: string;
+  description?: string;
+  type?: QuestType;
+  category?: QuestCategory;
+  difficulty?: GoalDifficulty;
+  xpReward?: number;
+  targetCount?: number;
+};
+
+type UpdateQuestProgressInput = {
+  currentCount?: number;
+  completed?: boolean;
+  incrementBy?: number;
+};
+
+type GoalWithMilestones = Prisma.GoalGetPayload<{
+  include: {
+    milestones: {
+      include: {
+        subtasks: true;
+        tips: true;
+      };
+    };
+  };
+}>;
+
+const CATEGORY_COLORS: Record<string, string> = {
+  TRAINING: '#73D86A',
+  HEALTH: '#F08A45',
+  PRODUCTIVITY: '#5E8BFF',
+  MINDFULNESS: '#A866FF',
+  CAREER: '#6DA6FF',
+  CREATIVITY: '#FF77C8',
+  SOCIAL: '#7A8CFF',
+  FINANCE: '#56D2C5',
+  Träning: '#73D86A',
+  Hälsa: '#F08A45',
+  Plugg: '#B269FF',
+  Jobb: '#5E8BFF',
+  Mindfulness: '#A866FF',
+  Ekonomi: '#56D2C5',
+  Relationer: '#7A8CFF',
 };
 
 export class GoalsQueryService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getGoalsPage(userId: string): Promise<GoalsPageResponse> {
-    const goals = await this.prisma.goal.findMany({
-      where: { userId },
-      include: {
-        milestones: {
-          include: {
-            subtasks: {
-              orderBy: {
-                position: 'asc',
+    await this.refreshQuestStates(userId);
+
+    const [goals, quests] = await Promise.all([
+      this.prisma.goal.findMany({
+        where: { userId },
+        include: {
+          milestones: {
+            include: {
+              subtasks: {
+                orderBy: { position: 'asc' },
+              },
+              tips: {
+                orderBy: { position: 'asc' },
               },
             },
-            tips: {
-              orderBy: {
-                position: 'asc',
-              },
-            },
-          },
-          orderBy: {
-            position: 'asc',
+            orderBy: { position: 'asc' },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.quest.findMany({
+        where: { userId },
+        orderBy: [{ type: 'asc' }, { position: 'asc' }],
+      }),
+    ]);
 
     const activeGoals = goals.filter((goal) => goal.status === 'ACTIVE');
     const completedGoals = goals.filter((goal) => goal.status === 'COMPLETED');
-
     const progressValues = activeGoals.map((goal) => this.getGoalProgress(goal));
     const averageProgress =
       progressValues.length > 0
         ? `${Math.round((progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length) * 100)} %`
         : '0 %';
-
     const completedMilestones = activeGoals.reduce(
       (sum, goal) => sum + goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length,
       0
     );
-
-    const streakDays = Math.max(0, ...activeGoals.map((goal) => goal.streakDays ?? 0));
+    const streakDays = Math.max(
+      0,
+      ...activeGoals.map((goal) => goal.streakDays ?? 0),
+      ...quests.map((quest) => quest.streakCount ?? 0)
+    );
+    const totalQuestXp = quests.filter((quest) => quest.completed).reduce((sum, quest) => sum + quest.xpReward, 0);
 
     return {
       overview: {
@@ -174,32 +268,57 @@ export class GoalsQueryService {
         averageProgress,
         completedMilestones,
         streakDays,
+        totalQuestXp,
       },
+      dailyQuests: quests.filter((quest) => quest.type === 'DAILY').map((quest) => this.toQuestCard(quest)),
+      weeklyQuests: quests.filter((quest) => quest.type === 'WEEKLY').map((quest) => this.toQuestCard(quest)),
       activeGoals: activeGoals.map((goal) => this.toGoalCard(goal)),
       completedGoals: completedGoals.map((goal) => this.toGoalCard(goal)),
     };
   }
 
-  async getGoalDetail(userId: string, goalId: string): Promise<GoalDetailResponse> {
+  async getGoalSummary(userId: string): Promise<GoalSummaryResponse> {
+    await this.refreshQuestStates(userId);
+
+    const [goals, quests] = await Promise.all([
+      this.prisma.goal.findMany({
+        where: { userId },
+        include: {
+          milestones: true,
+        },
+      }),
+      this.prisma.quest.findMany({
+        where: { userId },
+      }),
+    ]);
+
+    return {
+      completedGoals: goals.filter((goal) => goal.status === 'COMPLETED').length,
+      activeGoals: goals.filter((goal) => goal.status === 'ACTIVE').length,
+      completedMilestones: goals.reduce(
+        (sum, goal) => sum + goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length,
+        0
+      ),
+      totalMilestones: goals.reduce((sum, goal) => sum + goal.milestones.length, 0),
+      completedQuests: quests.filter((quest) => quest.completed).length,
+      totalQuestXp: quests.filter((quest) => quest.completed).reduce((sum, quest) => sum + quest.xpReward, 0),
+    };
+  }
+
+  async getGoalDetail(userId: string, goalId: string): Promise<GoalCard> {
     const goal = await this.prisma.goal.findFirst({
       where: { id: goalId, userId },
       include: {
         milestones: {
           include: {
             subtasks: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
             tips: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
           },
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
       },
     });
@@ -234,6 +353,12 @@ export class GoalsQueryService {
       throw new NotFoundException('Subtask not found.');
     }
 
+    let milestoneXpRewardToGrant = 0;
+    let goalBonusXpToGrant = 0;
+    let completedMilestoneTitle = '';
+    let completedGoalTitle = '';
+    let categoryLabel = subtask.milestone.goal.subtitle ?? subtask.milestone.goal.category ?? 'Produktivitet';
+
     await this.prisma.$transaction(async (tx) => {
       await tx.milestoneSubtask.update({
         where: { id: subtaskId },
@@ -244,12 +369,20 @@ export class GoalsQueryService {
         where: { milestoneId: subtask.milestoneId },
       });
 
+      const milestoneBefore = await tx.milestone.findUniqueOrThrow({
+        where: { id: subtask.milestoneId },
+      });
+
       const allSubtasksCompleted = milestoneSubtasks.length > 0 && milestoneSubtasks.every((item) => item.completed);
+      const milestoneCompletedAt = allSubtasksCompleted ? milestoneBefore.completedAt ?? new Date() : null;
+      const milestoneJustCompleted = allSubtasksCompleted && !milestoneBefore.completedAt;
 
       await tx.milestone.update({
         where: { id: subtask.milestoneId },
         data: {
-          completedAt: allSubtasksCompleted ? new Date() : null,
+          completedAt: milestoneCompletedAt,
+          xpGrantedAt:
+            milestoneJustCompleted && !milestoneBefore.xpGrantedAt ? milestoneCompletedAt : milestoneBefore.xpGrantedAt,
         },
       });
 
@@ -261,6 +394,7 @@ export class GoalsQueryService {
       const totalMilestones = goalMilestones.length;
       const progressPercent = totalMilestones > 0 ? Math.round((completedMilestoneCount / totalMilestones) * 100) : 0;
       const isGoalCompleted = totalMilestones > 0 && completedMilestoneCount === totalMilestones;
+      const goalJustCompleted = isGoalCompleted && !subtask.milestone.goal.completedAt;
 
       await tx.goal.update({
         where: { id: subtask.milestone.goalId },
@@ -269,12 +403,134 @@ export class GoalsQueryService {
           targetValue: totalMilestones,
           percentLabel: `${progressPercent} %`,
           status: isGoalCompleted ? 'COMPLETED' : 'ACTIVE',
-          completedAt: isGoalCompleted ? new Date() : null,
+          completedAt: isGoalCompleted ? subtask.milestone.goal.completedAt ?? new Date() : null,
+          completedXpGrantedAt:
+            goalJustCompleted && !subtask.milestone.goal.completedXpGrantedAt
+              ? new Date()
+              : subtask.milestone.goal.completedXpGrantedAt,
         },
       });
+
+      if (milestoneJustCompleted && !milestoneBefore.xpGrantedAt) {
+        milestoneXpRewardToGrant = milestoneBefore.xpReward;
+        completedMilestoneTitle = milestoneBefore.title;
+      }
+
+      if (goalJustCompleted && !subtask.milestone.goal.completedXpGrantedAt) {
+        goalBonusXpToGrant = subtask.milestone.goal.goalXpReward;
+        completedGoalTitle = subtask.milestone.goal.title;
+      }
     });
 
+    if (milestoneXpRewardToGrant > 0) {
+      await this.awardXp({
+        userId,
+        amount: milestoneXpRewardToGrant,
+        sourceType: 'MILESTONE_COMPLETED',
+        sourceId: subtask.milestoneId,
+        title: completedMilestoneTitle,
+        description: `Milestone klar i målet ${subtask.milestone.goal.title}.`,
+        category: this.mapCategoryLabelToSkillCategory(categoryLabel),
+      });
+    }
+
+    if (goalBonusXpToGrant > 0) {
+      await this.awardXp({
+        userId,
+        amount: goalBonusXpToGrant,
+        sourceType: 'GOAL_COMPLETED',
+        sourceId: subtask.milestone.goalId,
+        title: completedGoalTitle,
+        description: `Bonus-XP för att du slutförde hela målet.`,
+        category: this.mapCategoryLabelToSkillCategory(categoryLabel),
+      });
+    }
+
     return this.getGoalsPage(userId);
+  }
+
+  async updateQuestProgress(userId: string, questId: string, payload?: UpdateQuestProgressInput) {
+    const quest = await this.prisma.quest.findFirst({
+      where: {
+        id: questId,
+        userId,
+      },
+    });
+
+    if (!quest) {
+      throw new NotFoundException('Quest not found.');
+    }
+
+    const nextCount = typeof payload?.currentCount === 'number'
+      ? Math.max(0, Math.min(quest.targetCount, payload.currentCount))
+      : typeof payload?.incrementBy === 'number'
+        ? Math.max(0, Math.min(quest.targetCount, quest.currentCount + payload.incrementBy))
+        : payload?.completed === false
+          ? 0
+          : payload?.completed === true
+            ? quest.targetCount
+            : Math.max(0, Math.min(quest.targetCount, quest.currentCount + 1));
+
+    const nextCompleted = nextCount >= quest.targetCount;
+    const justCompleted = nextCompleted && !quest.completed;
+
+    await this.prisma.quest.update({
+      where: { id: quest.id },
+      data: {
+        currentCount: nextCount,
+        completed: nextCompleted,
+        completedAt: nextCompleted ? quest.completedAt ?? new Date() : null,
+        streakCount: quest.type === 'DAILY' && justCompleted ? quest.streakCount + 1 : quest.streakCount,
+      },
+    });
+
+    if (justCompleted) {
+      await this.awardXp({
+        userId,
+        amount: quest.xpReward,
+        sourceType: quest.type === 'DAILY' ? 'DAILY_QUEST_COMPLETED' : 'WEEKLY_QUEST_COMPLETED',
+        sourceId: quest.id,
+        title: quest.title,
+        description: quest.description ?? undefined,
+        category: quest.category,
+      });
+    }
+
+    return this.getGoalsPage(userId);
+  }
+
+  async createCustomQuest(userId: string, input?: CreateCustomQuestInput) {
+    const title = input?.title?.trim();
+
+    if (!title) {
+      throw new NotFoundException('Quest title is required.');
+    }
+
+    const type = input?.type ?? 'DAILY';
+    const createdQuest = await this.prisma.quest.create({
+      data: {
+        userId,
+        title,
+        description: input?.description?.trim() || null,
+        type,
+        category: input?.category ?? 'PRODUCTIVITY',
+        difficulty: input?.difficulty ?? 'EASY',
+        xpReward: input?.xpReward ?? (type === 'DAILY' ? 25 : 100),
+        targetCount: Math.max(1, input?.targetCount ?? 1),
+        currentCount: 0,
+        streakCount: 0,
+        isCustom: true,
+        completed: false,
+        periodStart: new Date(),
+        resetsAt: type === 'DAILY' ? this.getNextDailyReset() : this.getNextWeeklyReset(),
+        position: (await this.prisma.quest.count({ where: { userId, type } })) + 10,
+      },
+    });
+
+    return {
+      questId: createdQuest.id,
+      ...(await this.getGoalsPage(userId)),
+    };
   }
 
   async deleteGoal(userId: string, goalId: string) {
@@ -310,26 +566,18 @@ export class GoalsQueryService {
           : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
       include: {
         details: {
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
         milestones: {
           include: {
             subtasks: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
             tips: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
           },
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
       },
       orderBy: [{ isPopular: 'desc' }, { position: 'asc' }],
@@ -360,17 +608,28 @@ export class GoalsQueryService {
         subtitle: template.subtitle,
         summaryDescription: template.summaryDescription,
         category: this.mapCategoryEnumToLabel(template.category),
+        difficulty: template.difficulty,
+        totalXpReward: template.totalXpReward,
+        goalXpReward: template.goalXpReward,
         color: template.color,
-        summaryDetails: template.details
-          .filter((detail) => this.isVisibleInSummary(detail.visibility))
-          .map((detail) => ({
-            id: detail.id,
-            label: detail.label,
-            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-          })),
+        summaryDetails: [
+          ...template.details
+            .filter((detail) => this.isVisibleInSummary(detail.visibility))
+            .map((detail) => ({
+              id: detail.id,
+              label: detail.label,
+              value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
+            })),
+          {
+            id: `${template.id}-xp`,
+            label: 'XP',
+            value: `${template.totalXpReward} XP`,
+          },
+        ],
         milestones: template.milestones.map((milestone) => ({
           id: milestone.id,
           title: milestone.title,
+          xpReward: milestone.xpReward,
           subtasks: milestone.subtasks.map((subtask) => ({
             id: subtask.id,
             title: subtask.title,
@@ -389,26 +648,18 @@ export class GoalsQueryService {
       where: { id: templateId },
       include: {
         details: {
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
         milestones: {
           include: {
             subtasks: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
             tips: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
           },
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
       },
     });
@@ -425,25 +676,48 @@ export class GoalsQueryService {
       summaryDescription: template.summaryDescription,
       detailDescription: template.detailDescription,
       category: this.mapCategoryEnumToLabel(template.category),
+      difficulty: template.difficulty,
+      totalXpReward: template.totalXpReward,
+      goalXpReward: template.goalXpReward,
       color: template.color,
-      summaryDetails: template.details
-        .filter((detail) => this.isVisibleInSummary(detail.visibility))
-        .map((detail) => ({
-          id: detail.id,
-          label: detail.label,
-          value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-        })),
-      detailDetails: template.details
-        .filter((detail) => this.isVisibleInDetail(detail.visibility))
-        .map((detail) => ({
-          id: detail.id,
-          label: detail.label,
-          value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-        })),
+      summaryDetails: [
+        ...template.details
+          .filter((detail) => this.isVisibleInSummary(detail.visibility))
+          .map((detail) => ({
+            id: detail.id,
+            label: detail.label,
+            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
+          })),
+        {
+          id: `${template.id}-xp-summary`,
+          label: 'Total XP',
+          value: `${template.totalXpReward} XP`,
+        },
+      ],
+      detailDetails: [
+        ...template.details
+          .filter((detail) => this.isVisibleInDetail(detail.visibility))
+          .map((detail) => ({
+            id: detail.id,
+            label: detail.label,
+            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
+          })),
+        {
+          id: `${template.id}-difficulty`,
+          label: 'Svårighet',
+          value: template.difficulty,
+        },
+        {
+          id: `${template.id}-goal-bonus`,
+          label: 'Goal-bonus',
+          value: `${template.goalXpReward} XP`,
+        },
+      ],
       milestones: template.milestones.map((milestone) => ({
         id: milestone.id,
         title: milestone.title,
         description: milestone.description ?? undefined,
+        xpReward: milestone.xpReward,
         subtasks: milestone.subtasks.map((subtask) => ({
           id: subtask.id,
           title: subtask.title,
@@ -463,19 +737,13 @@ export class GoalsQueryService {
         milestones: {
           include: {
             subtasks: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
             tips: {
-              orderBy: {
-                position: 'asc',
-              },
+              orderBy: { position: 'asc' },
             },
           },
-          orderBy: {
-            position: 'asc',
-          },
+          orderBy: { position: 'asc' },
         },
       },
     });
@@ -489,6 +757,7 @@ export class GoalsQueryService {
       : template.milestones.map((milestone) => ({
           title: milestone.title,
           description: milestone.description ?? undefined,
+          xpReward: milestone.xpReward,
           subtasks: milestone.subtasks.map((subtask) => subtask.title),
           tips: milestone.tips.map((tip) => tip.text),
         }));
@@ -502,6 +771,9 @@ export class GoalsQueryService {
           description: template.detailDescription,
           category: this.mapCategoryEnumToLabel(template.category),
           icon: template.icon,
+          difficulty: template.difficulty,
+          goalXpReward: template.goalXpReward,
+          totalXpReward: template.totalXpReward,
           status: 'ACTIVE',
           targetValue: sourceMilestones.length,
           currentValue: 0,
@@ -510,36 +782,35 @@ export class GoalsQueryService {
         },
       });
 
-      if (sourceMilestones.length > 0) {
-        for (const [index, milestone] of sourceMilestones.entries()) {
-          const createdMilestone = await tx.milestone.create({
-            data: {
-              goalId: goal.id,
-              title: milestone.title,
-              description: milestone.description,
-              position: index,
-            },
-          });
+      for (const [index, milestone] of sourceMilestones.entries()) {
+        const createdMilestone = await tx.milestone.create({
+          data: {
+            goalId: goal.id,
+            title: milestone.title,
+            description: milestone.description,
+            xpReward: milestone.xpReward ?? template.milestones[index]?.xpReward ?? 50,
+            position: index,
+          },
+        });
 
-          const subtasks = milestone.subtasks?.length ? milestone.subtasks : [`Förbered: ${milestone.title}`];
-          const tips = milestone.tips?.length ? milestone.tips : [`Boka tid för "${milestone.title}".`];
+        const subtasks = milestone.subtasks?.length ? milestone.subtasks : [`Förbered: ${milestone.title}`];
+        const tips = milestone.tips?.length ? milestone.tips : [`Boka tid för "${milestone.title}".`];
 
-          await tx.milestoneSubtask.createMany({
-            data: subtasks.map((title, subtaskIndex) => ({
-              milestoneId: createdMilestone.id,
-              title,
-              position: subtaskIndex,
-            })),
-          });
+        await tx.milestoneSubtask.createMany({
+          data: subtasks.map((title, subtaskIndex) => ({
+            milestoneId: createdMilestone.id,
+            title,
+            position: subtaskIndex,
+          })),
+        });
 
-          await tx.milestoneTip.createMany({
-            data: tips.map((text, tipIndex) => ({
-              milestoneId: createdMilestone.id,
-              text,
-              position: tipIndex,
-            })),
-          });
-        }
+        await tx.milestoneTip.createMany({
+          data: tips.map((text, tipIndex) => ({
+            milestoneId: createdMilestone.id,
+            text,
+            position: tipIndex,
+          })),
+        });
       }
 
       return goal;
@@ -551,6 +822,55 @@ export class GoalsQueryService {
       templateId,
       message: 'Goal created from template.',
     };
+  }
+
+  private async refreshQuestStates(userId: string) {
+    const quests = await this.prisma.quest.findMany({
+      where: { userId },
+    });
+
+    const now = new Date();
+
+    await Promise.all(
+      quests.map(async (quest) => {
+        if (!quest.resetsAt || quest.resetsAt > now) {
+          return;
+        }
+
+        await this.prisma.quest.update({
+          where: { id: quest.id },
+          data: {
+            currentCount: 0,
+            completed: false,
+            completedAt: null,
+            periodStart: now,
+            resetsAt: quest.type === 'DAILY' ? this.getNextDailyReset(now) : this.getNextWeeklyReset(now),
+          },
+        });
+      })
+    );
+  }
+
+  private async awardXp(input: {
+    userId: string;
+    amount: number;
+    sourceType: string;
+    sourceId?: string;
+    title: string;
+    description?: string;
+    category?: string;
+  }) {
+    const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';
+
+    await axios.post(`${gamificationServiceUrl}/profile-gamification/xp`, {
+      userId: input.userId,
+      amount: input.amount,
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      title: input.title,
+      description: input.description,
+      category: input.category,
+    });
   }
 
   private mapCategoryKeyToEnum(category: string): GoalTemplateCategory {
@@ -591,6 +911,31 @@ export class GoalsQueryService {
     }
   }
 
+  private mapCategoryLabelToSkillCategory(label: string) {
+    const normalized = label.toLowerCase();
+
+    if (normalized.includes('träning')) {
+      return 'TRAINING';
+    }
+    if (normalized.includes('hälsa')) {
+      return 'HEALTH';
+    }
+    if (normalized.includes('mindfulness') || normalized.includes('balans')) {
+      return 'MINDFULNESS';
+    }
+    if (normalized.includes('jobb') || normalized.includes('karri')) {
+      return 'CAREER';
+    }
+    if (normalized.includes('relation')) {
+      return 'SOCIAL';
+    }
+    if (normalized.includes('ekonomi')) {
+      return 'FINANCE';
+    }
+
+    return 'PRODUCTIVITY';
+  }
+
   private isVisibleInSummary(visibility: GoalTemplateDetailVisibility) {
     return visibility === 'SUMMARY' || visibility === 'BOTH';
   }
@@ -613,35 +958,51 @@ export class GoalsQueryService {
     return `${milestoneCount} ${value}`;
   }
 
-  private toGoalCard(
-    goal: Prisma.GoalGetPayload<{
-      include: {
-        milestones: {
-          include: {
-            subtasks: true;
-            tips: true;
-          };
-        };
-      };
-    }>
-  ): GoalCard {
+  private toQuestCard(quest: Prisma.QuestGetPayload<Record<string, never>>): QuestCard {
+    const progress = quest.targetCount > 0 ? Math.min(quest.currentCount / quest.targetCount, 1) : 0;
+
+    return {
+      id: quest.id,
+      title: quest.title,
+      description: quest.description ?? undefined,
+      type: quest.type,
+      category: this.mapQuestCategoryToLabel(quest.category),
+      difficulty: quest.difficulty,
+      xpReward: quest.xpReward,
+      progress,
+      progressLabel:
+        quest.targetCount <= 1 ? (quest.completed ? 'Klar' : 'Pågår') : `${quest.currentCount} / ${quest.targetCount}`,
+      completed: quest.completed,
+      streakCount: quest.streakCount,
+      color: CATEGORY_COLORS[quest.category] ?? '#A866FF',
+    };
+  }
+
+  private toGoalCard(goal: GoalWithMilestones): GoalCard {
     const completedMilestones = goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length;
     const totalMilestones = goal.milestones.length;
+    const earnedXp = goal.milestones
+      .filter((milestone) => Boolean(milestone.completedAt))
+      .reduce((sum, milestone) => sum + milestone.xpReward, 0);
 
     return {
       id: goal.id,
       icon: goal.icon ?? 'flag-outline',
       title: goal.title,
       subtitle: goal.subtitle ?? goal.category ?? '',
+      difficulty: goal.difficulty,
       progress: this.getGoalProgress(goal),
       percentLabel: `${Math.round(this.getGoalProgress(goal) * 100)} %`,
       color: goal.cardColor ?? '#73D86A',
       leftMeta: totalMilestones > 0 ? `Steg ${completedMilestones} av ${totalMilestones}` : '',
-      rightMeta: this.getRightMeta(goal, completedMilestones),
+      rightMeta: `${earnedXp} / ${goal.totalXpReward} XP`,
+      totalXpReward: goal.totalXpReward,
+      goalXpReward: goal.goalXpReward,
       milestones: goal.milestones.map((milestone) => ({
         id: milestone.id,
         title: milestone.title,
         description: milestone.description ?? undefined,
+        xpReward: milestone.xpReward,
         completed: Boolean(milestone.completedAt),
         completedLabel: milestone.completedAt ? this.formatDateLabel(milestone.completedAt) : undefined,
         subtasks: milestone.subtasks.map((subtask) => ({
@@ -657,49 +1018,43 @@ export class GoalsQueryService {
     };
   }
 
-  private getGoalProgress(
-    goal: Prisma.GoalGetPayload<{
-      include: {
-        milestones: {
-          include: {
-            subtasks: true;
-            tips: true;
-          };
-        };
-      };
-    }>
-  ) {
+  private getGoalProgress(goal: GoalWithMilestones) {
     if (goal.milestones.length > 0) {
       const completedMilestones = goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length;
       return completedMilestones / goal.milestones.length;
     }
 
-    if (typeof goal.currentValue !== 'object' && typeof goal.targetValue !== 'object') {
-      const current = Number(goal.currentValue ?? 0);
-      const target = Number(goal.targetValue ?? 0);
-
-      if (target <= 0) {
-        return 0;
-      }
-
-      return Math.min(current / target, 1);
-    }
-
-    return 0;
-  }
-
-  private getRightMeta(
-    goal: Awaited<ReturnType<PrismaClient['goal']['findMany']>>[number],
-    completedMilestones: number
-  ) {
     const current = Number(goal.currentValue ?? 0);
     const target = Number(goal.targetValue ?? 0);
 
-    if (goal.unit === 'days' && target > 0) {
-      return `${current} av ${target} dagar`;
+    if (target <= 0) {
+      return 0;
     }
 
-    return `${completedMilestones} delmål klara`;
+    return Math.min(current / target, 1);
+  }
+
+  private mapQuestCategoryToLabel(category: QuestCategory) {
+    switch (category) {
+      case 'TRAINING':
+        return 'Träning';
+      case 'HEALTH':
+        return 'Hälsa';
+      case 'PRODUCTIVITY':
+        return 'Produktivitet';
+      case 'MINDFULNESS':
+        return 'Mindfulness';
+      case 'CAREER':
+        return 'Karriär';
+      case 'CREATIVITY':
+        return 'Kreativitet';
+      case 'SOCIAL':
+        return 'Socialt';
+      case 'FINANCE':
+        return 'Ekonomi';
+      default:
+        return 'Produktivitet';
+    }
   }
 
   private formatDateLabel(date: Date) {
@@ -707,5 +1062,21 @@ export class GoalsQueryService {
       day: 'numeric',
       month: 'short',
     })}`;
+  }
+
+  private getNextDailyReset(baseDate = new Date()) {
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 1);
+    next.setHours(0, 0, 0, 0);
+    return next;
+  }
+
+  private getNextWeeklyReset(baseDate = new Date()) {
+    const next = new Date(baseDate);
+    const day = next.getDay();
+    const daysUntilMonday = ((8 - day) % 7) || 7;
+    next.setDate(next.getDate() + daysUntilMonday);
+    next.setHours(0, 0, 0, 0);
+    return next;
   }
 }

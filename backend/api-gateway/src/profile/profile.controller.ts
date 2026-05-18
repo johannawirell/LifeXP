@@ -22,7 +22,12 @@ export class ProfileController {
       ...profileResponse.data,
       ...gamificationResponse.data,
       activeGoals: goalsResponse.data.activeGoals,
-      weeklyStats: statsResponse.data,
+      dailyQuests: goalsResponse.data.dailyQuests,
+      weeklyQuests: goalsResponse.data.weeklyQuests,
+      goalsOverview: goalsResponse.data.overview,
+      weeklyStats: statsResponse.data.weeklyCards,
+      statisticsSummary: statsResponse.data.liveSummary,
+      categoryProgress: statsResponse.data.categoryProgress,
     };
   }
 }

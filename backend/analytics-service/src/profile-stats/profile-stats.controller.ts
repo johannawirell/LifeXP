@@ -1,13 +1,8 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import axios from 'axios';
 import { PrismaClient } from '../../generated/client';
 
 const prisma = new PrismaClient();
-const defaultWeeklyStatCards = [
-  { icon: 'checkmark-circle-outline', value: '0', label: 'Tasks klara', detail: '+0 % från förra veckan', color: '#A866FF' },
-  { icon: 'star-outline', value: '0', label: 'XP denna vecka', detail: '+0 % från förra veckan', color: '#F5C13C' },
-  { icon: 'radio-button-on-outline', value: '0 %', label: 'Måluppfyllelse', detail: '+0 % från förra veckan', color: '#67D86F' },
-  { icon: 'flame-outline', value: '0', label: 'Dagar i streak', detail: 'Bästa: 0 dagar', color: '#F08A45' },
-] as const;
 
 @Controller('profile-stats')
 export class ProfileStatsController {
@@ -24,15 +19,44 @@ export class ProfileStatsController {
     }
 
     await prisma.weeklyStatCard.createMany({
-      data: defaultWeeklyStatCards.map((card, index) => ({
-        userId: body.userId,
-        icon: card.icon,
-        value: card.value,
-        label: card.label,
-        detail: card.detail,
-        color: card.color,
-        position: index,
-      })),
+      data: [
+        {
+          userId: body.userId,
+          icon: 'checkmark-circle-outline',
+          value: '0',
+          label: 'Quests klara',
+          detail: '+0 % från förra veckan',
+          color: '#A866FF',
+          position: 0,
+        },
+        {
+          userId: body.userId,
+          icon: 'star-outline',
+          value: '0',
+          label: 'Total XP',
+          detail: '+0 % från förra veckan',
+          color: '#F5C13C',
+          position: 1,
+        },
+        {
+          userId: body.userId,
+          icon: 'radio-button-on-outline',
+          value: '0 %',
+          label: 'Måluppfyllelse',
+          detail: '+0 % från förra veckan',
+          color: '#67D86F',
+          position: 2,
+        },
+        {
+          userId: body.userId,
+          icon: 'flame-outline',
+          value: '0',
+          label: 'Dagar i streak',
+          detail: 'Bästa: 0 dagar',
+          color: '#FF8A3C',
+          position: 3,
+        },
+      ],
     });
 
     return { success: true };
@@ -40,9 +64,138 @@ export class ProfileStatsController {
 
   @Get(':userId')
   async getStats(@Param('userId') userId: string) {
-    return prisma.weeklyStatCard.findMany({
-      where: { userId },
-      orderBy: { position: 'asc' },
-    });
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';
+
+    const [weeklyCards, periods, activity, categorySnapshots, goalSummaryResponse, gamificationResponse] =
+      await Promise.all([
+        prisma.weeklyStatCard.findMany({
+          where: { userId },
+          orderBy: { position: 'asc' },
+        }),
+        prisma.statisticsPeriodSnapshot.findMany({
+          where: { userId },
+        }),
+        prisma.activityPoint.findMany({
+          where: { userId },
+          orderBy: [{ period: 'asc' }, { position: 'asc' }],
+        }),
+        prisma.categoryProgressSnapshot.findMany({
+          where: { userId },
+          orderBy: { position: 'asc' },
+        }),
+        axios.get(`${goalsServiceUrl}/goals/${userId}/summary`),
+        axios.get(`${gamificationServiceUrl}/profile-gamification/${userId}`),
+      ]);
+
+    const goalSummary = goalSummaryResponse.data as {
+      completedGoals: number;
+      activeGoals: number;
+      completedMilestones: number;
+      totalMilestones: number;
+      completedQuests: number;
+      totalQuestXp: number;
+    };
+    const gamification = gamificationResponse.data as {
+      totalXp: number;
+      currentLevel: number;
+      xpToNextLevel: number;
+      currentStreak: number;
+      bestStreak: number;
+      focusAreas: {
+        key: string;
+        title: string;
+        level: number;
+        currentXp: number;
+        maxXp: number;
+        color: string;
+      }[];
+    };
+
+    const completionRate =
+      goalSummary.totalMilestones > 0
+        ? `${Math.round((goalSummary.completedMilestones / goalSummary.totalMilestones) * 100)} %`
+        : '0 %';
+
+    return {
+      weeklyCards: [
+        {
+          id: weeklyCards[0]?.id ?? 'quests',
+          icon: 'checkmark-circle-outline',
+          value: String(goalSummary.completedQuests),
+          label: 'Quests klara',
+          detail: weeklyCards[0]?.detail ?? '+0 % från förra veckan',
+          color: '#A866FF',
+        },
+        {
+          id: weeklyCards[1]?.id ?? 'xp',
+          icon: 'star-outline',
+          value: gamification.totalXp.toLocaleString('sv-SE'),
+          label: 'Total XP',
+          detail: weeklyCards[1]?.detail ?? '+0 % från förra veckan',
+          color: '#F5C13C',
+        },
+        {
+          id: weeklyCards[2]?.id ?? 'goals',
+          icon: 'radio-button-on-outline',
+          value: completionRate,
+          label: 'Måluppfyllelse',
+          detail: weeklyCards[2]?.detail ?? '+0 % från förra veckan',
+          color: '#67D86F',
+        },
+        {
+          id: weeklyCards[3]?.id ?? 'streak',
+          icon: 'flame-outline',
+          value: String(gamification.currentStreak),
+          label: 'Dagar i streak',
+          detail: `Bästa: ${gamification.bestStreak} dagar`,
+          color: '#FF8A3C',
+        },
+      ],
+      periods: periods.map((period) => ({
+        id: period.id,
+        key: period.period.toLowerCase(),
+        label: period.label,
+        totalXp: period.totalXp,
+        completedQuests: period.completedQuests,
+        completedGoals: period.completedGoals,
+        streakDays: period.streakDays,
+        activityScore: period.activityScore,
+      })),
+      activity: activity.map((point) => ({
+        id: point.id,
+        period: point.period.toLowerCase(),
+        label: point.label,
+        value: point.value,
+      })),
+      categoryProgress:
+        categorySnapshots.length > 0
+          ? categorySnapshots.map((snapshot) => ({
+              id: snapshot.id,
+              key: snapshot.categoryKey,
+              label: snapshot.label,
+              level: snapshot.level,
+              currentXp: snapshot.currentXp,
+              nextLevelXp: snapshot.nextLevelXp,
+              color: snapshot.color,
+            }))
+          : gamification.focusAreas.map((area) => ({
+              id: area.key,
+              key: area.key,
+              label: area.title,
+              level: area.level,
+              currentXp: area.currentXp,
+              nextLevelXp: area.maxXp,
+              color: area.color,
+            })),
+      liveSummary: {
+        totalXp: gamification.totalXp,
+        level: gamification.currentLevel,
+        xpToNextLevel: gamification.xpToNextLevel,
+        completedQuests: goalSummary.completedQuests,
+        completedGoals: goalSummary.completedGoals,
+        currentStreak: gamification.currentStreak,
+      },
+    };
   }
 }

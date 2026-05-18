@@ -1,8 +1,114 @@
-import { PrismaClient } from '../generated/client';
+import { GoalDifficulty, PrismaClient, QuestCategory, QuestType } from '../generated/client';
 import { goalTemplateSeeds } from './seeds';
 
 const prisma = new PrismaClient();
 const demoUserId = 'demo-auth-user-1';
+
+const XP_BY_DIFFICULTY: Record<GoalDifficulty, number> = {
+  EASY: 25,
+  MEDIUM: 50,
+  HARD: 100,
+  EPIC: 200,
+};
+
+const dailyQuests = [
+  {
+    title: 'Drick 2L vatten',
+    description: 'Håll vätskebalansen och bygg en enkel hälsovana.',
+    category: 'HEALTH',
+    difficulty: 'EASY',
+    xpReward: 25,
+    currentCount: 1,
+    targetCount: 1,
+    completed: true,
+    streakCount: 5,
+  },
+  {
+    title: 'Ta 8000 steg',
+    description: 'Rör dig mer under dagen och håll kroppen igång.',
+    category: 'TRAINING',
+    difficulty: 'EASY',
+    xpReward: 25,
+    currentCount: 1,
+    targetCount: 1,
+    completed: true,
+    streakCount: 3,
+  },
+  {
+    title: 'Läs 10 minuter',
+    description: 'Bygg en låg tröskel för fokus och lärande varje dag.',
+    category: 'PRODUCTIVITY',
+    difficulty: 'EASY',
+    xpReward: 25,
+    currentCount: 0,
+    targetCount: 1,
+    completed: false,
+    streakCount: 0,
+  },
+  {
+    title: 'Meditera 5 minuter',
+    description: 'Skapa ett kort återhämtningsmoment och träna närvaro.',
+    category: 'MINDFULNESS',
+    difficulty: 'EASY',
+    xpReward: 25,
+    currentCount: 0,
+    targetCount: 1,
+    completed: false,
+    streakCount: 2,
+  },
+] as const satisfies readonly {
+  title: string;
+  description: string;
+  category: QuestCategory;
+  difficulty: GoalDifficulty;
+  xpReward: number;
+  currentCount: number;
+  targetCount: number;
+  completed: boolean;
+  streakCount: number;
+}[];
+
+const weeklyQuests = [
+  {
+    title: 'Träna 3 gånger denna vecka',
+    description: 'Skapa kontinuitet i träningen med tre tydliga pass.',
+    category: 'TRAINING',
+    difficulty: 'MEDIUM',
+    xpReward: 100,
+    currentCount: 2,
+    targetCount: 3,
+    completed: false,
+  },
+  {
+    title: 'Läs totalt 100 sidor',
+    description: 'Bygg veckovolym i läsningen i stället för att bara tänka dag för dag.',
+    category: 'PRODUCTIVITY',
+    difficulty: 'MEDIUM',
+    xpReward: 100,
+    currentCount: 72,
+    targetCount: 100,
+    completed: false,
+  },
+  {
+    title: 'Jobba 5 timmar på sidoprojekt',
+    description: 'Gör långsiktig progression på något som betyder mycket för dig.',
+    category: 'CAREER',
+    difficulty: 'HARD',
+    xpReward: 150,
+    currentCount: 5,
+    targetCount: 5,
+    completed: true,
+  },
+] as const satisfies readonly {
+  title: string;
+  description: string;
+  category: QuestCategory;
+  difficulty: GoalDifficulty;
+  xpReward: number;
+  currentCount: number;
+  targetCount: number;
+  completed: boolean;
+}[];
 
 function buildDefaultSubtasks(title: string) {
   return [`Förbered: ${title}`, `Genomför: ${title}`, `Följ upp: ${title}`];
@@ -10,9 +116,43 @@ function buildDefaultSubtasks(title: string) {
 
 function buildDefaultTips(title: string) {
   return [
-    `Boka in tid i kalendern för "${title}".`,
-    `Bryt ner "${title}" i små steg om det känns stort.`,
+    `Blocka tid i kalendern för "${title}".`,
+    `Gör "${title}" så konkret att du kan börja direkt.`,
   ];
+}
+
+function inferGoalDifficulty(title: string): GoalDifficulty {
+  if (title.toLowerCase().includes('halvmaraton')) {
+    return 'EPIC';
+  }
+
+  if (title.toLowerCase().includes('sluta') || title.toLowerCase().includes('körkort')) {
+    return 'HARD';
+  }
+
+  return 'MEDIUM';
+}
+
+function inferMilestoneXpReward(
+  milestoneCount: number,
+  index: number,
+  difficulty: GoalDifficulty,
+  explicitXpReward?: number
+) {
+  if (explicitXpReward) {
+    return explicitXpReward;
+  }
+
+  const base = XP_BY_DIFFICULTY[difficulty];
+  return base + index * Math.max(10, Math.round(base / Math.max(milestoneCount, 1)));
+}
+
+function inferGoalBonusXp(milestoneXpRewards: number[], explicitGoalXpReward?: number) {
+  if (explicitGoalXpReward) {
+    return explicitGoalXpReward;
+  }
+
+  return Math.max(50, Math.round(milestoneXpRewards.reduce((sum, value) => sum + value, 0) * 0.25));
 }
 
 async function main() {
@@ -21,6 +161,9 @@ async function main() {
   await prisma.goalTemplateDetail.deleteMany();
   await prisma.goalTemplateMilestone.deleteMany();
   await prisma.goalTemplate.deleteMany();
+  await prisma.quest.deleteMany({
+    where: { userId: demoUserId },
+  });
   await prisma.milestoneSubtask.deleteMany({
     where: {
       milestone: {
@@ -46,262 +189,219 @@ async function main() {
       },
     },
   });
-
   await prisma.goal.deleteMany({
     where: { userId: demoUserId },
   });
 
-  await prisma.goal.createMany({
-    data: [
-      {
-        userId: demoUserId,
-        title: 'Springa 5 km',
-        subtitle: 'Träning',
-        icon: 'walk-outline',
-        status: 'ACTIVE',
-        targetValue: 5,
-        currentValue: 3,
-        percentLabel: '60 %',
-        cardColor: '#73D86A',
-      },
-      {
-        userId: demoUserId,
-        title: 'Klara kursen i Matematik 2',
-        subtitle: 'Plugg',
-        icon: 'school-outline',
-        status: 'ACTIVE',
-        targetValue: 5,
-        currentValue: 2,
-        percentLabel: '40 %',
-        cardColor: '#B269FF',
-      },
-      {
-        userId: demoUserId,
-        title: 'Sluta med alkohol',
-        subtitle: 'Hälsa',
-        icon: 'ban-outline',
-        status: 'ACTIVE',
-        targetValue: 10,
-        currentValue: 8,
-        unit: 'days',
-        percentLabel: '80 %',
-        cardColor: '#F08A45',
-        streakDays: 7,
-      },
-      {
-        userId: demoUserId,
-        title: 'Meditera varje dag',
-        subtitle: 'Balans',
-        icon: 'leaf-outline',
-        status: 'COMPLETED',
-        targetValue: 7,
-        currentValue: 7,
-        percentLabel: '100 %',
-        cardColor: '#5E8BFF',
-      },
-    ],
-  });
-
-  const runGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: demoUserId, title: 'Springa 5 km' },
-  });
-  const mathGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: demoUserId, title: 'Klara kursen i Matematik 2' },
-  });
-  const alcoholGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: demoUserId, title: 'Sluta med alkohol' },
-  });
-  const meditationGoal = await prisma.goal.findFirstOrThrow({
-    where: { userId: demoUserId, title: 'Meditera varje dag' },
-  });
-
-  await prisma.milestone.createMany({
-    data: [
-      {
-        goalId: runGoal.id,
-        title: 'Springa 1 km',
-        completedAt: new Date('2026-05-12'),
-        position: 0,
-      },
-      {
-        goalId: runGoal.id,
-        title: 'Springa 2 km',
-        completedAt: new Date('2026-05-18'),
-        position: 1,
-      },
-      {
-        goalId: runGoal.id,
-        title: 'Springa 3 km',
-        completedAt: new Date('2026-05-24'),
-        position: 2,
-      },
-      {
-        goalId: runGoal.id,
-        title: 'Springa 4 km',
-        position: 3,
-      },
-      {
-        goalId: runGoal.id,
-        title: 'Springa 5 km',
-        position: 4,
-      },
-      {
-        goalId: mathGoal.id,
-        title: 'Skapa studieplan',
-        completedAt: new Date('2026-05-10'),
-        position: 0,
-      },
-      {
-        goalId: mathGoal.id,
-        title: 'Gå igenom kapitel 1–2',
-        completedAt: new Date('2026-05-16'),
-        position: 1,
-      },
-      {
-        goalId: mathGoal.id,
-        title: 'Göra uppgifter',
-        position: 2,
-      },
-      {
-        goalId: mathGoal.id,
-        title: 'Repetera inför tenta',
-        position: 3,
-      },
-      {
-        goalId: mathGoal.id,
-        title: 'Klara tentan',
-        position: 4,
-      },
-      {
-        goalId: alcoholGoal.id,
-        title: 'Dag 1',
-        completedAt: new Date('2026-05-01'),
-        position: 0,
-      },
-      {
-        goalId: alcoholGoal.id,
-        title: 'Dag 3',
-        completedAt: new Date('2026-05-03'),
-        position: 1,
-      },
-      {
-        goalId: alcoholGoal.id,
-        title: 'Dag 7',
-        completedAt: new Date('2026-05-07'),
-        position: 2,
-      },
-      {
-        goalId: alcoholGoal.id,
-        title: 'Dag 10',
-        completedAt: new Date('2026-05-10'),
-        position: 3,
-      },
-      {
-        goalId: alcoholGoal.id,
-        title: 'Dag 14',
-        position: 4,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 1',
-        completedAt: new Date('2026-04-01'),
-        position: 0,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 2',
-        completedAt: new Date('2026-04-02'),
-        position: 1,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 3',
-        completedAt: new Date('2026-04-03'),
-        position: 2,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 4',
-        completedAt: new Date('2026-04-04'),
-        position: 3,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 5',
-        completedAt: new Date('2026-04-05'),
-        position: 4,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 6',
-        completedAt: new Date('2026-04-06'),
-        position: 5,
-      },
-      {
-        goalId: meditationGoal.id,
-        title: 'Dag 7',
-        completedAt: new Date('2026-04-07'),
-        position: 6,
-      },
-    ],
-  });
-
-  const demoMilestones = await prisma.milestone.findMany({
-    where: {
-      goal: {
-        userId: demoUserId,
-      },
+  const seededGoals = [
+    {
+      title: 'Springa 5 km',
+      subtitle: 'Träning',
+      icon: 'walk-outline',
+      cardColor: '#73D86A',
+      difficulty: 'MEDIUM' as GoalDifficulty,
+      goalXpReward: 100,
+      totalXpReward: 450,
+      milestones: [
+        { title: 'Spring 1 km utan paus', xpReward: 50, completedAt: new Date('2026-05-12') },
+        { title: 'Spring 2 km i lugnt tempo', xpReward: 60, completedAt: new Date('2026-05-18') },
+        { title: 'Spring 3 km sammanhängande', xpReward: 70, completedAt: new Date('2026-05-24') },
+        { title: 'Spring 4 km med jämnt tempo', xpReward: 80 },
+        { title: 'Spring 5 km utan att stanna', xpReward: 90 },
+      ],
     },
-    orderBy: [{ goalId: 'asc' }, { position: 'asc' }],
-  });
+    {
+      title: 'Klara kursen i Matematik 2',
+      subtitle: 'Plugg',
+      icon: 'school-outline',
+      cardColor: '#B269FF',
+      difficulty: 'HARD' as GoalDifficulty,
+      milestones: [
+        { title: 'Skapa studieplan', xpReward: 40, completedAt: new Date('2026-05-10') },
+        { title: 'Gå igenom kapitel 1–2', xpReward: 50, completedAt: new Date('2026-05-16') },
+        { title: 'Göra uppgifter', xpReward: 70 },
+        { title: 'Repetera inför tenta', xpReward: 80 },
+        { title: 'Klara tentan', xpReward: 120 },
+      ],
+    },
+    {
+      title: 'Sluta med alkohol',
+      subtitle: 'Hälsa',
+      icon: 'ban-outline',
+      cardColor: '#F08A45',
+      difficulty: 'HARD' as GoalDifficulty,
+      milestones: [
+        { title: 'Dag 1', xpReward: 40, completedAt: new Date('2026-05-01') },
+        { title: 'Dag 3', xpReward: 60, completedAt: new Date('2026-05-03') },
+        { title: 'Dag 7', xpReward: 80, completedAt: new Date('2026-05-07') },
+        { title: 'Dag 10', xpReward: 90, completedAt: new Date('2026-05-10') },
+        { title: 'Dag 14', xpReward: 120 },
+      ],
+      unit: 'days',
+      streakDays: 12,
+    },
+    {
+      title: 'Meditera varje dag',
+      subtitle: 'Mindfulness',
+      icon: 'leaf-outline',
+      cardColor: '#5E8BFF',
+      difficulty: 'MEDIUM' as GoalDifficulty,
+      milestones: [
+        { title: 'Dag 1', xpReward: 25, completedAt: new Date('2026-04-01') },
+        { title: 'Dag 2', xpReward: 25, completedAt: new Date('2026-04-02') },
+        { title: 'Dag 3', xpReward: 30, completedAt: new Date('2026-04-03') },
+        { title: 'Dag 4', xpReward: 30, completedAt: new Date('2026-04-04') },
+        { title: 'Dag 5', xpReward: 35, completedAt: new Date('2026-04-05') },
+        { title: 'Dag 6', xpReward: 35, completedAt: new Date('2026-04-06') },
+        { title: 'Dag 7', xpReward: 40, completedAt: new Date('2026-04-07') },
+      ],
+      completed: true,
+    },
+  ];
 
-  await prisma.milestoneSubtask.createMany({
-    data: demoMilestones.flatMap((milestone) =>
-      buildDefaultSubtasks(milestone.title).map((title, index) => ({
-        milestoneId: milestone.id,
-        title,
-        completed: Boolean(milestone.completedAt) && index === 0,
-        position: index,
-      }))
-    ),
-  });
+  for (const goalSeed of seededGoals) {
+    const currentValue = goalSeed.milestones.filter((milestone) => milestone.completedAt).length;
+    const targetValue = goalSeed.milestones.length;
+    const milestoneXpRewards = goalSeed.milestones.map((milestone) => milestone.xpReward);
+    const goalXpReward = inferGoalBonusXp(milestoneXpRewards, goalSeed.goalXpReward);
+    const totalXpReward = goalSeed.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
+    const goal = await prisma.goal.create({
+      data: {
+        userId: demoUserId,
+        title: goalSeed.title,
+        subtitle: goalSeed.subtitle,
+        icon: goalSeed.icon,
+        difficulty: goalSeed.difficulty,
+        goalXpReward,
+        totalXpReward,
+        status: goalSeed.completed ? 'COMPLETED' : 'ACTIVE',
+        targetValue,
+        currentValue,
+        unit: goalSeed.unit,
+        percentLabel: `${Math.round((currentValue / Math.max(targetValue, 1)) * 100)} %`,
+        cardColor: goalSeed.cardColor,
+        streakDays: goalSeed.streakDays,
+        completedAt: goalSeed.completed ? new Date('2026-04-07') : null,
+        completedXpGrantedAt: goalSeed.completed ? new Date('2026-04-07') : null,
+      },
+    });
 
-  await prisma.milestoneTip.createMany({
-    data: demoMilestones.flatMap((milestone) =>
-      buildDefaultTips(milestone.title).map((text, index) => ({
-        milestoneId: milestone.id,
-        text,
+    for (const [index, milestoneSeed] of goalSeed.milestones.entries()) {
+      const milestone = await prisma.milestone.create({
+        data: {
+          goalId: goal.id,
+          title: milestoneSeed.title,
+          xpReward: milestoneSeed.xpReward,
+          completedAt: milestoneSeed.completedAt,
+          xpGrantedAt: milestoneSeed.completedAt ? milestoneSeed.completedAt : null,
+          position: index,
+        },
+      });
+
+      const subtasks = buildDefaultSubtasks(milestoneSeed.title);
+      const tips = buildDefaultTips(milestoneSeed.title);
+
+      await prisma.milestoneSubtask.createMany({
+        data: subtasks.map((title, subtaskIndex) => ({
+          milestoneId: milestone.id,
+          title,
+          completed: Boolean(milestoneSeed.completedAt),
+          position: subtaskIndex,
+        })),
+      });
+
+      await prisma.milestoneTip.createMany({
+        data: tips.map((text, tipIndex) => ({
+          milestoneId: milestone.id,
+          text,
+          position: tipIndex,
+        })),
+      });
+    }
+  }
+
+  await prisma.quest.createMany({
+    data: [
+      ...dailyQuests.map((quest, index) => ({
+        userId: demoUserId,
+        type: 'DAILY' as QuestType,
+        title: quest.title,
+        description: quest.description,
+        category: quest.category,
+        difficulty: quest.difficulty,
+        xpReward: quest.xpReward,
+        currentCount: quest.currentCount,
+        targetCount: quest.targetCount,
+        streakCount: quest.streakCount,
+        isCustom: false,
+        completed: quest.completed,
+        completedAt: quest.completed ? new Date('2026-05-18') : null,
+        periodStart: new Date('2026-05-18'),
+        resetsAt: new Date('2026-05-19'),
         position: index,
-      }))
-    ),
+      })),
+      ...weeklyQuests.map((quest, index) => ({
+        userId: demoUserId,
+        type: 'WEEKLY' as QuestType,
+        title: quest.title,
+        description: quest.description,
+        category: quest.category,
+        difficulty: quest.difficulty,
+        xpReward: quest.xpReward,
+        currentCount: quest.currentCount,
+        targetCount: quest.targetCount,
+        streakCount: 0,
+        isCustom: false,
+        completed: quest.completed,
+        completedAt: quest.completed ? new Date('2026-05-18') : null,
+        periodStart: new Date('2026-05-12'),
+        resetsAt: new Date('2026-05-19'),
+        position: index,
+      })),
+    ],
   });
 
   await prisma.goalTemplate.createMany({
-    data: goalTemplateSeeds.map((template, index) => ({
-      title: template.title,
-      icon: template.icon,
-      subtitle: template.subtitle,
-      summaryDescription: template.summaryDescription,
-      detailDescription: template.detailDescription,
-      category: template.category,
-      color: template.color,
-      isPopular: template.isPopular,
-      position: index,
-    })),
+    data: goalTemplateSeeds.map((template, index) => {
+      const difficulty = template.difficulty ?? inferGoalDifficulty(template.title);
+      const milestoneXpRewards = template.milestones.map((milestone, milestoneIndex) =>
+        inferMilestoneXpReward(template.milestones.length, milestoneIndex, difficulty, milestone.xpReward)
+      );
+      const goalXpReward = inferGoalBonusXp(milestoneXpRewards, template.goalXpReward);
+      const totalXpReward = template.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
+
+      return {
+        title: template.title,
+        icon: template.icon,
+        subtitle: template.subtitle,
+        summaryDescription: template.summaryDescription,
+        detailDescription: template.detailDescription,
+        category: template.category,
+        difficulty,
+        goalXpReward,
+        totalXpReward,
+        color: template.color,
+        isPopular: template.isPopular,
+        position: index,
+      };
+    }),
   });
 
   const templates = await prisma.goalTemplate.findMany();
   const byTitle = Object.fromEntries(templates.map((template) => [template.title, template.id]));
 
   await prisma.goalTemplateMilestone.createMany({
-    data: goalTemplateSeeds.flatMap((template) =>
-      template.milestones.map((milestone, index) => ({
+    data: goalTemplateSeeds.flatMap((template) => {
+      const difficulty = template.difficulty ?? inferGoalDifficulty(template.title);
+
+      return template.milestones.map((milestone, index) => ({
         goalTemplateId: byTitle[template.title],
         title: milestone.title,
         description: milestone.description,
+        xpReward: inferMilestoneXpReward(template.milestones.length, index, difficulty, milestone.xpReward),
         position: index,
-      }))
-    ),
+      }));
+    }),
   });
 
   await prisma.goalTemplateDetail.createMany({
@@ -325,10 +425,7 @@ async function main() {
 
   const templateMilestoneSeedMap = new Map(
     goalTemplateSeeds.flatMap((template) =>
-      template.milestones.map((milestone) => [
-        `${template.title}::${milestone.title}`,
-        milestone,
-      ])
+      template.milestones.map((milestone) => [`${template.title}::${milestone.title}`, milestone] as const)
     )
   );
 

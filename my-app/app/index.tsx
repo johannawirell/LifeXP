@@ -85,9 +85,6 @@ export default function AuthScreen() {
       <View style={styles.container}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>LifeXP</Text>
-          <Text style={styles.title}>
-            {authMode === 'login' ? 'Logga in och fortsätt bygga.' : 'Skapa konto och starta din resa.'}
-          </Text>
         </View>
 
         <View style={styles.modeToggle}>

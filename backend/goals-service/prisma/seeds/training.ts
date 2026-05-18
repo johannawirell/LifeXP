@@ -9,6 +9,9 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet hjälper dig att bygga upp uthållighet steg för steg tills du klarar att springa fem kilometer sammanhängande.',
     category: 'TRAINING',
+    difficulty: 'MEDIUM',
+    goalXpReward: 100,
+    totalXpReward: 450,
     color: '#73D86A',
     isPopular: true,
     details: [
@@ -19,11 +22,11 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
       { label: 'Passar dig som', value: 'vill komma igång med löpning eller nå en tydlig distans', visibility: 'DETAIL' },
     ],
     milestones: [
-      { title: 'Spring 1 km utan paus' },
-      { title: 'Spring 2 km i lugnt tempo' },
-      { title: 'Spring 3 km sammanhängande' },
-      { title: 'Spring 4 km med jämnt tempo' },
-      { title: 'Spring 5 km utan att stanna' },
+      { title: 'Spring 1 km utan paus', xpReward: 50 },
+      { title: 'Spring 2 km i lugnt tempo', xpReward: 60 },
+      { title: 'Spring 3 km sammanhängande', xpReward: 70 },
+      { title: 'Spring 4 km med jämnt tempo', xpReward: 80 },
+      { title: 'Spring 5 km utan att stanna', xpReward: 90 },
     ],
   },
   {
@@ -34,6 +37,9 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet fokuserar på att skapa kontinuitet i styrketräningen, sätta kostramar och följa din utveckling över tid.',
     category: 'TRAINING',
+    difficulty: 'MEDIUM',
+    goalXpReward: 150,
+    totalXpReward: 550,
     color: '#F5C13C',
     isPopular: true,
     details: [
@@ -43,11 +49,11 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
       { label: 'Passar dig som', value: 'vill bygga styrka och muskelmassa strukturerat', visibility: 'DETAIL' },
     ],
     milestones: [
-      { title: 'Skapa ett träningsschema för veckan' },
-      { title: 'Sätt mål för kost och proteinintag' },
-      { title: 'Träna 3 styrkepass i veckan' },
-      { title: 'Öka belastningen gradvis' },
-      { title: 'Följ upp styrka och kroppsmått' },
+      { title: 'Skapa ett träningsschema för veckan', xpReward: 40 },
+      { title: 'Sätt mål för kost och proteinintag', xpReward: 50 },
+      { title: 'Träna 3 styrkepass i veckan', xpReward: 100 },
+      { title: 'Öka belastningen gradvis', xpReward: 100 },
+      { title: 'Följ upp styrka och kroppsmått', xpReward: 110 },
     ],
   },
   {
@@ -58,6 +64,9 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet guidar dig genom ett längre löparupplägg där du successivt ökar volym, långpass och återhämtning inför loppet.',
     category: 'TRAINING',
+    difficulty: 'EPIC',
+    goalXpReward: 300,
+    totalXpReward: 1200,
     color: '#73D86A',
     isPopular: false,
     details: [
@@ -68,11 +77,11 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
       { label: 'Passar dig som', value: 'redan springer regelbundet och vill ta nästa steg', visibility: 'DETAIL' },
     ],
     milestones: [
-      { title: 'Skapa ett 12-veckors träningsupplägg' },
-      { title: 'Bygg upp veckovolymen gradvis' },
-      { title: 'Lägg in ett långpass varje vecka' },
-      { title: 'Träna tempo och återhämtning' },
-      { title: 'Genomför loppet' },
+      { title: 'Skapa ett 12-veckors träningsupplägg', xpReward: 100 },
+      { title: 'Bygg upp veckovolymen gradvis', xpReward: 150 },
+      { title: 'Lägg in ett långpass varje vecka', xpReward: 175 },
+      { title: 'Träna tempo och återhämtning', xpReward: 175 },
+      { title: 'Genomför loppet', xpReward: 300 },
     ],
   },
 ];

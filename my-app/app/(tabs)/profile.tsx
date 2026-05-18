@@ -15,8 +15,13 @@ type ProfileResponse = {
   currentLevel: number;
   totalXp: number;
   nextLevelXp: number;
+  xpToNextLevel: number;
+  levelProgress: number;
+  currentStreak: number;
+  bestStreak: number;
   focusAreas: {
     id: string;
+    key: string;
     icon: keyof typeof Ionicons.glyphMap;
     title: string;
     level: number;
@@ -33,12 +38,36 @@ type ProfileResponse = {
     color: string;
     percentLabel: string;
   }[];
+  dailyQuests: {
+    id: string;
+    title: string;
+    xpReward: number;
+    progressLabel: string;
+    completed: boolean;
+    color: string;
+  }[];
+  weeklyQuests: {
+    id: string;
+    title: string;
+    xpReward: number;
+    progressLabel: string;
+    completed: boolean;
+    color: string;
+  }[];
+  recentXp: {
+    id: string;
+    amount: number;
+    title: string;
+    description: string;
+    multiplier: number;
+  }[];
   achievements: {
     id: string;
     icon: keyof typeof Ionicons.glyphMap;
     title: string;
     subtitle: string;
     color: string;
+    rarity: 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
   }[];
   weeklyStats: {
     id: string;
@@ -48,10 +77,26 @@ type ProfileResponse = {
     detail: string;
     color: string;
   }[];
+  statisticsSummary: {
+    totalXp: number;
+    level: number;
+    xpToNextLevel: number;
+    completedQuests: number;
+    completedGoals: number;
+    currentStreak: number;
+  };
 };
 
-function SectionHeader({ title, action }: { title: string; action?: string }) {
-  return (
+function SectionHeader({
+  title,
+  action,
+  onPress,
+}: {
+  title: string;
+  action?: string;
+  onPress?: () => void;
+}) {
+  const content = (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {action ? (
@@ -62,6 +107,12 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
       ) : null}
     </View>
   );
+
+  if (!action || !onPress) {
+    return content;
+  }
+
+  return <Pressable onPress={onPress}>{content}</Pressable>;
 }
 
 export default function ProfileScreen() {
@@ -116,7 +167,7 @@ export default function ProfileScreen() {
           <Ionicons name="person-outline" size={46} color="#A866FF" />
           <Text style={styles.feedbackTitle}>Ny användare</Text>
           <Text style={styles.feedbackText}>
-            Profilen är tom just nu. Skapa dina första mål för att börja bygga din nivå, statistik och prestationer.
+            Profilen är tom just nu. Skapa dina första mål och quests för att börja bygga level, streak och achievements.
           </Text>
           <Pressable onPress={resetSession} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Byt läge</Text>
@@ -144,7 +195,7 @@ export default function ProfileScreen() {
           <Ionicons name="cloud-offline-outline" size={42} color="#A866FF" />
           <Text style={styles.feedbackTitle}>Backend svarar inte</Text>
           <Text style={styles.feedbackText}>
-            Starta `api-gateway` och `user-service`, och kontrollera att PostgreSQL är igång.
+            Starta `api-gateway`, `goals-service`, `gamification-service` och databasen.
           </Text>
           <Text style={styles.feedbackError}>{error ?? 'Ingen profil hittades.'}</Text>
           <Pressable onPress={() => void loadProfile()} style={styles.retryButton}>
@@ -154,9 +205,6 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
-
-  const xpLeft = Math.max(profile.nextLevelXp - profile.totalXp, 0);
-  const levelProgress = profile.nextLevelXp > 0 ? (profile.totalXp / profile.nextLevelXp) * 100 : 0;
 
   const openGoalsPage = () => {
     router.push('/goals');
@@ -215,10 +263,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.heroInfo}>
-              <View style={styles.nameRow}>
-                <Text style={styles.name}>{profile.displayName}</Text>
-                <Ionicons name="pencil" size={15} color="#A866FF" />
-              </View>
+              <Text style={styles.name}>{profile.displayName}</Text>
               <Text style={styles.tagline}>{profile.headline ?? ''}</Text>
 
               <View style={styles.levelRow}>
@@ -228,19 +273,30 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <View style={styles.largeProgressTrack}>
-                <View style={[styles.largeProgressFill, { width: `${Math.min(levelProgress, 100)}%` }]} />
+                <View style={[styles.largeProgressFill, { width: `${Math.min(profile.levelProgress * 100, 100)}%` }]} />
               </View>
               <Text style={styles.levelHint}>
-                {`${xpLeft.toLocaleString('sv-SE')} XP kvar till Level ${profile.currentLevel + 1}`}
+                {`${profile.xpToNextLevel.toLocaleString('sv-SE')} XP kvar till Level ${profile.currentLevel + 1}`}
               </Text>
+
+              <View style={styles.streakRow}>
+                <View style={styles.streakPill}>
+                  <Ionicons name="flame-outline" size={16} color="#FF9E4A" />
+                  <Text style={styles.streakPillText}>{profile.currentStreak} dagars streak</Text>
+                </View>
+                <View style={styles.streakPill}>
+                  <Ionicons name="trophy-outline" size={16} color="#F5C13C" />
+                  <Text style={styles.streakPillText}>Bäst: {profile.bestStreak}</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
         <View style={styles.statsGrid}>
           {profile.focusAreas.map((item) => (
-            <View key={item.title} style={styles.statCard}>
-              <Ionicons name={item.icon} size={28} color={item.color} />
+            <View key={item.id} style={styles.statCard}>
+              <Ionicons name={item.icon} size={24} color={item.color} />
               <Text style={styles.statTitle}>{item.title}</Text>
               <Text style={styles.statLevel}>Level {item.level}</Text>
               <View style={styles.smallProgressTrack}>
@@ -262,14 +318,25 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionCard}>
-          <Pressable onPress={openGoalsPage}>
-            <SectionHeader title="Aktiva mål" action="Visa alla" />
-          </Pressable>
+          <SectionHeader title="Senaste XP" />
+          {profile.recentXp.map((entry, index) => (
+            <View key={entry.id} style={[styles.xpEntryRow, index < profile.recentXp.length - 1 ? styles.rowBorder : null]}>
+              <View style={styles.xpEntryText}>
+                <Text style={styles.xpEntryTitle}>{entry.title}</Text>
+                <Text style={styles.xpEntryDescription}>{entry.description}</Text>
+              </View>
+              <Text style={styles.xpEntryValue}>+{entry.amount} XP</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <SectionHeader title="Aktiva mål" action="Visa alla" onPress={openGoalsPage} />
           {profile.activeGoals.map((goal, index) => (
             <Pressable
               key={goal.id}
               onPress={() => openGoalFromProfile(goal.id)}
-              style={[styles.goalRow, index < profile.activeGoals.length - 1 ? styles.goalRowBorder : null]}>
+              style={[styles.goalRow, index < profile.activeGoals.length - 1 ? styles.rowBorder : null]}>
               <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
                 <Ionicons name={goal.icon} size={24} color={goal.color} />
               </View>
@@ -296,22 +363,49 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionCard}>
-          <SectionHeader title="Prestationer" action="Visa alla" />
+          <SectionHeader title="Quests idag" />
+          {profile.dailyQuests.slice(0, 3).map((quest, index) => (
+            <View key={quest.id} style={[styles.questRow, index < Math.min(profile.dailyQuests.length, 3) - 1 ? styles.rowBorder : null]}>
+              <Ionicons
+                name={quest.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                size={20}
+                color={quest.color}
+              />
+              <View style={styles.questTextWrap}>
+                <Text style={styles.questTitle}>{quest.title}</Text>
+                <Text style={styles.questSubtitle}>{quest.progressLabel}</Text>
+              </View>
+              <Text style={styles.questXp}>+{quest.xpReward}</Text>
+            </View>
+          ))}
+          <View style={styles.questSummaryRow}>
+            <View style={styles.summaryPill}>
+              <Text style={styles.summaryPillText}>{profile.statisticsSummary.completedQuests} quests klara</Text>
+            </View>
+            <View style={styles.summaryPill}>
+              <Text style={styles.summaryPillText}>{profile.weeklyQuests.filter((quest) => quest.completed).length} weekly klara</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.sectionCard}>
+          <SectionHeader title="Prestationer" />
           <View style={styles.achievementRow}>
             {profile.achievements.map((item) => (
               <View key={item.id} style={styles.achievementCard}>
                 <View style={[styles.achievementIconWrap, { borderColor: item.color }]}>
-                  <Ionicons name={item.icon} size={26} color={item.color} />
+                  <Ionicons name={item.icon} size={24} color={item.color} />
                 </View>
                 <Text style={styles.achievementTitle}>{item.title}</Text>
                 <Text style={styles.achievementSubtitle}>{item.subtitle}</Text>
+                <Text style={styles.achievementRarity}>{item.rarity}</Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.sectionCard}>
-          <SectionHeader title="Statistik" action="Denna vecka" />
+          <SectionHeader title="Statistik" action="Öppna" onPress={() => router.push('/statistics')} />
           <View style={styles.weeklyStatsRow}>
             {profile.weeklyStats.map((item, index) => (
               <View
@@ -331,403 +425,170 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#090E16',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#090E16',
-  },
-  content: {
-    paddingBottom: 120,
-    paddingHorizontal: 8,
-  },
-  feedbackState: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  feedbackTitle: {
-    color: '#F5F7FB',
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 18,
-  },
-  feedbackText: {
-    color: '#97A0AE',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  feedbackError: {
-    color: '#C9A9FF',
-    fontSize: 12,
-    marginTop: 10,
-    textAlign: 'center',
-  },
+  safeArea: { flex: 1, backgroundColor: '#090E16' },
+  container: { flex: 1, backgroundColor: '#090E16' },
+  content: { paddingBottom: 120, paddingHorizontal: 8 },
+  feedbackState: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  feedbackTitle: { color: '#F5F7FB', fontSize: 24, fontWeight: '700', marginTop: 18 },
+  feedbackText: { color: '#97A0AE', fontSize: 14, lineHeight: 22, marginTop: 12, textAlign: 'center' },
+  feedbackError: { color: '#C7CDD7', fontSize: 13, marginTop: 14, textAlign: 'center' },
   retryButton: {
     backgroundColor: '#8B4EF4',
     borderRadius: 12,
-    marginTop: 20,
+    marginTop: 24,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  retryButtonText: {
-    color: '#F7F3FF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    zIndex: 10,
-  },
-  settingsWrap: {
-    alignItems: 'flex-end',
-    position: 'relative',
-  },
+  retryButtonText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
+  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18, marginTop: 8, paddingHorizontal: 8 },
+  screenTitle: { color: '#F5F7FB', fontSize: 30, fontWeight: '800' },
+  settingsWrap: { position: 'relative' },
   settingsButton: {
-    padding: 4,
+    alignItems: 'center',
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
   },
   settingsMenu: {
-    backgroundColor: '#151B24',
-    borderColor: '#262E3A',
-    borderRadius: 14,
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 16,
     borderWidth: 1,
-    marginTop: 10,
-    minWidth: 128,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    padding: 8,
     position: 'absolute',
     right: 0,
-    top: 28,
+    top: 54,
+    width: 150,
+    zIndex: 30,
   },
-  settingsMenuItem: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 6,
-  },
-  settingsMenuText: {
-    color: '#F7F3FF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  screenTitle: {
-    color: '#F5F7FB',
-    fontSize: 34,
-    fontWeight: '700',
-  },
+  settingsMenuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 10, paddingVertical: 10 },
+  settingsMenuText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
   heroCard: {
-    backgroundColor: '#090E16',
-    marginTop: 16,
-    paddingHorizontal: 8,
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 26,
+    borderWidth: 1,
+    marginHorizontal: 8,
+    marginTop: 4,
+    padding: 18,
   },
-  heroTop: {
-    flexDirection: 'row',
-  },
-  avatarWrap: {
-    marginRight: 16,
-    position: 'relative',
-  },
+  heroTop: { flexDirection: 'row', gap: 16 },
+  avatarWrap: { alignItems: 'center', justifyContent: 'center' },
   avatarOuter: {
     alignItems: 'center',
-    backgroundColor: '#6F3FD7',
-    borderRadius: 38,
-    height: 76,
+    backgroundColor: '#8B4EF4',
+    borderRadius: 42,
+    height: 84,
     justifyContent: 'center',
-    shadowColor: '#8B4EF4',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    width: 76,
+    padding: 3,
+    width: 84,
   },
-  avatarInner: {
-    alignItems: 'center',
-    backgroundColor: '#B992FF',
-    borderColor: '#D2BBFF',
-    borderRadius: 34,
-    borderWidth: 2,
-    height: 68,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    width: 68,
-  },
+  avatarInner: { alignItems: 'center', backgroundColor: '#D4B5FF', borderRadius: 39, flex: 1, justifyContent: 'center', width: '100%' },
   levelBadge: {
-    alignItems: 'center',
-    backgroundColor: '#23192D',
-    borderColor: '#A866FF',
-    borderRadius: 12,
-    borderWidth: 1,
-    bottom: -4,
-    height: 24,
-    justifyContent: 'center',
+    backgroundColor: '#131A25',
+    borderColor: '#8B4EF4',
+    borderRadius: 14,
+    borderWidth: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     position: 'absolute',
-    right: -6,
-    width: 24,
+    right: -4,
+    top: 58,
   },
-  levelBadgeText: {
-    color: '#F5F7FB',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  heroInfo: {
-    flex: 1,
-    paddingTop: 4,
-  },
-  nameRow: {
+  levelBadgeText: { color: '#F7F3FF', fontSize: 13, fontWeight: '800' },
+  heroInfo: { flex: 1 },
+  name: { color: '#F5F7FB', fontSize: 24, fontWeight: '800' },
+  tagline: { color: '#97A0AE', fontSize: 13, lineHeight: 20, marginTop: 6 },
+  levelRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  levelText: { color: '#B77BFF', fontSize: 13, fontWeight: '700' },
+  xpText: { color: '#C8D0DA', fontSize: 12, fontWeight: '700' },
+  largeProgressTrack: { backgroundColor: '#2A3342', borderRadius: 999, height: 9, marginTop: 8, overflow: 'hidden' },
+  largeProgressFill: { backgroundColor: '#A866FF', borderRadius: 999, height: '100%' },
+  levelHint: { color: '#9AA3B2', fontSize: 12, marginTop: 8 },
+  streakRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  streakPill: {
     alignItems: 'center',
+    backgroundColor: '#1A2230',
+    borderRadius: 999,
     flexDirection: 'row',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  name: {
-    color: '#F4F6FB',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  tagline: {
-    color: '#6F7784',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  levelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  levelText: {
-    color: '#A866FF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  xpText: {
-    color: '#B5BCC8',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  largeProgressTrack: {
-    backgroundColor: '#2A2F3A',
-    borderRadius: 999,
-    height: 8,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  largeProgressFill: {
-    backgroundColor: '#A866FF',
-    borderRadius: 999,
-    height: '100%',
-    width: '82%',
-  },
-  levelHint: {
-    color: '#97A0AE',
-    fontSize: 12,
-    marginTop: 8,
-  },
-  statsGrid: {
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 18,
-    overflow: 'hidden',
-  },
+  streakPillText: { color: '#F5F7FB', fontSize: 12, fontWeight: '700' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14, paddingHorizontal: 8 },
   statCard: {
-    borderColor: '#1F2632',
-    borderRightWidth: 1,
-    borderTopWidth: 1,
-    minHeight: 114,
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    width: '50%',
-  },
-  statTitle: {
-    color: '#F5F7FB',
-    fontSize: 17,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  statLevel: {
-    color: '#8A93A2',
-    fontSize: 12,
-    marginTop: 3,
-  },
-  smallProgressTrack: {
-    backgroundColor: '#2B313E',
-    borderRadius: 999,
-    height: 6,
-    marginTop: 10,
-    overflow: 'hidden',
-  },
-  smallProgressFill: {
-    borderRadius: 999,
-    height: '100%',
-  },
-  statProgress: {
-    color: '#808A99',
-    fontSize: 12,
-    marginTop: 8,
-  },
-  sectionCard: {
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
-    borderRadius: 14,
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 18,
     borderWidth: 1,
-    marginTop: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    minWidth: '47%',
+    padding: 14,
+    width: '47%',
   },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+  statTitle: { color: '#F5F7FB', fontSize: 15, fontWeight: '700', marginTop: 10 },
+  statLevel: { color: '#B1BAC9', fontSize: 12, marginTop: 4 },
+  smallProgressTrack: { backgroundColor: '#2A3342', borderRadius: 999, height: 6, marginTop: 10, overflow: 'hidden' },
+  smallProgressFill: { borderRadius: 999, height: '100%' },
+  statProgress: { color: '#9AA3B2', fontSize: 11, marginTop: 8 },
+  sectionCard: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 22,
+    borderWidth: 1,
+    marginHorizontal: 8,
+    marginTop: 14,
+    padding: 16,
   },
-  sectionTitle: {
-    color: '#798191',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  sectionAction: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 2,
-  },
-  sectionActionText: {
-    color: '#8D56F7',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  goalRow: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-  },
-  goalRowBorder: {
-    borderBottomColor: '#1F2632',
-    borderBottomWidth: 1,
-  },
-  goalIconWrap: {
-    alignItems: 'center',
-    borderRadius: 12,
-    height: 40,
-    justifyContent: 'center',
-    marginRight: 12,
-    width: 40,
-  },
-  goalContent: {
-    flex: 1,
-  },
-  goalTitleRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  goalTitle: {
-    color: '#F5F7FB',
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  goalSubtitle: {
-    color: '#8B93A0',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  goalProgressRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-  },
-  goalProgressTrack: {
-    backgroundColor: '#2B313E',
-    borderRadius: 999,
-    flex: 1,
-    height: 6,
-    overflow: 'hidden',
-  },
-  goalProgressFill: {
-    borderRadius: 999,
-    height: '100%',
-  },
-  goalPercent: {
-    color: '#7E8898',
-    fontSize: 12,
-    fontWeight: '700',
-    width: 34,
-  },
-  achievementRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  achievementCard: {
-    width: '18%',
-  },
+  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle: { color: '#F5F7FB', fontSize: 19, fontWeight: '800' },
+  sectionAction: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  sectionActionText: { color: '#8D56F7', fontSize: 13, fontWeight: '700' },
+  xpEntryRow: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 12 },
+  xpEntryText: { flex: 1 },
+  xpEntryTitle: { color: '#F5F7FB', fontSize: 15, fontWeight: '700' },
+  xpEntryDescription: { color: '#97A0AE', fontSize: 12, lineHeight: 18, marginTop: 4 },
+  xpEntryValue: { color: '#A866FF', fontSize: 14, fontWeight: '800' },
+  rowBorder: { borderBottomColor: '#1F2837', borderBottomWidth: 1 },
+  goalRow: { flexDirection: 'row', gap: 12, paddingVertical: 12 },
+  goalIconWrap: { alignItems: 'center', borderRadius: 14, height: 44, justifyContent: 'center', width: 44 },
+  goalContent: { flex: 1 },
+  goalTitleRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  goalTitle: { color: '#F5F7FB', fontSize: 16, fontWeight: '700' },
+  goalSubtitle: { color: '#97A0AE', fontSize: 13, marginTop: 4 },
+  goalProgressRow: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 10 },
+  goalProgressTrack: { backgroundColor: '#2A3342', borderRadius: 999, flex: 1, height: 6, overflow: 'hidden' },
+  goalProgressFill: { borderRadius: 999, height: '100%' },
+  goalPercent: { color: '#C9D1DA', fontSize: 12, fontWeight: '700' },
+  questRow: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 12 },
+  questTextWrap: { flex: 1 },
+  questTitle: { color: '#F5F7FB', fontSize: 15, fontWeight: '700' },
+  questSubtitle: { color: '#97A0AE', fontSize: 12, marginTop: 4 },
+  questXp: { color: '#D7BCFF', fontSize: 13, fontWeight: '800' },
+  questSummaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  summaryPill: { backgroundColor: '#1A2230', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  summaryPillText: { color: '#DCE2EA', fontSize: 12, fontWeight: '700' },
+  achievementRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  achievementCard: { minWidth: '31%', width: '31%' },
   achievementIconWrap: {
     alignItems: 'center',
     borderRadius: 18,
-    borderWidth: 1.5,
-    height: 46,
+    borderWidth: 2,
+    height: 64,
     justifyContent: 'center',
-    marginBottom: 8,
-    width: 46,
+    width: 64,
   },
-  achievementTitle: {
-    color: '#DCE1EA',
-    fontSize: 8,
-    fontWeight: '700',
-    lineHeight: 10,
-  },
-  achievementSubtitle: {
-    color: '#7E8898',
-    fontSize: 7,
-    lineHeight: 9,
-    marginTop: 3,
-  },
-  weeklyStatsRow: {
-    flexDirection: 'row',
-  },
-  weeklyStatCard: {
-    flex: 1,
-    minHeight: 122,
-    paddingHorizontal: 8,
-    paddingTop: 6,
-  },
-  weeklyStatDivider: {
-    borderRightColor: '#1F2632',
-    borderRightWidth: 1,
-  },
-  weeklyValue: {
-    color: '#F4F6FB',
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  weeklyLabel: {
-    color: '#D8DEE7',
-    fontSize: 9,
-    fontWeight: '600',
-    lineHeight: 12,
-    marginTop: 3,
-  },
-  weeklyDetail: {
-    color: '#8A93A2',
-    fontSize: 8,
-    lineHeight: 10,
-    marginTop: 5,
-  },
+  achievementTitle: { color: '#F5F7FB', fontSize: 14, fontWeight: '700', marginTop: 10 },
+  achievementSubtitle: { color: '#97A0AE', fontSize: 12, lineHeight: 18, marginTop: 6 },
+  achievementRarity: { color: '#B77BFF', fontSize: 11, fontWeight: '800', marginTop: 6 },
+  weeklyStatsRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  weeklyStatCard: { minWidth: '25%', paddingHorizontal: 8, width: '25%' },
+  weeklyStatDivider: { borderRightColor: '#1F2837', borderRightWidth: 1 },
+  weeklyValue: { color: '#F5F7FB', fontSize: 28, fontWeight: '800', marginTop: 10 },
+  weeklyLabel: { color: '#D7DEE7', fontSize: 13, fontWeight: '700', marginTop: 8 },
+  weeklyDetail: { color: '#97A0AE', fontSize: 11, lineHeight: 16, marginTop: 8 },
 });

@@ -61,3 +61,54 @@ model WeeklyStatCard {
 
   @@index([userId, position])
 }
+
+model StatisticsPeriodSnapshot {
+  id              String     @id @default(uuid())
+  userId          String
+  period          StatisticsPeriod
+  label           String
+  totalXp         Int        @default(0)
+  completedQuests Int        @default(0)
+  completedGoals  Int        @default(0)
+  streakDays      Int        @default(0)
+  activityScore   Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([userId, period])
+}
+
+model CategoryProgressSnapshot {
+  id            String   @id @default(uuid())
+  userId        String
+  categoryKey   String
+  label         String
+  level         Int
+  currentXp     Int
+  nextLevelXp   Int
+  color         String
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, position])
+}
+
+model ActivityPoint {
+  id        String           @id @default(uuid())
+  userId    String
+  period    StatisticsPeriod
+  label     String
+  value     Int
+  position  Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, period, position])
+}
+
+enum StatisticsPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}

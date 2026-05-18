@@ -33,10 +33,26 @@ export class GoalsController {
     return response.data;
   }
 
+  @Post(':userId/quests')
+  async createCustomQuest(@Param('userId') userId: string, @Body() body?: unknown) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/quests`, body);
+
+    return response.data;
+  }
+
   @Get(':userId/detail/:goalId')
   async getGoalDetail(@Param('userId') userId: string, @Param('goalId') goalId: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.get(`${goalsServiceUrl}/goals/${userId}/detail/${goalId}`);
+
+    return response.data;
+  }
+
+  @Get(':userId/summary')
+  async getGoalSummary(@Param('userId') userId: string) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.get(`${goalsServiceUrl}/goals/${userId}/summary`);
 
     return response.data;
   }
@@ -49,6 +65,18 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/subtasks/${subtaskId}`, body);
+
+    return response.data;
+  }
+
+  @Patch(':userId/quests/:questId')
+  async updateQuestProgress(
+    @Param('userId') userId: string,
+    @Param('questId') questId: string,
+    @Body() body?: { currentCount?: number; completed?: boolean; incrementBy?: number }
+  ) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/quests/${questId}`, body);
 
     return response.data;
   }

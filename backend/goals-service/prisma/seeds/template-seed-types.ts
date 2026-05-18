@@ -1,8 +1,9 @@
-import type { GoalTemplateCategory } from '../../generated/client';
+import type { GoalDifficulty, GoalTemplateCategory } from '../../generated/client';
 
 export type GoalTemplateMilestoneSeed = {
   title: string;
   description?: string;
+  xpReward?: number;
   subtasks?: string[];
   tips?: string[];
 };
@@ -20,6 +21,9 @@ export type GoalTemplateSeed = {
   summaryDescription: string;
   detailDescription: string;
   category: GoalTemplateCategory;
+  difficulty?: GoalDifficulty;
+  goalXpReward?: number;
+  totalXpReward?: number;
   color: string;
   isPopular: boolean;
   details: GoalTemplateDetailSeed[];

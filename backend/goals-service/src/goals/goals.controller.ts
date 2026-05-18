@@ -27,9 +27,19 @@ export class GoalsController {
     return goalsQueryService.createGoalFromTemplate(userId, templateId, body as never);
   }
 
+  @Post(':userId/quests')
+  createCustomQuest(@Param('userId') userId: string, @Body() body?: unknown) {
+    return goalsQueryService.createCustomQuest(userId, body as never);
+  }
+
   @Get(':userId/detail/:goalId')
   getGoalDetail(@Param('userId') userId: string, @Param('goalId') goalId: string) {
     return goalsQueryService.getGoalDetail(userId, goalId);
+  }
+
+  @Get(':userId/summary')
+  getGoalSummary(@Param('userId') userId: string) {
+    return goalsQueryService.getGoalSummary(userId);
   }
 
   @Patch(':userId/subtasks/:subtaskId')
@@ -39,6 +49,15 @@ export class GoalsController {
     @Body() body?: { completed?: boolean }
   ) {
     return goalsQueryService.updateSubtaskCompletion(userId, subtaskId, Boolean(body?.completed));
+  }
+
+  @Patch(':userId/quests/:questId')
+  updateQuestProgress(
+    @Param('userId') userId: string,
+    @Param('questId') questId: string,
+    @Body() body?: { currentCount?: number; completed?: boolean; incrementBy?: number }
+  ) {
+    return goalsQueryService.updateQuestProgress(userId, questId, body);
   }
 
   @Delete(':userId/:goalId')

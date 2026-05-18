@@ -8,22 +8,27 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
-import { deleteJson, fetchJson, patchJson } from '@/lib/api';
+import { deleteJson, fetchJson, patchJson, postJson } from '@/lib/api';
 
-type GoalsPageResponse = {
-  overview: {
-    activeGoals: number;
-    averageProgress: string;
-    completedMilestones: number;
-    streakDays: number;
-  };
-  activeGoals: GoalCard[];
-  completedGoals: GoalCard[];
+type QuestCard = {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'DAILY' | 'WEEKLY';
+  category: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  xpReward: number;
+  progress: number;
+  progressLabel: string;
+  completed: boolean;
+  streakCount: number;
+  color: string;
 };
 
 type GoalCard = {
@@ -31,15 +36,19 @@ type GoalCard = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
   progress: number;
   percentLabel: string;
   color: string;
   leftMeta: string;
   rightMeta: string;
+  totalXpReward: number;
+  goalXpReward: number;
   milestones: {
     id: string;
     title: string;
     description?: string;
+    xpReward: number;
     completed: boolean;
     completedLabel?: string;
     subtasks: {
@@ -54,13 +63,28 @@ type GoalCard = {
   }[];
 };
 
+type GoalsPageResponse = {
+  overview: {
+    activeGoals: number;
+    averageProgress: string;
+    completedMilestones: number;
+    streakDays: number;
+    totalQuestXp: number;
+  };
+  dailyQuests: QuestCard[];
+  weeklyQuests: QuestCard[];
+  activeGoals: GoalCard[];
+  completedGoals: GoalCard[];
+};
+
 type GoalTab = 'active' | 'completed';
 
 const overviewItems = [
   { key: 'activeGoals', label: 'Aktiva mål', icon: 'flag-outline', color: '#A866FF' },
   { key: 'averageProgress', label: 'Snitt. framsteg', icon: 'stats-chart-outline', color: '#67D86F' },
-  { key: 'completedMilestones', label: 'Delmål klara', icon: 'checkmark-circle-outline', color: '#F5C13C' },
-  { key: 'streakDays', label: 'Dagar i rad', icon: 'flame-outline', color: '#F08A45' },
+  { key: 'completedMilestones', label: 'Milestones klara', icon: 'checkmark-circle-outline', color: '#F5C13C' },
+  { key: 'streakDays', label: 'Dagar i streak', icon: 'flame-outline', color: '#F08A45' },
+  { key: 'totalQuestXp', label: 'Quest XP', icon: 'sparkles-outline', color: '#5E8BFF' },
 ] as const;
 
 export default function GoalsScreen() {
@@ -74,6 +98,9 @@ export default function GoalsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGoalDetailLoading, setIsGoalDetailLoading] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+  const [isCreateQuestVisible, setIsCreateQuestVisible] = useState(false);
+  const [questTitle, setQuestTitle] = useState('');
+  const [questDescription, setQuestDescription] = useState('');
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
   const routeGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
   const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
@@ -98,31 +125,34 @@ export default function GoalsScreen() {
     }
   }, [userId]);
 
-  const loadGoalDetail = useCallback(async (goalId: string) => {
-    if (!userId) {
-      return;
-    }
-
-    try {
-      setIsGoalDetailLoading(true);
-      const data = await fetchJson<GoalCard>(`/goals/${userId}/detail/${goalId}`);
-      setSelectedGoal(data);
-      setExpandedMilestoneId(null);
-    } catch (loadError) {
-      setSelectedGoal(null);
-      setExpandedMilestoneId(null);
-
-      if (routeGoalId === goalId || routeTab) {
-        router.replace('/goals');
-        void loadGoals();
+  const loadGoalDetail = useCallback(
+    async (goalId: string) => {
+      if (!userId) {
         return;
       }
 
-      setError(loadError instanceof Error ? loadError.message : 'Unknown error');
-    } finally {
-      setIsGoalDetailLoading(false);
-    }
-  }, [loadGoals, routeGoalId, routeTab, router, userId]);
+      try {
+        setIsGoalDetailLoading(true);
+        const data = await fetchJson<GoalCard>(`/goals/${userId}/detail/${goalId}`);
+        setSelectedGoal(data);
+        setExpandedMilestoneId(null);
+      } catch (loadError) {
+        setSelectedGoal(null);
+        setExpandedMilestoneId(null);
+
+        if (routeGoalId === goalId || routeTab) {
+          router.replace('/goals');
+          void loadGoals();
+          return;
+        }
+
+        setError(loadError instanceof Error ? loadError.message : 'Unknown error');
+      } finally {
+        setIsGoalDetailLoading(false);
+      }
+    },
+    [loadGoals, routeGoalId, routeTab, router, userId]
+  );
 
   const closeGoalDetail = () => {
     setSelectedGoal(null);
@@ -146,12 +176,51 @@ export default function GoalsScreen() {
         completed,
       });
       setGoalsPage(data);
-
       const nextGoalList = [...data.activeGoals, ...data.completedGoals];
       const refreshedGoal = nextGoalList.find((goal) => goal.id === selectedGoal.id) ?? null;
       setSelectedGoal(refreshedGoal);
     } catch (toggleError) {
       setError(toggleError instanceof Error ? toggleError.message : 'Unknown error');
+    }
+  };
+
+  const updateQuest = async (quest: QuestCard) => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const data = await patchJson<GoalsPageResponse>(`/goals/${userId}/quests/${quest.id}`, {
+        completed: quest.type === 'DAILY' ? !quest.completed : undefined,
+        incrementBy: quest.type === 'WEEKLY' && !quest.completed ? 1 : undefined,
+      });
+      setGoalsPage(data);
+    } catch (questError) {
+      setError(questError instanceof Error ? questError.message : 'Unknown error');
+    }
+  };
+
+  const createCustomQuest = async () => {
+    if (!userId || !questTitle.trim()) {
+      return;
+    }
+
+    try {
+      const data = await postJson<GoalsPageResponse>(`/goals/${userId}/quests`, {
+        title: questTitle,
+        description: questDescription,
+        type: 'DAILY',
+        category: 'PRODUCTIVITY',
+        difficulty: 'EASY',
+        xpReward: 25,
+        targetCount: 1,
+      });
+      setGoalsPage(data);
+      setQuestTitle('');
+      setQuestDescription('');
+      setIsCreateQuestVisible(false);
+    } catch (questError) {
+      setError(questError instanceof Error ? questError.message : 'Unknown error');
     }
   };
 
@@ -206,7 +275,7 @@ export default function GoalsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.feedbackState}>
           <ActivityIndicator size="large" color="#A866FF" />
-          <Text style={styles.feedbackText}>Hämtar mål från backend...</Text>
+          <Text style={styles.feedbackText}>Hämtar mål och quests...</Text>
         </View>
       </SafeAreaView>
     );
@@ -237,9 +306,9 @@ export default function GoalsScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Mina mål</Text>
-          <View style={styles.addButton}>
+          <Pressable style={styles.addButton} onPress={() => router.push('/create-goal')}>
             <Ionicons name="add" size={28} color="#F7F3FF" />
-          </View>
+          </Pressable>
         </View>
 
         <View style={styles.tabRow}>
@@ -259,12 +328,79 @@ export default function GoalsScreen() {
             <View style={styles.overviewCard}>
               {overviewItems.map((item) => (
                 <View key={item.key} style={styles.overviewItem}>
-                  <Ionicons name={item.icon} size={24} color={item.color} />
+                  <Ionicons name={item.icon} size={22} color={item.color} />
                   <Text style={styles.overviewValue}>{String(goalsPage.overview[item.key])}</Text>
                   <Text style={styles.overviewLabel}>{item.label}</Text>
                 </View>
               ))}
             </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Daily quests</Text>
+              <Pressable onPress={() => setIsCreateQuestVisible(true)} style={styles.smallActionButton}>
+                <Ionicons name="add" size={18} color="#F7F3FF" />
+              </Pressable>
+            </View>
+            {goalsPage.dailyQuests.map((quest) => (
+              <Pressable
+                key={quest.id}
+                style={[styles.questCard, quest.completed ? styles.questCardCompleted : null]}
+                onPress={() => void updateQuest(quest)}>
+                <View style={styles.questHeader}>
+                  <View style={[styles.questIconWrap, { backgroundColor: `${quest.color}22` }]}>
+                    <Ionicons
+                      name={quest.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={22}
+                      color={quest.color}
+                    />
+                  </View>
+                  <View style={styles.questInfo}>
+                    <Text style={styles.questTitle}>{quest.title}</Text>
+                    <Text style={styles.questDescription}>{quest.description}</Text>
+                    <View style={styles.questMetaRow}>
+                      <Text style={styles.questMeta}>{quest.category}</Text>
+                      <Text style={styles.questMeta}>{quest.progressLabel}</Text>
+                      <Text style={styles.questMeta}>+{quest.xpReward} XP</Text>
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+
+            <Text style={styles.sectionTitle}>Weekly quests</Text>
+            {goalsPage.weeklyQuests.map((quest) => (
+              <Pressable
+                key={quest.id}
+                style={[styles.questCard, quest.completed ? styles.questCardCompleted : null]}
+                onPress={() => void updateQuest(quest)}>
+                <View style={styles.questHeader}>
+                  <View style={[styles.questIconWrap, { backgroundColor: `${quest.color}22` }]}>
+                    <Ionicons
+                      name={quest.completed ? 'checkmark-circle' : 'timer-outline'}
+                      size={22}
+                      color={quest.color}
+                    />
+                  </View>
+                  <View style={styles.questInfo}>
+                    <Text style={styles.questTitle}>{quest.title}</Text>
+                    <Text style={styles.questDescription}>{quest.description}</Text>
+                    <View style={styles.progressTrack}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { backgroundColor: quest.color, width: `${Math.min(quest.progress * 100, 100)}%` },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.questMetaRow}>
+                      <Text style={styles.questMeta}>{quest.progressLabel}</Text>
+                      <Text style={styles.questMeta}>{quest.difficulty}</Text>
+                      <Text style={styles.questMeta}>+{quest.xpReward} XP</Text>
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
           </>
         ) : null}
 
@@ -276,8 +412,8 @@ export default function GoalsScreen() {
             </Text>
             <Text style={styles.emptyGoalsText}>
               {selectedTab === 'active'
-                ? 'Du börjar från början. Använd `+`-fliken för att skapa ditt första mål.'
-                : 'Fortsätt jobba med målen du har satt. När du klarar dem dyker de upp här.'}
+                ? 'Din karaktär har inte fått sina första main quests än. Skapa ett mål och börja samla XP.'
+                : 'Fortsätt jaga dina goals. När du slutför dem hamnar de här som troféer över vad du faktiskt byggt upp.'}
             </Text>
             {selectedTab === 'active' ? (
               <Pressable onPress={resetSession} style={styles.emptyGoalsButton}>
@@ -296,6 +432,7 @@ export default function GoalsScreen() {
               <View style={styles.goalHeaderText}>
                 <Text style={styles.goalTitle}>{goal.title}</Text>
                 <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
+                <Text style={styles.goalDifficulty}>{goal.difficulty} • {goal.totalXpReward} XP</Text>
               </View>
               <Text style={styles.goalPercent}>{goal.percentLabel}</Text>
             </View>
@@ -312,9 +449,6 @@ export default function GoalsScreen() {
             <View style={styles.metaRow}>
               <Text style={styles.metaText}>{goal.leftMeta}</Text>
               <Text style={styles.metaText}>{goal.rightMeta}</Text>
-            </View>
-            <View style={styles.goalCardChevron}>
-              <Ionicons name="chevron-forward" size={18} color="#D8DEE7" />
             </View>
           </Pressable>
         ))}
@@ -345,7 +479,9 @@ export default function GoalsScreen() {
             ) : (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.goalDetailHero}>
-                  <Text style={styles.goalDetailSubtitle}>{selectedGoal.subtitle}</Text>
+                  <Text style={styles.goalDetailSubtitle}>
+                    {selectedGoal.subtitle} • {selectedGoal.difficulty}
+                  </Text>
                   <Text style={styles.goalDetailPercent}>{selectedGoal.percentLabel}</Text>
                   <View style={styles.progressTrack}>
                     <View
@@ -355,85 +491,124 @@ export default function GoalsScreen() {
                       ]}
                     />
                   </View>
+                  <View style={styles.detailStatsRow}>
+                    <Text style={styles.detailStat}>{selectedGoal.totalXpReward} XP totalt</Text>
+                    <Text style={styles.detailStat}>Bonus: {selectedGoal.goalXpReward} XP</Text>
+                  </View>
                 </View>
 
-                {selectedGoal.milestones.map((milestone) => (
-                  <View key={milestone.id} style={styles.detailMilestoneCard}>
-                    <Pressable
-                      style={styles.detailMilestoneHeader}
-                      onPress={() =>
-                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
-                      }>
-                      <View style={styles.detailMilestoneTitleWrap}>
-                        <Ionicons
-                          name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                          size={22}
-                          color={milestone.completed ? '#7BDE72' : '#8A93A2'}
-                        />
-                        <Text style={styles.detailMilestoneTitle}>{milestone.title}</Text>
-                      </View>
-                      <Ionicons
-                        name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color="#D8DEE7"
-                      />
-                    </Pressable>
+                {selectedGoal.milestones.map((milestone) => {
+                  const isExpanded = expandedMilestoneId === milestone.id;
 
-                    {expandedMilestoneId === milestone.id ? (
-                      <View style={styles.detailMilestoneBody}>
-                        {milestone.description ? (
-                          <Text style={styles.detailMilestoneDescription}>{milestone.description}</Text>
-                        ) : null}
-
-                        <Text style={styles.detailSectionTitle}>Delmål</Text>
-                        {milestone.subtasks.map((subtask) => (
-                          <Pressable
-                            key={subtask.id}
-                            style={styles.subtaskRow}
-                            onPress={() => void toggleSubtask(subtask.id, !subtask.completed)}>
-                            <Ionicons
-                              name={subtask.completed ? 'checkbox' : 'square-outline'}
-                              size={22}
-                              color={subtask.completed ? '#7BDE72' : '#A866FF'}
-                            />
-                            <Text style={[styles.subtaskText, subtask.completed ? styles.subtaskTextCompleted : null]}>
-                              {subtask.title}
+                  return (
+                    <View key={milestone.id} style={styles.milestoneCard}>
+                      <Pressable
+                        onPress={() => setExpandedMilestoneId(isExpanded ? null : milestone.id)}
+                        style={styles.milestoneHeader}>
+                        <View style={styles.milestoneHeaderLeft}>
+                          <Ionicons
+                            name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={24}
+                            color={milestone.completed ? '#73D86A' : '#A8B0BC'}
+                          />
+                          <View style={styles.milestoneTextWrap}>
+                            <Text style={styles.milestoneTitle}>{milestone.title}</Text>
+                            <Text style={styles.milestoneLabel}>
+                              {milestone.completedLabel ?? `${milestone.xpReward} XP när du klarar den`}
                             </Text>
-                          </Pressable>
-                        ))}
-
-                        <Text style={styles.detailSectionTitle}>Tips</Text>
-                        {milestone.tips.map((tip) => (
-                          <View key={tip.id} style={styles.tipRow}>
-                            <Ionicons name="bulb-outline" size={18} color="#F5C13C" />
-                            <Text style={styles.tipText}>{tip.text}</Text>
                           </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
+                        </View>
+                        <View style={styles.milestoneBadge}>
+                          <Text style={styles.milestoneBadgeText}>+{milestone.xpReward}</Text>
+                        </View>
+                      </Pressable>
+
+                      {isExpanded ? (
+                        <View style={styles.milestoneDetail}>
+                          {milestone.description ? <Text style={styles.milestoneDescription}>{milestone.description}</Text> : null}
+                          {milestone.subtasks.map((subtask) => (
+                            <Pressable
+                              key={subtask.id}
+                              onPress={() => void toggleSubtask(subtask.id, !subtask.completed)}
+                              style={styles.subtaskRow}>
+                              <Ionicons
+                                name={subtask.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                                size={22}
+                                color={subtask.completed ? '#73D86A' : '#A8B0BC'}
+                              />
+                              <Text style={[styles.subtaskText, subtask.completed ? styles.subtaskTextCompleted : null]}>
+                                {subtask.title}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          {milestone.tips.length > 0 ? (
+                            <View style={styles.tipBox}>
+                              <Text style={styles.tipTitle}>Tips</Text>
+                              {milestone.tips.map((tip) => (
+                                <Text key={tip.id} style={styles.tipText}>
+                                  • {tip.text}
+                                </Text>
+                              ))}
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
 
-            {isDeleteConfirmVisible && selectedGoal ? (
-              <View style={styles.confirmOverlay}>
-                <View style={styles.confirmCard}>
-                  <Text style={styles.confirmTitle}>Ta bort mål</Text>
-                  <Text style={styles.confirmText}>
-                    Är du säker på att du vill ta bort &quot;{selectedGoal.title}&quot;?
-                  </Text>
-                  <View style={styles.confirmActions}>
-                    <Pressable onPress={() => setIsDeleteConfirmVisible(false)} style={styles.confirmSecondaryButton}>
-                      <Text style={styles.confirmSecondaryButtonText}>Avbryt</Text>
-                    </Pressable>
-                    <Pressable onPress={() => void deleteGoal(selectedGoal.id)} style={styles.confirmPrimaryButton}>
-                      <Text style={styles.confirmPrimaryButtonText}>Ta bort</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            ) : null}
+      <Modal visible={isDeleteConfirmVisible} transparent animationType="fade" onRequestClose={() => setIsDeleteConfirmVisible(false)}>
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Ta bort mål?</Text>
+            <Text style={styles.confirmText}>
+              Är du säker på att du vill ta bort målet? Progressionen försvinner från dina aktiva quests.
+            </Text>
+            <View style={styles.confirmActions}>
+              <Pressable onPress={() => setIsDeleteConfirmVisible(false)} style={styles.confirmButtonSecondary}>
+                <Text style={styles.confirmButtonSecondaryText}>Avbryt</Text>
+              </Pressable>
+              <Pressable onPress={() => selectedGoal && void deleteGoal(selectedGoal.id)} style={styles.confirmButtonPrimary}>
+                <Text style={styles.confirmButtonPrimaryText}>Ta bort</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isCreateQuestVisible} transparent animationType="fade" onRequestClose={() => setIsCreateQuestVisible(false)}>
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.createQuestCard}>
+            <Text style={styles.confirmTitle}>Skapa egen daily quest</Text>
+            <Text style={styles.confirmText}>Lägg till en enkel återkommande quest som ger låg men stadig XP.</Text>
+            <TextInput
+              value={questTitle}
+              onChangeText={setQuestTitle}
+              placeholder="Titel"
+              placeholderTextColor="#677385"
+              style={styles.input}
+            />
+            <TextInput
+              value={questDescription}
+              onChangeText={setQuestDescription}
+              placeholder="Beskrivning"
+              placeholderTextColor="#677385"
+              style={[styles.input, styles.textArea]}
+              multiline
+            />
+            <View style={styles.confirmActions}>
+              <Pressable onPress={() => setIsCreateQuestVisible(false)} style={styles.confirmButtonSecondary}>
+                <Text style={styles.confirmButtonSecondaryText}>Stäng</Text>
+              </Pressable>
+              <Pressable onPress={() => void createCustomQuest()} style={styles.confirmButtonPrimary}>
+                <Text style={styles.confirmButtonPrimaryText}>Skapa quest</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -442,423 +617,254 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#090E16',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#090E16',
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  feedbackState: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  feedbackTitle: {
-    color: '#F5F7FB',
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 18,
-  },
-  feedbackText: {
-    color: '#97A0AE',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  feedbackError: {
-    color: '#C9A9FF',
-    fontSize: 12,
-    marginTop: 10,
-    textAlign: 'center',
-  },
+  safeArea: { flex: 1, backgroundColor: '#090E16' },
+  container: { flex: 1, backgroundColor: '#090E16' },
+  content: { paddingBottom: 120, paddingHorizontal: 16 },
+  feedbackState: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  feedbackTitle: { color: '#F5F7FB', fontSize: 24, fontWeight: '700', marginTop: 18 },
+  feedbackText: { color: '#97A0AE', fontSize: 14, lineHeight: 22, marginTop: 12, textAlign: 'center' },
+  feedbackError: { color: '#C7CDD7', fontSize: 13, marginTop: 16, textAlign: 'center' },
   retryButton: {
     backgroundColor: '#8B4EF4',
     borderRadius: 12,
-    marginTop: 20,
+    marginTop: 24,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  retryButtonText: {
-    color: '#F7F3FF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 6,
-  },
-  screenTitle: {
-    color: '#F5F7FB',
-    fontSize: 24,
-    fontWeight: '700',
-  },
+  retryButtonText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
+  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, marginTop: 8 },
+  screenTitle: { color: '#F5F7FB', fontSize: 30, fontWeight: '800' },
   addButton: {
     alignItems: 'center',
     backgroundColor: '#8B4EF4',
     borderRadius: 16,
-    height: 42,
+    height: 52,
     justifyContent: 'center',
-    width: 42,
+    width: 52,
   },
-  tabRow: {
-    borderBottomColor: '#242B36',
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 22,
-  },
-  tabButton: {
+  tabRow: { flexDirection: 'row', marginBottom: 18 },
+  tabButton: { flex: 1, paddingBottom: 12 },
+  tabText: { color: '#758093', fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  tabTextActive: { color: '#B77BFF' },
+  tabIndicator: { backgroundColor: '#202938', borderRadius: 99, height: 2, marginTop: 12 },
+  tabIndicatorActive: { backgroundColor: '#A866FF' },
+  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, marginTop: 18 },
+  sectionTitle: { color: '#F5F7FB', fontSize: 20, fontWeight: '800', marginBottom: 12, marginTop: 18 },
+  smallActionButton: {
     alignItems: 'center',
-    flex: 1,
-  },
-  tabText: {
-    color: '#8891A0',
-    fontSize: 15,
-    fontWeight: '600',
-    paddingBottom: 16,
-  },
-  tabTextActive: {
-    color: '#A866FF',
-  },
-  tabIndicator: {
-    backgroundColor: 'transparent',
-    borderRadius: 999,
-    height: 3,
-    width: '100%',
-  },
-  tabIndicatorActive: {
-    backgroundColor: '#A866FF',
-  },
-  sectionTitle: {
-    color: '#F5F7FB',
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 20,
-    marginTop: 20,
+    backgroundColor: '#1A2230',
+    borderColor: '#7D4EF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
   },
   overviewCard: {
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
-    borderRadius: 20,
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 22,
     borderWidth: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 18,
+    flexWrap: 'wrap',
+    gap: 12,
+    padding: 18,
   },
-  overviewItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  overviewValue: {
-    color: '#F5F7FB',
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  overviewLabel: {
-    color: '#C3CAD6',
-    fontSize: 8,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  emptyGoalsCard: {
-    alignItems: 'center',
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
+  overviewItem: { minWidth: '30%', width: '30%' },
+  overviewValue: { color: '#F5F7FB', fontSize: 24, fontWeight: '800', marginTop: 8 },
+  overviewLabel: { color: '#97A0AE', fontSize: 13, lineHeight: 18, marginTop: 4 },
+  questCard: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
     borderRadius: 20,
     borderWidth: 1,
-    marginHorizontal: 20,
-    marginTop: 18,
-    paddingHorizontal: 20,
-    paddingVertical: 28,
+    marginBottom: 14,
+    padding: 16,
   },
-  emptyGoalsTitle: {
-    color: '#F5F7FB',
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 14,
+  questCardCompleted: { borderColor: '#31563A' },
+  questHeader: { flexDirection: 'row', gap: 12 },
+  questIconWrap: {
+    alignItems: 'center',
+    borderRadius: 16,
+    height: 42,
+    justifyContent: 'center',
+    marginTop: 2,
+    width: 42,
   },
-  emptyGoalsText: {
-    color: '#9AA3B2',
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: 10,
-    textAlign: 'center',
+  questInfo: { flex: 1 },
+  questTitle: { color: '#F5F7FB', fontSize: 17, fontWeight: '700' },
+  questDescription: { color: '#97A0AE', fontSize: 13, lineHeight: 20, marginTop: 4 },
+  questMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
+  questMeta: { color: '#B9C1CF', fontSize: 12, fontWeight: '600' },
+  goalCard: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 22,
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 18,
   },
+  goalHeader: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  goalIconWrap: {
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
+  },
+  goalHeaderText: { flex: 1 },
+  goalTitle: { color: '#F5F7FB', fontSize: 18, fontWeight: '800' },
+  goalSubtitle: { color: '#B5BECC', fontSize: 14, marginTop: 4 },
+  goalDifficulty: { color: '#97A0AE', fontSize: 12, marginTop: 6 },
+  goalPercent: { color: '#F5F7FB', fontSize: 16, fontWeight: '800' },
+  progressTrack: {
+    backgroundColor: '#2A3342',
+    borderRadius: 999,
+    height: 8,
+    marginTop: 16,
+    overflow: 'hidden',
+  },
+  progressFill: { borderRadius: 999, height: '100%' },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  metaText: { color: '#A9B3C2', fontSize: 13, fontWeight: '600' },
+  emptyGoalsCard: {
+    alignItems: 'center',
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 24,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 24,
+  },
+  emptyGoalsTitle: { color: '#F5F7FB', fontSize: 22, fontWeight: '800', marginTop: 12 },
+  emptyGoalsText: { color: '#97A0AE', fontSize: 14, lineHeight: 22, marginTop: 10, textAlign: 'center' },
   emptyGoalsButton: {
     backgroundColor: '#8B4EF4',
     borderRadius: 12,
     marginTop: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
-  emptyGoalsButtonText: {
-    color: '#F7F3FF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  goalCard: {
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
-    borderRadius: 20,
-    borderWidth: 1,
-    marginHorizontal: 20,
-    marginTop: 18,
-    overflow: 'hidden',
-  },
-  goalHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 18,
-  },
-  goalIconWrap: {
-    alignItems: 'center',
-    borderRadius: 14,
-    height: 50,
-    justifyContent: 'center',
-    width: 50,
-  },
-  goalHeaderText: {
-    flex: 1,
-    marginLeft: 12,
-    marginRight: 12,
-  },
-  goalTitle: {
-    color: '#F5F7FB',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  goalSubtitle: {
-    color: '#8A93A2',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  goalPercent: {
-    color: '#F5F7FB',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  progressTrack: {
-    alignSelf: 'center',
-    backgroundColor: '#2B313E',
-    borderRadius: 999,
-    height: 8,
-    marginTop: 18,
-    overflow: 'hidden',
-    width: '80%',
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: '100%',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 14,
-  },
-  metaText: {
-    color: '#D5DBE5',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  goalCardChevron: {
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 10,
-  },
-  modalBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
+  emptyGoalsButtonText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
+  modalBackdrop: { backgroundColor: 'rgba(5, 8, 14, 0.72)', flex: 1, justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: '#111722',
-    borderRadius: 24,
-    maxHeight: '78%',
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    backgroundColor: '#0F1520',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '88%',
+    paddingBottom: 32,
+    paddingHorizontal: 18,
     paddingTop: 20,
   },
-  modalHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  modalActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
+  modalHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { color: '#F5F7FB', fontSize: 24, fontWeight: '800' },
+  modalActions: { flexDirection: 'row', gap: 8 },
   iconActionButton: {
     alignItems: 'center',
-    backgroundColor: '#1A2130',
-    borderRadius: 12,
-    height: 36,
+    backgroundColor: '#171F2B',
+    borderRadius: 14,
+    height: 42,
     justifyContent: 'center',
-    width: 36,
+    width: 42,
   },
-  confirmOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    backgroundColor: 'rgba(9, 14, 22, 0.72)',
-    borderRadius: 24,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  confirmCard: {
-    backgroundColor: '#161D28',
-    borderColor: '#252D3A',
-    borderRadius: 20,
+  goalDetailHero: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 22,
     borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    width: '100%',
+    marginBottom: 18,
+    padding: 18,
   },
-  confirmTitle: {
-    color: '#F5F7FB',
-    fontSize: 18,
+  goalDetailSubtitle: { color: '#B9C1CF', fontSize: 14 },
+  goalDetailPercent: { color: '#F5F7FB', fontSize: 18, fontWeight: '800', marginTop: 8 },
+  detailStatsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  detailStat: {
+    backgroundColor: '#1D2633',
+    borderRadius: 999,
+    color: '#DCE2EA',
+    fontSize: 12,
     fontWeight: '700',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  confirmText: {
-    color: '#A6AFBC',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 10,
+  milestoneCard: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 14,
+    padding: 16,
   },
-  confirmActions: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'flex-end',
-    marginTop: 18,
+  milestoneHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  milestoneHeaderLeft: { alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12 },
+  milestoneTextWrap: { flex: 1 },
+  milestoneTitle: { color: '#F5F7FB', fontSize: 16, fontWeight: '700' },
+  milestoneLabel: { color: '#97A0AE', fontSize: 12, marginTop: 4 },
+  milestoneBadge: {
+    backgroundColor: '#231A39',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  confirmSecondaryButton: {
-    backgroundColor: '#202836',
+  milestoneBadgeText: { color: '#D5B6FF', fontSize: 12, fontWeight: '800' },
+  milestoneDetail: { marginTop: 14 },
+  milestoneDescription: { color: '#AEB7C5', fontSize: 13, lineHeight: 20, marginBottom: 12 },
+  subtaskRow: { alignItems: 'center', flexDirection: 'row', gap: 10, marginBottom: 12 },
+  subtaskText: { color: '#E6EBF2', flex: 1, fontSize: 14, lineHeight: 20 },
+  subtaskTextCompleted: { color: '#7ECF8B', textDecorationLine: 'line-through' },
+  tipBox: {
+    backgroundColor: '#111924',
+    borderColor: '#243040',
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 6,
+    padding: 14,
+  },
+  tipTitle: { color: '#D9E0EA', fontSize: 12, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase' },
+  tipText: { color: '#AAB4C3', fontSize: 13, lineHeight: 20 },
+  confirmBackdrop: { backgroundColor: 'rgba(4, 8, 16, 0.78)', flex: 1, justifyContent: 'center', padding: 24 },
+  confirmCard: {
+    backgroundColor: '#121925',
+    borderColor: '#242D3D',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 22,
+  },
+  createQuestCard: {
+    backgroundColor: '#121925',
+    borderColor: '#242D3D',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 22,
+  },
+  confirmTitle: { color: '#F5F7FB', fontSize: 22, fontWeight: '800' },
+  confirmText: { color: '#9AA4B3', fontSize: 14, lineHeight: 22, marginTop: 10 },
+  confirmActions: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end', marginTop: 20 },
+  confirmButtonSecondary: {
+    backgroundColor: '#1B2432',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
-  confirmSecondaryButtonText: {
-    color: '#D6DDE8',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  confirmPrimaryButton: {
+  confirmButtonSecondaryText: { color: '#D9E0EA', fontSize: 14, fontWeight: '700' },
+  confirmButtonPrimary: {
     backgroundColor: '#8B4EF4',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
-  confirmPrimaryButtonText: {
-    color: '#F7F3FF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modalTitle: {
-    color: '#F5F7FB',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  goalDetailHero: {
-    marginBottom: 12,
-  },
-  goalDetailSubtitle: {
-    color: '#9AA3B2',
-    fontSize: 14,
-  },
-  goalDetailPercent: {
-    color: '#F5F7FB',
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 10,
-  },
-  detailMilestoneCard: {
-    backgroundColor: '#151B24',
-    borderColor: '#1F2632',
-    borderRadius: 16,
+  confirmButtonPrimaryText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
+  input: {
+    backgroundColor: '#0E141D',
+    borderColor: '#273244',
+    borderRadius: 14,
     borderWidth: 1,
-    marginTop: 14,
-    overflow: 'hidden',
-  },
-  detailMilestoneHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  detailMilestoneTitleWrap: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-  },
-  detailMilestoneTitle: {
     color: '#F5F7FB',
-    flex: 1,
     fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 10,
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  detailMilestoneBody: {
-    borderTopColor: '#1F2632',
-    borderTopWidth: 1,
-    padding: 14,
-  },
-  detailMilestoneDescription: {
-    color: '#C8CFDA',
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  detailSectionTitle: {
-    color: '#C9A9FF',
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-    marginTop: 6,
-  },
-  subtaskRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 10,
-  },
-  subtaskText: {
-    color: '#F5F7FB',
-    flex: 1,
-    fontSize: 13,
-  },
-  subtaskTextCompleted: {
-    color: '#8FA38F',
-    textDecorationLine: 'line-through',
-  },
-  tipRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  tipText: {
-    color: '#AEB6C3',
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-  },
+  textArea: { minHeight: 92, textAlignVertical: 'top' },
 });

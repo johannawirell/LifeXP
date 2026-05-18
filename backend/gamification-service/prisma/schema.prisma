@@ -17,6 +17,7 @@ model UserGamification {
   bestStreak      Int             @default(0)
   headline        String?
   nextLevelXp     Int             @default(0)
+  lastActivityAt  DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   xpEntries       XpEntry[]
@@ -30,6 +31,10 @@ model XpEntry {
   amount             Int
   sourceType         XpSourceType
   sourceId           String?
+  title              String
+  description        String?
+  category           SkillCategory?
+  multiplier         Float             @default(1)
   createdAt          DateTime          @default(now())
   userGamification   UserGamification  @relation(fields: [userGamificationId], references: [id], onDelete: Cascade)
 
@@ -42,6 +47,9 @@ model AchievementDefinition {
   title         String
   description   String?
   xpReward      Int               @default(0)
+  rarity        AchievementRarity @default(COMMON)
+  icon          String?
+  color         String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   userAwards    UserAchievement[]
@@ -65,6 +73,7 @@ model UserAchievement {
 model FocusArea {
   id                 String            @id @default(uuid())
   userGamificationId String
+  key                SkillCategory
   icon               String
   title              String
   level              Int
@@ -77,11 +86,40 @@ model FocusArea {
   @@index([userGamificationId, position])
 }
 
+model LevelReward {
+  id          String   @id @default(uuid())
+  level       Int      @unique
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum XpSourceType {
   GOAL_CREATED
   GOAL_COMPLETED
   MILESTONE_COMPLETED
+  DAILY_QUEST_COMPLETED
+  WEEKLY_QUEST_COMPLETED
   STREAK_REWARD
   ACHIEVEMENT_REWARD
   MANUAL_ADJUSTMENT
+}
+
+enum SkillCategory {
+  TRAINING
+  HEALTH
+  PRODUCTIVITY
+  MINDFULNESS
+  CAREER
+  CREATIVITY
+  SOCIAL
+  FINANCE
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
 }
