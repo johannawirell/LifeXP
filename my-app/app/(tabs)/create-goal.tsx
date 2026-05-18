@@ -521,7 +521,6 @@ export default function CreateGoalScreen() {
               <Ionicons name="add" size={20} color="#C9A9FF" />
               <View style={styles.customGoalTextWrap}>
                 <Text style={styles.customGoalTitle}>Skapa eget mål</Text>
-                <Text style={styles.customGoalText}>Bygg ett mål från grunden med egna milestones och delmål.</Text>
               </View>
             </Pressable>
 

@@ -1,4 +1,4 @@
-import type { GoalTemplateQuestSeed } from '../template-seed-types';
+import type { GoalTemplateQuestSeed } from '../../template-seed-types';
 
 export const runningSharedQuests: GoalTemplateQuestSeed[] = [
   {
