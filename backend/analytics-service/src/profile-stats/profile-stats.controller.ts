@@ -93,6 +93,8 @@ export class ProfileStatsController {
       activeGoals: number;
       completedMilestones: number;
       totalMilestones: number;
+      averageProgress: string;
+      streakDays: number;
       completedQuests: number;
       totalQuestXp: number;
     };
@@ -116,6 +118,53 @@ export class ProfileStatsController {
       goalSummary.totalMilestones > 0
         ? `${Math.round((goalSummary.completedMilestones / goalSummary.totalMilestones) * 100)} %`
         : '0 %';
+    const periodSnapshots =
+      periods.length > 0
+        ? periods
+        : [
+            {
+              id: 'daily-fallback',
+              period: 'DAILY',
+              label: 'Idag',
+              totalXp: 0,
+              completedQuests: 0,
+              completedGoals: 0,
+              streakDays: gamification.currentStreak,
+              activityScore: 0,
+            },
+            {
+              id: 'weekly-fallback',
+              period: 'WEEKLY',
+              label: 'Denna vecka',
+              totalXp: gamification.totalXp,
+              completedQuests: goalSummary.completedQuests,
+              completedGoals: goalSummary.completedGoals,
+              streakDays: gamification.currentStreak,
+              activityScore: Number.parseInt(completionRate, 10) || 0,
+            },
+            {
+              id: 'monthly-fallback',
+              period: 'MONTHLY',
+              label: 'Denna månad',
+              totalXp: gamification.totalXp,
+              completedQuests: goalSummary.completedQuests,
+              completedGoals: goalSummary.completedGoals,
+              streakDays: gamification.currentStreak,
+              activityScore: Number.parseInt(completionRate, 10) || 0,
+            },
+          ];
+    const activityPoints =
+      activity.length > 0
+        ? activity
+        : [
+            { id: 'activity-mon', period: 'WEEKLY', label: 'Mån', value: Math.max(goalSummary.completedQuests, 0) },
+            { id: 'activity-tue', period: 'WEEKLY', label: 'Tis', value: Math.max(goalSummary.completedMilestones, 0) },
+            { id: 'activity-wed', period: 'WEEKLY', label: 'Ons', value: Math.max(Math.round(gamification.totalXp / 50), 0) },
+            { id: 'activity-thu', period: 'WEEKLY', label: 'Tor', value: Math.max(goalSummary.activeGoals, 0) },
+            { id: 'activity-fri', period: 'WEEKLY', label: 'Fre', value: Math.max(gamification.currentStreak, 0) },
+            { id: 'activity-sat', period: 'WEEKLY', label: 'Lör', value: 0 },
+            { id: 'activity-sun', period: 'WEEKLY', label: 'Sön', value: 0 },
+          ];
 
     return {
       weeklyCards: [
@@ -152,7 +201,57 @@ export class ProfileStatsController {
           color: '#FF8A3C',
         },
       ],
-      periods: periods.map((period) => ({
+      statisticsCards: [
+        {
+          id: 'statistics-quests',
+          icon: 'checkmark-circle-outline',
+          value: String(goalSummary.completedQuests),
+          label: 'Quests klara',
+          detail: '+0 % från förra veckan',
+          color: '#A866FF',
+        },
+        {
+          id: 'statistics-xp',
+          icon: 'star-outline',
+          value: gamification.totalXp.toLocaleString('sv-SE'),
+          label: 'Total XP',
+          detail: '+0 % från förra veckan',
+          color: '#F5C13C',
+        },
+        {
+          id: 'statistics-completion',
+          icon: 'radio-button-on-outline',
+          value: completionRate,
+          label: 'Måluppfyllelse',
+          detail: '+0 % från förra veckan',
+          color: '#67D86F',
+        },
+        {
+          id: 'statistics-progress',
+          icon: 'stats-chart-outline',
+          value: goalSummary.averageProgress,
+          label: 'Snitt. framsteg',
+          detail: 'Aktiva mål',
+          color: '#56D2C5',
+        },
+        {
+          id: 'statistics-streak',
+          icon: 'flame-outline',
+          value: String(goalSummary.streakDays),
+          label: 'Dagar i streak',
+          detail: `Bästa: ${gamification.bestStreak} dagar`,
+          color: '#FF8A3C',
+        },
+        {
+          id: 'statistics-quest-xp',
+          icon: 'sparkles-outline',
+          value: goalSummary.totalQuestXp.toLocaleString('sv-SE'),
+          label: 'Quest XP',
+          detail: 'Samlad questbelöning',
+          color: '#5E8BFF',
+        },
+      ],
+      periods: periodSnapshots.map((period) => ({
         id: period.id,
         key: period.period.toLowerCase(),
         label: period.label,
@@ -162,7 +261,7 @@ export class ProfileStatsController {
         streakDays: period.streakDays,
         activityScore: period.activityScore,
       })),
-      activity: activity.map((point) => ({
+      activity: activityPoints.map((point) => ({
         id: point.id,
         period: point.period.toLowerCase(),
         label: point.label,

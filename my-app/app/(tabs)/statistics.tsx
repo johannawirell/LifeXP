@@ -16,6 +16,14 @@ type StatisticsResponse = {
     detail: string;
     color: string;
   }[];
+  statisticsCards: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    value: string;
+    label: string;
+    detail: string;
+    color: string;
+  }[];
   periods: {
     id: string;
     key: 'daily' | 'weekly' | 'monthly';
@@ -178,6 +186,8 @@ export default function StatisticsScreen() {
         <Text style={styles.screenTitle}>Statistik</Text>
 
         <View style={styles.heroCard}>
+          <View style={styles.heroGlowPrimary} />
+          <View style={styles.heroGlowSecondary} />
           <View style={styles.heroTop}>
             <View>
               <Text style={styles.heroLabel}>Total XP</Text>
@@ -197,9 +207,22 @@ export default function StatisticsScreen() {
           </Text>
         </View>
 
+        <View style={styles.metricsGrid}>
+          {stats.statisticsCards.map((card) => (
+            <View key={card.id} style={styles.metricCard}>
+              <View style={[styles.metricIconWrap, { backgroundColor: `${card.color}18` }]}>
+                <Ionicons name={card.icon} size={18} color={card.color} />
+              </View>
+              <Text style={styles.metricValue}>{card.value}</Text>
+              <Text style={styles.metricLabel}>{card.label}</Text>
+              <Text style={styles.metricDetail}>{card.detail}</Text>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.weeklyStatsRow}>
-          {stats.weeklyCards.map((card, index) => (
-            <View key={card.id} style={[styles.weeklyCard, index < stats.weeklyCards.length - 1 ? styles.weeklyDivider : null]}>
+          {stats.weeklyCards.map((card) => (
+            <View key={card.id} style={styles.weeklyCard}>
               <Ionicons name={card.icon} size={18} color={card.color} />
               <Text style={styles.weeklyValue}>{card.value}</Text>
               <Text style={styles.weeklyLabel}>{card.label}</Text>
@@ -307,24 +330,78 @@ const styles = StyleSheet.create({
     borderColor: '#202938',
     borderRadius: 24,
     borderWidth: 1,
+    overflow: 'hidden',
     padding: 18,
+    position: 'relative',
+  },
+  heroGlowPrimary: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 160,
+    height: 220,
+    opacity: 0.16,
+    position: 'absolute',
+    right: -80,
+    top: -100,
+    width: 220,
+  },
+  heroGlowSecondary: {
+    backgroundColor: '#5E8BFF',
+    borderRadius: 120,
+    height: 160,
+    left: -70,
+    opacity: 0.12,
+    position: 'absolute',
+    top: 40,
+    width: 160,
   },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between' },
   heroLabel: { color: '#98A2B3', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   heroValue: { color: '#F5F7FB', fontSize: 28, fontWeight: '800', marginTop: 8 },
   heroHint: { color: '#B7C0CF', fontSize: 13, marginTop: 12 },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
+  metricCard: {
+    backgroundColor: '#141B26',
+    borderColor: '#202938',
+    borderRadius: 22,
+    borderWidth: 1,
+    minHeight: 138,
+    minWidth: '47%',
+    overflow: 'hidden',
+    padding: 16,
+    position: 'relative',
+    width: '47%',
+  },
+  metricIconWrap: {
+    alignItems: 'center',
+    borderRadius: 14,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  metricValue: { color: '#F5F7FB', fontSize: 28, fontWeight: '800', marginTop: 14 },
+  metricLabel: { color: '#D7DEE7', fontSize: 14, fontWeight: '700', marginTop: 8 },
+  metricDetail: { color: '#97A0AE', fontSize: 12, lineHeight: 18, marginTop: 8 },
   weeklyStatsRow: {
     backgroundColor: '#141B26',
     borderColor: '#202938',
     borderRadius: 24,
     borderWidth: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     marginTop: 14,
-    paddingVertical: 12,
+    padding: 16,
   },
-  weeklyCard: { minWidth: '25%', paddingHorizontal: 10, width: '25%' },
-  weeklyDivider: { borderRightColor: '#1F2837', borderRightWidth: 1 },
-  weeklyValue: { color: '#F5F7FB', fontSize: 24, fontWeight: '800', marginTop: 8 },
+  weeklyCard: {
+    backgroundColor: '#0F1520',
+    borderColor: '#202938',
+    borderRadius: 18,
+    borderWidth: 1,
+    minWidth: '47%',
+    padding: 14,
+    width: '47%',
+  },
+  weeklyValue: { color: '#F5F7FB', fontSize: 22, fontWeight: '800', marginTop: 8 },
   weeklyLabel: { color: '#D7DEE7', fontSize: 12, fontWeight: '700', marginTop: 6 },
   weeklyDetail: { color: '#97A0AE', fontSize: 11, lineHeight: 16, marginTop: 6 },
   tabRow: { flexDirection: 'row', gap: 10, marginTop: 16 },

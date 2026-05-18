@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoalCompletionModal } from '@/components/goals/goal-completion-modal';
@@ -32,10 +32,7 @@ const goalFilters: { key: GoalCategoryFilter; label: string; icon: keyof typeof 
 
 const overviewItems = [
   { key: 'activeGoals', label: 'Aktiva mål', icon: 'flag-outline', color: '#A866FF' },
-  { key: 'averageProgress', label: 'Snitt. framsteg', icon: 'stats-chart-outline', color: '#67D86F' },
   { key: 'completedMilestones', label: 'Milestones klara', icon: 'checkmark-circle-outline', color: '#F5C13C' },
-  { key: 'streakDays', label: 'Dagar i streak', icon: 'flame-outline', color: '#F08A45' },
-  { key: 'totalQuestXp', label: 'Quest XP', icon: 'sparkles-outline', color: '#5E8BFF' },
 ] as const;
 
 function filterGoals(goals: GoalCard[], filter: GoalCategoryFilter) {
@@ -81,9 +78,6 @@ export default function GoalsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGoalDetailLoading, setIsGoalDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const rewardTranslateY = useRef(new Animated.Value(-18)).current;
-  const rewardScale = useRef(new Animated.Value(0.96)).current;
-  const rewardOpacity = useRef(new Animated.Value(0)).current;
   const routeGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
   const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const routeFocus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
@@ -279,61 +273,6 @@ export default function GoalsScreen() {
   }, [loadGoals]);
 
   useEffect(() => {
-    if (!rewardBanner) {
-      return;
-    }
-
-    rewardTranslateY.setValue(-18);
-    rewardScale.setValue(0.96);
-    rewardOpacity.setValue(0);
-    Animated.parallel([
-      Animated.timing(rewardTranslateY, {
-        toValue: 0,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(rewardScale, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.out(Easing.back(1.1)),
-        useNativeDriver: true,
-      }),
-      Animated.timing(rewardOpacity, {
-        toValue: 1,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    const timeoutId = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(rewardTranslateY, {
-          toValue: -14,
-          duration: 220,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(rewardScale, {
-          toValue: 0.98,
-          duration: 220,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(rewardOpacity, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setRewardBanner(null);
-      });
-    }, 2600);
-
-    return () => clearTimeout(timeoutId);
-  }, [rewardBanner, rewardOpacity, rewardScale, rewardTranslateY]);
-
-  useEffect(() => {
     if (routeTab === 'completed') {
       setSelectedTab('completed');
       return;
@@ -399,31 +338,6 @@ export default function GoalsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {rewardBanner ? (
-          <Animated.View
-            style={[
-              styles.rewardBanner,
-              {
-                opacity: rewardOpacity,
-                transform: [{ translateY: rewardTranslateY }, { scale: rewardScale }],
-              },
-            ]}>
-            <Ionicons name="sparkles-outline" size={18} color="#F7F3FF" />
-            <View style={styles.rewardBannerText}>
-              <Text style={styles.rewardBannerTitle}>
-                {rewardBanner.totalXp > 0 ? `+${rewardBanner.totalXp} XP` : 'Delmål klart'}
-              </Text>
-              <Text style={styles.rewardBannerSubtitle}>
-                {rewardBanner.goalBonusXp
-                  ? `${rewardBanner.title} klar. Bonus XP utdelad.`
-                  : rewardBanner.totalXp === 0
-                    ? `${rewardBanner.title} markerades som klart.`
-                    : `${rewardBanner.title} gav XP.`}
-              </Text>
-            </View>
-          </Animated.View>
-        ) : null}
-
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Mina mål</Text>
           <Pressable style={styles.addButton} onPress={() => router.push('/(tabs)/create-goal')}>
@@ -548,6 +462,12 @@ export default function GoalsScreen() {
       />
 
       <GoalCompletionModal reward={goalCompletionReward} onClose={() => setGoalCompletionReward(null)} />
+
+      <GoalCompletionModal
+        reward={rewardBanner?.goalBonusXp ? null : rewardBanner}
+        onClose={() => setRewardBanner(null)}
+        variant="xp"
+      />
 
       <Modal visible={isDeleteConfirmVisible} transparent animationType="fade" onRequestClose={() => setIsDeleteConfirmVisible(false)}>
         <View style={styles.confirmBackdrop}>

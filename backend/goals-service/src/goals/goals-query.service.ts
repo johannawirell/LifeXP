@@ -81,6 +81,8 @@ type GoalSummaryResponse = {
   activeGoals: number;
   completedMilestones: number;
   totalMilestones: number;
+  averageProgress: string;
+  streakDays: number;
   completedQuests: number;
   totalQuestXp: number;
 };
@@ -339,14 +341,28 @@ export class GoalsQueryService {
       }),
     ]);
 
+    const activeGoals = goals.filter((goal) => goal.status === 'ACTIVE');
+    const progressValues = activeGoals.map((goal) => this.getGoalProgress(goal));
+    const averageProgress =
+      progressValues.length > 0
+        ? `${Math.round((progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length) * 100)} %`
+        : '0 %';
+    const streakDays = Math.max(
+      0,
+      ...activeGoals.map((goal) => goal.streakDays ?? 0),
+      ...quests.map((quest) => quest.streakCount ?? 0)
+    );
+
     return {
       completedGoals: goals.filter((goal) => goal.status === 'COMPLETED').length,
-      activeGoals: goals.filter((goal) => goal.status === 'ACTIVE').length,
+      activeGoals: activeGoals.length,
       completedMilestones: goals.reduce(
         (sum, goal) => sum + goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length,
         0
       ),
       totalMilestones: goals.reduce((sum, goal) => sum + goal.milestones.length, 0),
+      averageProgress,
+      streakDays,
       completedQuests: quests.filter((quest) => quest.completed).length,
       totalQuestXp: quests.filter((quest) => quest.completed).reduce((sum, quest) => sum + quest.xpReward, 0),
     };
@@ -1345,7 +1361,11 @@ export class GoalsQueryService {
     };
   }
 
-  private getGoalProgress(goal: GoalWithMilestones) {
+  private getGoalProgress(goal: {
+    milestones: { completedAt: Date | null }[];
+    currentValue: Prisma.Decimal | number | null;
+    targetValue: Prisma.Decimal | number | null;
+  }) {
     if (goal.milestones.length > 0) {
       const completedMilestones = goal.milestones.filter((milestone) => Boolean(milestone.completedAt)).length;
       return completedMilestones / goal.milestones.length;

@@ -51,10 +51,7 @@ export type GoalCard = {
 export type GoalsPageResponse = {
   overview: {
     activeGoals: number;
-    averageProgress: string;
     completedMilestones: number;
-    streakDays: number;
-    totalQuestXp: number;
   };
   dailyQuests: QuestCard[];
   weeklyQuests: QuestCard[];

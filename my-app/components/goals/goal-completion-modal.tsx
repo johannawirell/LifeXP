@@ -6,19 +6,34 @@ import type { GoalsMutationReward } from './types';
 export function GoalCompletionModal({
   reward,
   onClose,
+  variant = 'goal',
 }: {
   reward: GoalsMutationReward | null;
   onClose: () => void;
+  variant?: 'goal' | 'xp';
 }) {
+  const isGoalVariant = variant === 'goal';
+  const isVisible = isGoalVariant ? Boolean(reward?.goalBonusXp) : Boolean(reward && reward.totalXp >= 0);
+
   return (
-    <Modal visible={Boolean(reward?.goalBonusXp)} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <View style={styles.glow} />
-          <Ionicons name="trophy-outline" size={48} color="#F7F3FF" />
-          <Text style={styles.eyebrow}>GOAL COMPLETE</Text>
+        <View style={[styles.card, !isGoalVariant ? styles.xpCard : null]}>
+          <View style={[styles.glow, !isGoalVariant ? styles.xpGlow : null]} />
+          <Ionicons name={isGoalVariant ? 'trophy-outline' : 'sparkles-outline'} size={48} color="#F7F3FF" />
+          <Text style={styles.eyebrow}>{isGoalVariant ? 'GOAL COMPLETE' : 'XP UPPLÅST'}</Text>
           <Text style={styles.title}>{reward?.title}</Text>
-          <Text style={styles.text}>Du klarade hela målet och låste upp bonusbelöningen.</Text>
+          <Text style={styles.text}>
+            {isGoalVariant
+              ? 'Du klarade hela målet och låste upp bonusbelöningen.'
+              : reward?.goalBonusXp
+                ? 'Du fick XP och en bonus för att du klarade målet.'
+                : reward?.questXp
+                  ? 'Questen gav dig ett nytt XP-lyft.'
+                  : reward?.milestoneXp
+                    ? 'Milestonen är klar och gav dig ny progression.'
+                    : 'Ditt senaste steg gav mer XP till din karaktär.'}
+          </Text>
           <View style={styles.xpPill}>
             <Text style={styles.xpText}>+{reward?.totalXp} XP</Text>
           </View>
@@ -52,6 +67,9 @@ const styles = StyleSheet.create({
     paddingVertical: 36,
     width: '100%',
   },
+  xpCard: {
+    minHeight: '56%',
+  },
   glow: {
     backgroundColor: '#A866FF',
     borderRadius: 160,
@@ -60,6 +78,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -70,
     width: 220,
+  },
+  xpGlow: {
+    backgroundColor: '#5E8BFF',
+    opacity: 0.18,
   },
   eyebrow: {
     color: '#C9A9FF',
