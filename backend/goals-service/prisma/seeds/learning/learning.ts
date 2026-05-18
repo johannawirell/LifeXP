@@ -1,6 +1,6 @@
 import type { GoalTemplateSeed } from '../template-seed-types';
 
-export const studyGoalTemplates: GoalTemplateSeed[] = [
+export const learningGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Klara en kurs',
     icon: 'school-outline',

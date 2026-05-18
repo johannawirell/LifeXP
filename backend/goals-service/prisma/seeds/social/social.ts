@@ -1,6 +1,6 @@
 import type { GoalTemplateSeed } from '../template-seed-types';
 
-export const relationshipGoalTemplates: GoalTemplateSeed[] = [
+export const socialGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Stärka relationen med partnern',
     icon: 'heart-outline',
