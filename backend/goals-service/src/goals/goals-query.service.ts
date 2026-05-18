@@ -304,8 +304,16 @@ export class GoalsQueryService {
       },
       dailyQuests: quests.filter((quest) => quest.type === 'DAILY').map((quest) => this.toQuestCard(quest)),
       weeklyQuests: quests.filter((quest) => quest.type === 'WEEKLY').map((quest) => this.toQuestCard(quest)),
-      activeGoals: activeGoals.map((goal) => this.toGoalCard(goal)),
-      completedGoals: completedGoals.map((goal) => this.toGoalCard(goal)),
+      activeGoals: activeGoals
+        .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+        .map((goal) => this.toGoalCard(goal)),
+      completedGoals: completedGoals
+        .sort(
+          (left, right) =>
+            (right.completedAt?.getTime() ?? right.updatedAt.getTime()) -
+            (left.completedAt?.getTime() ?? left.updatedAt.getTime())
+        )
+        .map((goal) => this.toGoalCard(goal)),
     };
   }
 

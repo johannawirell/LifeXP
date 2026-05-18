@@ -25,6 +25,7 @@ type GoalTemplateSummary = {
   summaryDescription: string;
   category: string;
   color: string;
+  totalXpReward: number;
   summaryDetails: {
     id: string;
     label: string;
@@ -125,6 +126,9 @@ export default function CreateGoalScreen() {
 
   const selectedMilestone =
     draft?.milestones.find((milestone) => milestone.id === expandedMilestoneId) ?? null;
+  const computedTotalXpReward = draft
+    ? draft.goalXpReward + draft.milestones.reduce((sum, milestone) => sum + milestone.xpReward, 0)
+    : 0;
 
   const buildCustomGoalDraft = (): EditableTemplateDraft => ({
     title: '',
@@ -152,18 +156,22 @@ export default function CreateGoalScreen() {
       return value;
     }
 
-    if (label !== 'Upplägg') {
-      return value;
+    if (label === 'Upplägg') {
+      const milestoneCount = draft.milestones.length;
+      const match = value.match(/^\d+\s+(.+)$/);
+
+      if (match) {
+        return `${milestoneCount} ${match[1]}`;
+      }
+
+      return `${milestoneCount} milestones`;
     }
 
-    const milestoneCount = draft.milestones.length;
-    const match = value.match(/^\d+\s+(.+)$/);
-
-    if (match) {
-      return `${milestoneCount} ${match[1]}`;
+    if (label === 'XP') {
+      return `${computedTotalXpReward} XP`;
     }
 
-    return `${milestoneCount} milestones`;
+    return value;
   };
 
   const loadTemplates = useCallback(async (category: string) => {
@@ -407,7 +415,7 @@ export default function CreateGoalScreen() {
         icon: draft.icon,
         difficulty: draft.difficulty,
         goalXpReward: draft.goalXpReward,
-        totalXpReward: draft.totalXpReward,
+        totalXpReward: computedTotalXpReward,
         milestones: draft.milestones.map((milestone) => ({
           title: milestone.title,
           description: milestone.description,
@@ -420,7 +428,7 @@ export default function CreateGoalScreen() {
       Alert.alert('Mål tillagt', 'Målet har lagts till i din lista.');
       setSelectedTemplate(null);
       setDraft(null);
-      router.replace('/goals');
+      router.replace('/(tabs)/goals');
     } catch (createError) {
       Alert.alert(
         'Målet kunde inte läggas till',
@@ -466,24 +474,26 @@ export default function CreateGoalScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => {
-              if (selectedTemplate || draft) {
-                setSelectedTemplate(null);
-                setDraft(null);
-                setExpandedMilestoneId(null);
-                return;
-              }
+      <View style={styles.topBar}>
+        <Pressable
+          style={styles.topBarButton}
+          onPress={() => {
+            if (selectedTemplate || draft) {
+              setSelectedTemplate(null);
+              setDraft(null);
+              setExpandedMilestoneId(null);
+              return;
+            }
 
-              router.back();
-            }}>
-            <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
-          </Pressable>
-          <Text style={styles.screenTitle}>{selectedTemplate || draft ? 'Redigera mål' : 'Lägg till mål'}</Text>
-          <View style={styles.topBarSpacer} />
-        </View>
+            router.back();
+          }}>
+          <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
+        </Pressable>
+        <Text style={styles.screenTitle}>{selectedTemplate || draft ? 'Redigera mål' : 'Lägg till mål'}</Text>
+        <View style={styles.topBarSpacer} />
+      </View>
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {mode === 'empty' ? (
           <View style={styles.modeBadge}>
@@ -541,7 +551,9 @@ export default function CreateGoalScreen() {
                   <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
                     <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
                   </View>
-                  <Text style={styles.templateMetaText}>{template.milestones.length} milestones</Text>
+                  <Text style={styles.templateMetaText}>
+                    {template.milestones.length} milestones • {template.totalXpReward} XP
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
@@ -588,7 +600,7 @@ export default function CreateGoalScreen() {
               {(selectedTemplate?.summaryDetails ?? [
                 { id: 'custom-category', label: 'Kategori', value: draft.subtitle },
                 { id: 'custom-setup', label: 'Upplägg', value: 'utvecklingssteg' },
-                { id: 'custom-xp', label: 'XP', value: `${draft.totalXpReward} XP` },
+                { id: 'custom-xp', label: 'XP', value: `${computedTotalXpReward} XP` },
               ]).map((detail) => (
                 <View key={detail.id} style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{detail.label}</Text>
@@ -627,6 +639,9 @@ export default function CreateGoalScreen() {
                   <Ionicons name="add" size={18} color="#F7F3FF" />
                 </Pressable>
               </View>
+              <Text style={styles.milestoneXpSummary}>
+                {draft.milestones.length} milestones • {computedTotalXpReward} XP totalt
+              </Text>
               {draft.milestones.map((milestone) => (
                 <View key={milestone.id} style={styles.milestoneEditorCard}>
                   <View style={styles.milestoneEditorRow}>
@@ -649,16 +664,25 @@ export default function CreateGoalScreen() {
                 </View>
               ))}
             </View>
-
-            <Pressable
-              onPress={() => void handleCreateGoal()}
-              style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
-              disabled={isCreatingGoal}>
-              <Text style={styles.addGoalButtonText}>{isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}</Text>
-            </Pressable>
           </>
         )}
       </ScrollView>
+      {isDetailView && draft ? (
+        <View style={styles.stickyFooter}>
+          <View style={styles.stickyFooterSummary}>
+            <Text style={styles.stickyFooterSummaryLabel}>Belöning när målet klaras</Text>
+            <Text style={styles.stickyFooterSummaryValue}>{computedTotalXpReward} XP</Text>
+          </View>
+          <Pressable
+            onPress={() => void handleCreateGoal()}
+            style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
+            disabled={isCreatingGoal}>
+            <Text style={styles.addGoalButtonText}>
+              {isCreatingGoal ? 'Lägger till...' : `Lägg till mål • ${computedTotalXpReward} XP`}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Modal visible={Boolean(selectedMilestone)} animationType="slide" transparent onRequestClose={() => setExpandedMilestoneId(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -746,7 +770,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#090E16',
   },
   content: {
-    paddingBottom: 120,
+    paddingBottom: 156,
   },
   feedbackState: {
     alignItems: 'center',
@@ -787,10 +811,21 @@ const styles = StyleSheet.create({
   },
   topBar: {
     alignItems: 'center',
+    backgroundColor: '#090E16',
+    borderBottomColor: '#171D28',
+    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 6,
+    paddingBottom: 14,
+    zIndex: 5,
+  },
+  topBarButton: {
+    alignItems: 'center',
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
   screenTitle: {
     color: '#F5F7FB',
@@ -1046,6 +1081,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: 12,
   },
+  milestoneXpSummary: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
   milestoneEditorRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1125,8 +1166,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#8B4EF4',
     borderRadius: 16,
-    marginHorizontal: 20,
-    marginTop: 18,
+    minHeight: 54,
     paddingVertical: 16,
   },
   addGoalButtonDisabled: {
@@ -1136,5 +1176,29 @@ const styles = StyleSheet.create({
     color: '#F7F3FF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  stickyFooter: {
+    backgroundColor: '#090E16',
+    borderTopColor: '#171D28',
+    borderTopWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
+  stickyFooterSummary: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  stickyFooterSummaryLabel: {
+    color: '#9AA3B2',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stickyFooterSummaryValue: {
+    color: '#F5F7FB',
+    fontSize: 17,
+    fontWeight: '800',
   },
 });

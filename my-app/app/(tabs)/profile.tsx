@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
@@ -123,6 +123,70 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [levelUpState, setLevelUpState] = useState<{ level: number } | null>(null);
+  const [achievementState, setAchievementState] = useState<{ title: string; rarity: string } | null>(null);
+  const previousProfileRef = useRef<ProfileResponse | null>(null);
+  const levelUpScale = useRef(new Animated.Value(0.88)).current;
+  const levelUpOpacity = useRef(new Animated.Value(0)).current;
+  const achievementTranslateY = useRef(new Animated.Value(-20)).current;
+  const achievementOpacity = useRef(new Animated.Value(0)).current;
+
+  const animateLevelUp = useCallback((level: number) => {
+    setLevelUpState({ level });
+    levelUpScale.setValue(0.88);
+    levelUpOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(levelUpScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        damping: 10,
+        stiffness: 120,
+      }),
+      Animated.timing(levelUpOpacity, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [levelUpOpacity, levelUpScale]);
+
+  const animateAchievement = useCallback((title: string, rarity: string) => {
+    setAchievementState({ title, rarity });
+    achievementTranslateY.setValue(-20);
+    achievementOpacity.setValue(0);
+    Animated.parallel([
+      Animated.timing(achievementTranslateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(achievementOpacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(achievementTranslateY, {
+            toValue: -16,
+            duration: 240,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(achievementOpacity, {
+            toValue: 0,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setAchievementState(null);
+        });
+      }, 2200);
+    });
+  }, [achievementOpacity, achievementTranslateY]);
 
   const loadProfile = useCallback(async () => {
     if (mode === 'empty') {
@@ -143,13 +207,27 @@ export default function ProfileScreen() {
       setIsLoading(true);
       setError(null);
       const data = await fetchJson<ProfileResponse>(`/profile/${userId}`);
+      const previousProfile = previousProfileRef.current;
+      if (previousProfile) {
+        if (data.currentLevel > previousProfile.currentLevel) {
+          animateLevelUp(data.currentLevel);
+        }
+
+        if (data.achievements.length > previousProfile.achievements.length) {
+          const newestAchievement = data.achievements[data.achievements.length - 1];
+          if (newestAchievement) {
+            animateAchievement(newestAchievement.title, newestAchievement.rarity);
+          }
+        }
+      }
+      previousProfileRef.current = data;
       setProfile(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [mode, userId]);
+  }, [animateAchievement, animateLevelUp, mode, userId]);
 
   useEffect(() => {
     void loadProfile();
@@ -233,7 +311,7 @@ export default function ProfileScreen() {
 
   const openGoalFromProfile = (goalId: string) => {
     router.push({
-      pathname: '/goals',
+      pathname: '/(tabs)/goals',
       params: {
         goalId,
         tab: 'active',
@@ -248,6 +326,24 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => setIsSettingsOpen(false)}>
+        {achievementState ? (
+          <Animated.View
+            style={[
+              styles.achievementToast,
+              {
+                opacity: achievementOpacity,
+                transform: [{ translateY: achievementTranslateY }],
+              },
+            ]}>
+            <Ionicons name="ribbon-outline" size={18} color="#F7F3FF" />
+            <View style={styles.achievementToastText}>
+              <Text style={styles.achievementToastTitle}>Ny prestation upplåst</Text>
+              <Text style={styles.achievementToastSubtitle}>
+                {achievementState.title} • {achievementState.rarity}
+              </Text>
+            </View>
+          </Animated.View>
+        ) : null}
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Profil</Text>
           <View style={styles.settingsWrap}>
@@ -441,6 +537,27 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+      <Modal transparent visible={Boolean(levelUpState)} animationType="fade" onRequestClose={() => setLevelUpState(null)}>
+        <View style={styles.levelUpBackdrop}>
+          <Animated.View
+            style={[
+              styles.levelUpCard,
+              {
+                opacity: levelUpOpacity,
+                transform: [{ scale: levelUpScale }],
+              },
+            ]}>
+            <View style={styles.levelUpGlow} />
+            <Ionicons name="sparkles-outline" size={34} color="#F7F3FF" />
+            <Text style={styles.levelUpEyebrow}>LEVEL UP</Text>
+            <Text style={styles.levelUpTitle}>Level {levelUpState?.level}</Text>
+            <Text style={styles.levelUpText}>Din karaktär har blivit starkare. Fortsätt bygga momentum.</Text>
+            <Pressable onPress={() => setLevelUpState(null)} style={styles.levelUpButton}>
+              <Text style={styles.levelUpButtonText}>Fortsätt</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -449,6 +566,32 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#090E16' },
   container: { flex: 1, backgroundColor: '#090E16' },
   content: { paddingBottom: 120, paddingHorizontal: 8 },
+  achievementToast: {
+    alignItems: 'center',
+    backgroundColor: '#8B4EF4',
+    borderRadius: 16,
+    flexDirection: 'row',
+    left: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    position: 'absolute',
+    right: 16,
+    top: 10,
+    zIndex: 400,
+  },
+  achievementToastText: {
+    marginLeft: 10,
+  },
+  achievementToastTitle: {
+    color: '#F7F3FF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  achievementToastSubtitle: {
+    color: '#EFE4FF',
+    fontSize: 12,
+    marginTop: 3,
+  },
   feedbackState: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
   feedbackTitle: { color: '#F5F7FB', fontSize: 24, fontWeight: '700', marginTop: 18 },
   feedbackText: { color: '#97A0AE', fontSize: 14, lineHeight: 22, marginTop: 12, textAlign: 'center' },
@@ -498,6 +641,65 @@ const styles = StyleSheet.create({
   },
   settingsMenuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 10, paddingVertical: 10 },
   settingsMenuText: { color: '#F7F3FF', fontSize: 14, fontWeight: '700' },
+  levelUpBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(7, 10, 16, 0.7)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  levelUpCard: {
+    alignItems: 'center',
+    backgroundColor: '#141B26',
+    borderColor: '#8B4EF4',
+    borderRadius: 28,
+    borderWidth: 1,
+    overflow: 'hidden',
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    width: '100%',
+  },
+  levelUpGlow: {
+    backgroundColor: '#A866FF',
+    borderRadius: 120,
+    height: 120,
+    opacity: 0.18,
+    position: 'absolute',
+    top: -20,
+    width: 120,
+  },
+  levelUpEyebrow: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+    marginTop: 14,
+  },
+  levelUpTitle: {
+    color: '#F7F3FF',
+    fontSize: 34,
+    fontWeight: '900',
+    marginTop: 10,
+  },
+  levelUpText: {
+    color: '#C7D0DB',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  levelUpButton: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 14,
+    marginTop: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  levelUpButtonText: {
+    color: '#F7F3FF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
   heroCard: {
     backgroundColor: '#141B26',
     borderColor: '#202938',

@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -115,6 +117,9 @@ export default function GoalsScreen() {
   const [questDescription, setQuestDescription] = useState('');
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
   const [rewardBanner, setRewardBanner] = useState<GoalsMutationResponse['reward']>(null);
+  const rewardTranslateY = useRef(new Animated.Value(-18)).current;
+  const rewardScale = useRef(new Animated.Value(0.96)).current;
+  const rewardOpacity = useRef(new Animated.Value(0)).current;
   const routeGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
   const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
 
@@ -186,7 +191,7 @@ export default function GoalsScreen() {
         setExpandedMilestoneId(null);
 
         if (routeGoalId === goalId || routeTab) {
-          router.replace('/goals');
+          router.replace('/(tabs)/goals');
           void loadGoals();
           return;
         }
@@ -205,7 +210,7 @@ export default function GoalsScreen() {
 
     if (routeGoalId || routeTab) {
       router.replace({
-        pathname: '/goals',
+        pathname: '/(tabs)/goals',
         params: routeTab === 'completed' ? { tab: 'completed' } : {},
       });
     }
@@ -303,14 +308,57 @@ export default function GoalsScreen() {
       return;
     }
 
+    rewardTranslateY.setValue(-18);
+    rewardScale.setValue(0.96);
+    rewardOpacity.setValue(0);
+    Animated.parallel([
+      Animated.timing(rewardTranslateY, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(rewardScale, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(rewardOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     const timeoutId = setTimeout(() => {
-      setRewardBanner(null);
+      Animated.parallel([
+        Animated.timing(rewardTranslateY, {
+          toValue: -14,
+          duration: 220,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(rewardScale, {
+          toValue: 0.98,
+          duration: 220,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(rewardOpacity, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setRewardBanner(null);
+      });
     }, 2600);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [rewardBanner]);
+  }, [rewardBanner, rewardOpacity, rewardScale, rewardTranslateY]);
 
   useEffect(() => {
     if (routeTab === 'completed') {
@@ -366,7 +414,14 @@ export default function GoalsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {rewardBanner ? (
-          <View style={styles.rewardBanner}>
+          <Animated.View
+            style={[
+              styles.rewardBanner,
+              {
+                opacity: rewardOpacity,
+                transform: [{ translateY: rewardTranslateY }, { scale: rewardScale }],
+              },
+            ]}>
             <Ionicons name="sparkles-outline" size={18} color="#F7F3FF" />
             <View style={styles.rewardBannerText}>
               <Text style={styles.rewardBannerTitle}>+{rewardBanner.totalXp} XP</Text>
@@ -376,12 +431,12 @@ export default function GoalsScreen() {
                   : `${rewardBanner.title} gav XP.`}
               </Text>
             </View>
-          </View>
+          </Animated.View>
         ) : null}
 
         <View style={styles.topBar}>
           <Text style={styles.screenTitle}>Mina mål</Text>
-          <Pressable style={styles.addButton} onPress={() => router.push('/create-goal')}>
+          <Pressable style={styles.addButton} onPress={() => router.push('/(tabs)/create-goal')}>
             <Ionicons name="add" size={28} color="#F7F3FF" />
           </Pressable>
         </View>
