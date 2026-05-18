@@ -11,8 +11,7 @@ cleanup() {
   if [[ -n "${ANALYTICS_SERVICE_PID:-}" ]]; then kill "$ANALYTICS_SERVICE_PID" >/dev/null 2>&1 || true; fi
   if [[ -n "${GAMIFICATION_SERVICE_PID:-}" ]]; then kill "$GAMIFICATION_SERVICE_PID" >/dev/null 2>&1 || true; fi
   if [[ -n "${API_GATEWAY_PID:-}" ]]; then kill "$API_GATEWAY_PID" >/dev/null 2>&1 || true; fi
-  if [[ -n "${SEED_WATCHER_PID:-}" ]]; then kill "$SEED_WATCHER_PID" >/dev/null 2>&1 || true; fi
-  if [[ -n "${GOALS_RESTART_WATCHER_PID:-}" ]]; then kill "$GOALS_RESTART_WATCHER_PID" >/dev/null 2>&1 || true; fi
+  if [[ -n "${GOALS_PRISMA_WATCHER_PID:-}" ]]; then kill "$GOALS_PRISMA_WATCHER_PID" >/dev/null 2>&1 || true; fi
 }
 
 trap cleanup EXIT INT TERM
@@ -24,8 +23,10 @@ if [[ ! -f ".env" ]]; then
 fi
 
 restart_goals_service() {
-  echo "Seed files changed. Reseeding database and restarting goals-service..."
+  echo "Goals Prisma/seed files changed. Regenerating, pushing schema, reseeding and restarting goals-service..."
 
+  npm run prisma:generate
+  npm run prisma:push
   npm run seed:all
 
   if [[ -n "${GOALS_SERVICE_PID:-}" ]]; then
@@ -38,6 +39,14 @@ restart_goals_service() {
   GOALS_SERVICE_PID=$!
 
   echo "goals-service restarted."
+}
+
+compute_goals_prisma_hash() {
+  find "$ROOT_DIR/goals-service/prisma" -type f \( -name '*.ts' -o -name '*.prisma' \) -print0 \
+    | sort -z \
+    | xargs -0 shasum \
+    | shasum \
+    | awk '{ print $1 }'
 }
 
 echo "Starting PostgreSQL and Redis..."
@@ -69,20 +78,19 @@ echo "Starting goals-service..."
 npm run dev:goals-service &
 GOALS_SERVICE_PID=$!
 
-echo "Watching seed files for changes..."
-npx chokidar "goals-service/prisma/seeds/**/*.ts" "prisma/seed/**/*" "seeds/**/*" -c "touch .restart-goals-service" &
-SEED_WATCHER_PID=$!
-
+echo "Watching goals-service Prisma and seed files for changes..."
 (
+  LAST_GOALS_PRISMA_HASH="$(compute_goals_prisma_hash)"
   while true; do
-    if [[ -f ".restart-goals-service" ]]; then
-      rm .restart-goals-service
+    sleep 2
+    CURRENT_GOALS_PRISMA_HASH="$(compute_goals_prisma_hash)"
+    if [[ "$CURRENT_GOALS_PRISMA_HASH" != "$LAST_GOALS_PRISMA_HASH" ]]; then
+      LAST_GOALS_PRISMA_HASH="$CURRENT_GOALS_PRISMA_HASH"
       restart_goals_service
     fi
-    sleep 1
   done
 ) &
-GOALS_RESTART_WATCHER_PID=$!
+GOALS_PRISMA_WATCHER_PID=$!
 
 echo "Starting analytics-service..."
 npm run dev:analytics-service &
@@ -110,5 +118,4 @@ wait "$AUTH_SERVICE_PID" \
      "$ANALYTICS_SERVICE_PID" \
      "$GAMIFICATION_SERVICE_PID" \
      "$API_GATEWAY_PID" \
-     "$SEED_WATCHER_PID" \
-     "$GOALS_RESTART_WATCHER_PID"
+     "$GOALS_PRISMA_WATCHER_PID"

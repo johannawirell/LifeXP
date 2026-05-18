@@ -9,6 +9,7 @@ export type GoalTemplateMilestoneSeed = {
 };
 
 export type GoalTemplateQuestSeed = {
+  sharedKey?: string;
   title: string;
   description?: string;
   xpReward?: number;

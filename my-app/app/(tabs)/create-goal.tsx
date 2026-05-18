@@ -63,7 +63,7 @@ type GoalTemplateDetailResponse = {
   color: string;
   summaryDetails: { id: string; label: string; value: string }[];
   detailDetails: { id: string; label: string; value: string }[];
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   goalXpReward: number;
   totalXpReward: number;
   milestones: {
@@ -90,7 +90,7 @@ type EditableTemplateDraft = {
   category: string;
   color: string;
   icon: keyof typeof Ionicons.glyphMap;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   goalXpReward: number;
   totalXpReward: number;
   milestones: {

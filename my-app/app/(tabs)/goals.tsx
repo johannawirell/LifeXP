@@ -23,7 +23,7 @@ type QuestCard = {
   description?: string;
   type: 'DAILY' | 'WEEKLY';
   category: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   xpReward: number;
   progress: number;
   progressLabel: string;
@@ -37,7 +37,7 @@ type GoalCard = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   progress: number;
   percentLabel: string;
   color: string;

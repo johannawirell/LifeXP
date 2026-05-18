@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from './template-seed-types';
+import type { GoalTemplateSeed } from '../template-seed-types';
 
 export const healthGoalTemplates: GoalTemplateSeed[] = [
   {

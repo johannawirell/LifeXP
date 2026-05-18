@@ -592,6 +592,24 @@ export class GoalsQueryService {
       throw new NotFoundException('Goal title is required.');
     }
 
+    const existingGoal = await this.prisma.goal.findFirst({
+      where: {
+        userId,
+        status: {
+          in: ['ACTIVE', 'COMPLETED'],
+        },
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existingGoal) {
+      throw new NotFoundException('Goal already exists for this user.');
+    }
+
     const milestones = (input?.milestones ?? []).filter((milestone) => milestone.title.trim().length > 0);
     const totalMilestoneXp = milestones.reduce((sum, milestone) => sum + (milestone.xpReward ?? 0), 0);
     const goalXpReward = Math.max(0, input?.goalXpReward ?? 0);
@@ -1010,6 +1028,21 @@ export class GoalsQueryService {
       }
 
       if (template.quests.length > 0) {
+        const existingSharedKeys = new Set(
+          (
+            await tx.quest.findMany({
+              where: {
+                userId,
+                sharedKey: {
+                  not: null,
+                },
+              },
+              select: { sharedKey: true },
+            })
+          )
+            .map((quest) => quest.sharedKey)
+            .filter((sharedKey): sharedKey is string => Boolean(sharedKey))
+        );
         const dailyQuestCount = await tx.quest.count({
           where: { userId, type: 'DAILY' },
         });
@@ -1020,12 +1053,15 @@ export class GoalsQueryService {
         let nextWeeklyPosition = weeklyQuestCount + 1;
 
         await tx.quest.createMany({
-          data: template.quests.map((quest) => {
+          data: template.quests
+            .filter((quest) => !quest.sharedKey || !existingSharedKeys.has(quest.sharedKey))
+            .map((quest) => {
             const position = quest.type === 'DAILY' ? nextDailyPosition++ : nextWeeklyPosition++;
 
             return {
               userId,
               goalId: goal.id,
+              sharedKey: quest.sharedKey,
               title: quest.title,
               description: quest.description,
               type: quest.type,

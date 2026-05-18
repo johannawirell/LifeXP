@@ -193,6 +193,7 @@ model GoalTemplateDetail {
 model GoalTemplateQuest {
   id             String       @id @default(uuid())
   goalTemplateId String
+  sharedKey      String?
   title          String
   description    String?
   xpReward       Int          @default(0)
@@ -209,6 +210,7 @@ model Quest {
   id           String         @id @default(uuid())
   userId       String
   goalId       String?
+  sharedKey    String?
   title        String
   description  String?
   type         QuestType
@@ -231,6 +233,7 @@ model Quest {
   @@index([userId, type, completed])
   @@index([userId, position])
   @@index([goalId])
+  @@index([userId, sharedKey, type])
 }
 
 enum GoalStatus {
@@ -261,6 +264,7 @@ enum GoalDifficulty {
   MEDIUM
   HARD
   EPIC
+  LEGENDARY
 }
 
 enum QuestType {

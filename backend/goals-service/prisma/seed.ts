@@ -395,6 +395,7 @@ async function main() {
     data: goalTemplateSeeds.flatMap((template) =>
       (template.quests ?? []).map((quest, index) => ({
         goalTemplateId: byTitle[template.title],
+        sharedKey: quest.sharedKey,
         title: quest.title,
         description: quest.description,
         xpReward: quest.xpReward ?? 0,
