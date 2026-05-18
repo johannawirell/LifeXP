@@ -7,7 +7,7 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
     subtitle: 'Träning',
     summaryDescription: 'Bygg upp din kondition och spring 5 km utan att stanna.',
     detailDescription:
-      'Det här målet hjälper dig att bygga upp uthållighet steg för steg tills du klarar att springa fem kilometer sammanhängande.',
+      'Det här målet hjälper dig att bygga upp uthållighet steg för steg tills du klarar att springa 5 kilometer.',
     category: 'TRAINING',
     difficulty: 'MEDIUM',
     goalXpReward: 500,
@@ -79,6 +79,27 @@ export const trainingGoalTemplates: GoalTemplateSeed[] = [
           'Börja långsammare än du tror att du behöver.',
         ],
       },
+    ],
+    quests: [
+      {
+        title: 'Ta dig ut',
+        description: 'Gå eller jogga minst 10 minuter.',
+        xpReward: 20,
+        frequency: 'DAILY',
+      },
+      {
+        title: 'Tre träningspass',
+        description: 'Genomför minst 3 träningspass denna vecka.',
+        xpReward: 100,
+        frequency: 'WEEKLY',
+      },
+      {
+        title: 'Veckans distans',
+        description:
+          'Samla ihop minst 5 km gång eller löpning under veckan.',
+        xpReward: 150,
+        frequency: 'WEEKLY',
+      }
     ],
   },
   {

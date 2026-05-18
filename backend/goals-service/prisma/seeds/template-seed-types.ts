@@ -8,6 +8,13 @@ export type GoalTemplateMilestoneSeed = {
   tips?: string[];
 };
 
+export type GoalTemplateQuestSeed = {
+  title: string;
+  description?: string;
+  xpReward?: number;
+  frequency: 'DAILY' | 'WEEKLY';
+};
+
 export type GoalTemplateDetailSeed = {
   label: string;
   value: string;
@@ -21,11 +28,12 @@ export type GoalTemplateSeed = {
   summaryDescription: string;
   detailDescription: string;
   category: GoalTemplateCategory;
-  difficulty?: GoalDifficulty;
-  goalXpReward?: number;
-  totalXpReward?: number;
+  difficulty: GoalDifficulty;
+  goalXpReward: number;
+  totalXpReward: number;
   color: string;
   isPopular: boolean;
   details: GoalTemplateDetailSeed[];
   milestones: GoalTemplateMilestoneSeed[];
+  quests?: GoalTemplateQuestSeed[];
 };

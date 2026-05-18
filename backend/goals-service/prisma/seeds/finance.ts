@@ -9,6 +9,9 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet hjälper dig att skapa ett stabilare ekonomiskt läge genom att bygga upp en buffert med tydliga sparsteg.',
     category: 'FINANCE',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 760,
     color: '#56D2C5',
     isPopular: true,
     details: [
@@ -34,6 +37,9 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet bryter ner skuldsanering i tydliga steg så att du kan prioritera rätt, få överblick och följa avbetalningen löpande.',
     category: 'FINANCE',
+    difficulty: 'HARD',
+    goalXpReward: 220,
+    totalXpReward: 900,
     color: '#56D2C5',
     isPopular: false,
     details: [

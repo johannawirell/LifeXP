@@ -4,13 +4,6 @@ import { goalTemplateSeeds } from './seeds';
 const prisma = new PrismaClient();
 const demoUserId = 'demo-auth-user-1';
 
-const XP_BY_DIFFICULTY: Record<GoalDifficulty, number> = {
-  EASY: 25,
-  MEDIUM: 50,
-  HARD: 100,
-  EPIC: 200,
-};
-
 const dailyQuests = [
   {
     title: 'Drick 2L vatten',
@@ -110,55 +103,11 @@ const weeklyQuests = [
   completed: boolean;
 }[];
 
-function buildDefaultSubtasks(title: string) {
-  return [`Förbered: ${title}`, `Genomför: ${title}`, `Följ upp: ${title}`];
-}
-
-function buildDefaultTips(title: string) {
-  return [
-    `Blocka tid i kalendern för "${title}".`,
-    `Gör "${title}" så konkret att du kan börja direkt.`,
-  ];
-}
-
-function inferGoalDifficulty(title: string): GoalDifficulty {
-  if (title.toLowerCase().includes('halvmaraton')) {
-    return 'EPIC';
-  }
-
-  if (title.toLowerCase().includes('sluta') || title.toLowerCase().includes('körkort')) {
-    return 'HARD';
-  }
-
-  return 'MEDIUM';
-}
-
-function inferMilestoneXpReward(
-  milestoneCount: number,
-  index: number,
-  difficulty: GoalDifficulty,
-  explicitXpReward?: number
-) {
-  if (explicitXpReward) {
-    return explicitXpReward;
-  }
-
-  const base = XP_BY_DIFFICULTY[difficulty];
-  return base + index * Math.max(10, Math.round(base / Math.max(milestoneCount, 1)));
-}
-
-function inferGoalBonusXp(milestoneXpRewards: number[], explicitGoalXpReward?: number) {
-  if (explicitGoalXpReward) {
-    return explicitGoalXpReward;
-  }
-
-  return Math.max(50, Math.round(milestoneXpRewards.reduce((sum, value) => sum + value, 0) * 0.25));
-}
-
 async function main() {
   await prisma.goalTemplateMilestoneSubtask.deleteMany();
   await prisma.goalTemplateMilestoneTip.deleteMany();
   await prisma.goalTemplateDetail.deleteMany();
+  await prisma.goalTemplateQuest.deleteMany();
   await prisma.goalTemplateMilestone.deleteMany();
   await prisma.goalTemplate.deleteMany();
   await prisma.quest.deleteMany({
@@ -263,8 +212,9 @@ async function main() {
     const currentValue = goalSeed.milestones.filter((milestone) => milestone.completedAt).length;
     const targetValue = goalSeed.milestones.length;
     const milestoneXpRewards = goalSeed.milestones.map((milestone) => milestone.xpReward);
-    const goalXpReward = inferGoalBonusXp(milestoneXpRewards, goalSeed.goalXpReward);
-    const totalXpReward = goalSeed.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
+    const goalXpReward = goalSeed.goalXpReward ?? 0;
+    const totalXpReward =
+      goalSeed.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
     const goal = await prisma.goal.create({
       data: {
         userId: demoUserId,
@@ -298,11 +248,8 @@ async function main() {
         },
       });
 
-      const subtasks = buildDefaultSubtasks(milestoneSeed.title);
-      const tips = buildDefaultTips(milestoneSeed.title);
-
       await prisma.milestoneSubtask.createMany({
-        data: subtasks.map((title, subtaskIndex) => ({
+        data: [`Steg för ${milestoneSeed.title}`].map((title, subtaskIndex) => ({
           milestoneId: milestone.id,
           title,
           completed: Boolean(milestoneSeed.completedAt),
@@ -311,7 +258,7 @@ async function main() {
       });
 
       await prisma.milestoneTip.createMany({
-        data: tips.map((text, tipIndex) => ({
+        data: [`Fokusera på ett tydligt steg i taget för ${milestoneSeed.title}.`].map((text, tipIndex) => ({
           milestoneId: milestone.id,
           text,
           position: tipIndex,
@@ -362,46 +309,35 @@ async function main() {
   });
 
   await prisma.goalTemplate.createMany({
-    data: goalTemplateSeeds.map((template, index) => {
-      const difficulty = template.difficulty ?? inferGoalDifficulty(template.title);
-      const milestoneXpRewards = template.milestones.map((milestone, milestoneIndex) =>
-        inferMilestoneXpReward(template.milestones.length, milestoneIndex, difficulty, milestone.xpReward)
-      );
-      const goalXpReward = inferGoalBonusXp(milestoneXpRewards, template.goalXpReward);
-      const totalXpReward = template.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
-
-      return {
-        title: template.title,
-        icon: template.icon,
-        subtitle: template.subtitle,
-        summaryDescription: template.summaryDescription,
-        detailDescription: template.detailDescription,
-        category: template.category,
-        difficulty,
-        goalXpReward,
-        totalXpReward,
-        color: template.color,
-        isPopular: template.isPopular,
-        position: index,
-      };
-    }),
+    data: goalTemplateSeeds.map((template, index) => ({
+      title: template.title,
+      icon: template.icon,
+      subtitle: template.subtitle,
+      summaryDescription: template.summaryDescription,
+      detailDescription: template.detailDescription,
+      category: template.category,
+      difficulty: template.difficulty,
+      goalXpReward: template.goalXpReward,
+      totalXpReward: template.totalXpReward,
+      color: template.color,
+      isPopular: template.isPopular,
+      position: index,
+    })),
   });
 
   const templates = await prisma.goalTemplate.findMany();
   const byTitle = Object.fromEntries(templates.map((template) => [template.title, template.id]));
 
   await prisma.goalTemplateMilestone.createMany({
-    data: goalTemplateSeeds.flatMap((template) => {
-      const difficulty = template.difficulty ?? inferGoalDifficulty(template.title);
-
-      return template.milestones.map((milestone, index) => ({
+    data: goalTemplateSeeds.flatMap((template) =>
+      template.milestones.map((milestone, index) => ({
         goalTemplateId: byTitle[template.title],
         title: milestone.title,
         description: milestone.description,
-        xpReward: inferMilestoneXpReward(template.milestones.length, index, difficulty, milestone.xpReward),
+        xpReward: milestone.xpReward ?? 0,
         position: index,
-      }));
-    }),
+      }))
+    ),
   });
 
   await prisma.goalTemplateDetail.createMany({
@@ -432,7 +368,7 @@ async function main() {
   await prisma.goalTemplateMilestoneSubtask.createMany({
     data: templateMilestones.flatMap((milestone) => {
       const seedMilestone = templateMilestoneSeedMap.get(`${milestone.goalTemplate.title}::${milestone.title}`);
-      const subtasks = seedMilestone?.subtasks ?? buildDefaultSubtasks(milestone.title);
+      const subtasks = seedMilestone?.subtasks ?? [];
 
       return subtasks.map((title, index) => ({
         goalTemplateMilestoneId: milestone.id,
@@ -445,7 +381,7 @@ async function main() {
   await prisma.goalTemplateMilestoneTip.createMany({
     data: templateMilestones.flatMap((milestone) => {
       const seedMilestone = templateMilestoneSeedMap.get(`${milestone.goalTemplate.title}::${milestone.title}`);
-      const tips = seedMilestone?.tips ?? buildDefaultTips(milestone.title);
+      const tips = seedMilestone?.tips ?? [];
 
       return tips.map((text, index) => ({
         goalTemplateMilestoneId: milestone.id,
@@ -453,6 +389,19 @@ async function main() {
         position: index,
       }));
     }),
+  });
+
+  await prisma.goalTemplateQuest.createMany({
+    data: goalTemplateSeeds.flatMap((template) =>
+      (template.quests ?? []).map((quest, index) => ({
+        goalTemplateId: byTitle[template.title],
+        title: quest.title,
+        description: quest.description,
+        xpReward: quest.xpReward ?? 0,
+        type: quest.frequency,
+        position: index,
+      }))
+    ),
   });
 }
 

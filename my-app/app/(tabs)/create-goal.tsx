@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -36,6 +36,13 @@ type GoalTemplateSummary = {
     subtasks: { id: string; title: string }[];
     tips: { id: string; text: string }[];
   }[];
+  quests: {
+    id: string;
+    title: string;
+    description?: string;
+    frequency: 'DAILY' | 'WEEKLY';
+    xpReward: number;
+  }[];
 };
 
 type GoalTemplatePageResponse = {
@@ -56,22 +63,41 @@ type GoalTemplateDetailResponse = {
   color: string;
   summaryDetails: { id: string; label: string; value: string }[];
   detailDetails: { id: string; label: string; value: string }[];
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  goalXpReward: number;
+  totalXpReward: number;
   milestones: {
     id: string;
     title: string;
     description?: string;
+    xpReward: number;
     subtasks: { id: string; title: string }[];
     tips: { id: string; text: string }[];
+  }[];
+  quests: {
+    id: string;
+    title: string;
+    description?: string;
+    frequency: 'DAILY' | 'WEEKLY';
+    xpReward: number;
   }[];
 };
 
 type EditableTemplateDraft = {
-  id: string;
+  id?: string;
   title: string;
+  subtitle: string;
+  category: string;
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC';
+  goalXpReward: number;
+  totalXpReward: number;
   milestones: {
     id: string;
     title: string;
     description?: string;
+    xpReward: number;
     subtasks: { id: string; title: string }[];
     tips: { id: string; text: string }[];
   }[];
@@ -95,9 +121,31 @@ export default function CreateGoalScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const isCustomGoal = !selectedTemplate && Boolean(draft);
 
   const selectedMilestone =
     draft?.milestones.find((milestone) => milestone.id === expandedMilestoneId) ?? null;
+
+  const buildCustomGoalDraft = (): EditableTemplateDraft => ({
+    title: '',
+    subtitle: page?.categories.find((category) => category.key === selectedCategory)?.label ?? 'Eget mål',
+    category: selectedCategory,
+    color: '#A866FF',
+    icon: 'flag-outline',
+    difficulty: 'MEDIUM',
+    goalXpReward: 100,
+    totalXpReward: 100,
+    milestones: [
+      {
+        id: `custom-milestone-${Date.now()}`,
+        title: 'Första milestone',
+        description: '',
+        xpReward: 50,
+        subtasks: [{ id: `custom-subtask-${Date.now()}`, title: 'Första delmål' }],
+        tips: [{ id: `custom-tip-${Date.now()}`, text: 'Första tips' }],
+      },
+    ],
+  });
 
   const getDynamicDetailValue = (label: string, value: string) => {
     if (!draft) {
@@ -118,18 +166,22 @@ export default function CreateGoalScreen() {
     return `${milestoneCount} milestones`;
   };
 
-  const loadTemplates = async (category: string) => {
+  const loadTemplates = useCallback(async (category: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?category=${category}`);
+      const query = new URLSearchParams({
+        category,
+        ...(userId ? { userId } : {}),
+      });
+      const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?${query.toString()}`);
       setPage(data);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   const loadTemplateDetail = async (templateId: string) => {
     try {
@@ -140,10 +192,18 @@ export default function CreateGoalScreen() {
       setDraft({
         id: data.id,
         title: data.title,
+        subtitle: data.subtitle,
+        category: data.category,
+        color: data.color,
+        icon: data.icon,
+        difficulty: data.difficulty,
+        goalXpReward: data.goalXpReward,
+        totalXpReward: data.totalXpReward,
         milestones: data.milestones.map((milestone) => ({
           id: milestone.id,
           title: milestone.title,
           description: milestone.description,
+          xpReward: milestone.xpReward,
           subtasks: milestone.subtasks.map((subtask) => ({ ...subtask })),
           tips: milestone.tips.map((tip) => ({ ...tip })),
         })),
@@ -218,6 +278,7 @@ export default function CreateGoalScreen() {
                 id: `new-milestone-${Date.now()}`,
                 title: 'Ny milestone',
                 description: '',
+                xpReward: 50,
                 subtasks: [{ id: `new-subtask-${Date.now()}`, title: 'Nytt delmål' }],
                 tips: [{ id: `new-tip-${Date.now()}`, text: 'Nytt tips' }],
               },
@@ -314,22 +375,48 @@ export default function CreateGoalScreen() {
     );
   };
 
+  const updateMilestoneXp = (milestoneId: string, xpReward: number) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            milestones: current.milestones.map((milestone) =>
+              milestone.id === milestoneId ? { ...milestone, xpReward } : milestone
+            ),
+          }
+        : current
+    );
+  };
+
   const handleCreateGoal = async () => {
-    if (!userId || !selectedTemplate || !draft) {
+    if (!userId || !draft) {
       return;
     }
 
     try {
       setIsCreatingGoal(true);
-      await postJson<CreateGoalResponse>(`/goals/${userId}/from-template/${selectedTemplate.id}`, {
+      const endpoint =
+        isCustomGoal || !selectedTemplate
+          ? `/goals/${userId}/custom`
+          : `/goals/${userId}/from-template/${selectedTemplate.id}`;
+      const payload = {
         title: draft.title,
+        subtitle: draft.subtitle,
+        category: draft.category,
+        color: draft.color,
+        icon: draft.icon,
+        difficulty: draft.difficulty,
+        goalXpReward: draft.goalXpReward,
+        totalXpReward: draft.totalXpReward,
         milestones: draft.milestones.map((milestone) => ({
           title: milestone.title,
           description: milestone.description,
+          xpReward: milestone.xpReward,
           subtasks: milestone.subtasks.map((subtask) => subtask.title),
           tips: milestone.tips.map((tip) => tip.text),
         })),
-      });
+      };
+      await postJson<CreateGoalResponse>(endpoint, payload);
       Alert.alert('Mål tillagt', 'Målet har lagts till i din lista.');
       setSelectedTemplate(null);
       setDraft(null);
@@ -346,7 +433,7 @@ export default function CreateGoalScreen() {
 
   useEffect(() => {
     void loadTemplates(selectedCategory);
-  }, [selectedCategory]);
+  }, [loadTemplates, selectedCategory]);
 
   if (isLoading) {
     return (
@@ -375,7 +462,7 @@ export default function CreateGoalScreen() {
     );
   }
 
-  const isDetailView = Boolean(selectedTemplate) || isDetailLoading;
+  const isDetailView = Boolean(selectedTemplate) || Boolean(draft) || isDetailLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -383,7 +470,7 @@ export default function CreateGoalScreen() {
         <View style={styles.topBar}>
           <Pressable
             onPress={() => {
-              if (selectedTemplate) {
+              if (selectedTemplate || draft) {
                 setSelectedTemplate(null);
                 setDraft(null);
                 setExpandedMilestoneId(null);
@@ -394,7 +481,7 @@ export default function CreateGoalScreen() {
             }}>
             <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
           </Pressable>
-          <Text style={styles.screenTitle}>{selectedTemplate ? 'Redigera mål' : 'Lägg till mål'}</Text>
+          <Text style={styles.screenTitle}>{selectedTemplate || draft ? 'Redigera mål' : 'Lägg till mål'}</Text>
           <View style={styles.topBarSpacer} />
         </View>
 
@@ -408,6 +495,19 @@ export default function CreateGoalScreen() {
           <>
             <Text style={styles.sectionTitle}>Välj ett mål</Text>
             <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
+
+            <Pressable
+              style={styles.customGoalButton}
+              onPress={() => {
+                setSelectedTemplate(null);
+                setDraft(buildCustomGoalDraft());
+              }}>
+              <Ionicons name="add" size={20} color="#C9A9FF" />
+              <View style={styles.customGoalTextWrap}>
+                <Text style={styles.customGoalTitle}>Skapa eget mål</Text>
+                <Text style={styles.customGoalText}>Bygg ett mål från grunden med egna milestones och delmål.</Text>
+              </View>
+            </Pressable>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
               {page.categories.map((category) => (
@@ -446,8 +546,17 @@ export default function CreateGoalScreen() {
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
             ))}
+            {page.templates.length === 0 ? (
+              <View style={styles.emptyTemplateCard}>
+                <Ionicons name="checkmark-done-outline" size={28} color="#A866FF" />
+                <Text style={styles.emptyTemplateTitle}>Inga fler mål i den här kategorin</Text>
+                <Text style={styles.emptyTemplateText}>
+                  Du har redan aktiva eller avslutade mål här. Skapa ett eget mål om du vill fortsätta bygga vidare.
+                </Text>
+              </View>
+            ) : null}
           </>
-        ) : isDetailLoading || !selectedTemplate || !draft ? (
+        ) : isDetailLoading || !draft ? (
           <View style={styles.feedbackState}>
             <ActivityIndicator size="large" color="#A866FF" />
             <Text style={styles.feedbackText}>Hämtar måldetaljer...</Text>
@@ -463,11 +572,24 @@ export default function CreateGoalScreen() {
                 placeholder="Måltitel"
                 placeholderTextColor="#6F7887"
               />
+              {isCustomGoal ? (
+                <TextInput
+                  value={draft.subtitle}
+                  onChangeText={(text) => setDraft((current) => (current ? { ...current, subtitle: text } : current))}
+                  style={[styles.input, styles.secondaryInput]}
+                  placeholder="Kategori eller undertitel"
+                  placeholderTextColor="#6F7887"
+                />
+              ) : null}
             </View>
 
             <View style={styles.detailCard}>
               <Text style={styles.detailCardTitle}>Översikt</Text>
-              {selectedTemplate.summaryDetails.map((detail) => (
+              {(selectedTemplate?.summaryDetails ?? [
+                { id: 'custom-category', label: 'Kategori', value: draft.subtitle },
+                { id: 'custom-setup', label: 'Upplägg', value: 'utvecklingssteg' },
+                { id: 'custom-xp', label: 'XP', value: `${draft.totalXpReward} XP` },
+              ]).map((detail) => (
                 <View key={detail.id} style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{detail.label}</Text>
                   <Text style={styles.detailValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
@@ -477,13 +599,25 @@ export default function CreateGoalScreen() {
 
             <View style={styles.detailCard}>
               <Text style={styles.detailCardTitle}>Detaljläge</Text>
-              <Text style={styles.detailDescription}>{selectedTemplate.detailDescription}</Text>
-              {selectedTemplate.detailDetails.map((detail) => (
+              <Text style={styles.detailDescription}>
+                {selectedTemplate?.detailDescription ?? 'Bygg upp målet steg för steg med egna milestones, delmål och tips.'}
+              </Text>
+              {(selectedTemplate?.detailDetails ?? []).map((detail) => (
                 <View key={detail.id} style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{detail.label}</Text>
                   <Text style={styles.detailValue}>{detail.value}</Text>
                 </View>
               ))}
+              {selectedTemplate?.quests?.length ? (
+                <View style={styles.questPreviewBox}>
+                  <Text style={styles.editorSectionTitle}>Quests som skapas med målet</Text>
+                  {selectedTemplate.quests.map((quest) => (
+                    <Text key={quest.id} style={styles.questPreviewText}>
+                      • {quest.title} ({quest.frequency.toLowerCase()}) +{quest.xpReward} XP
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.detailCard}>
@@ -541,6 +675,14 @@ export default function CreateGoalScreen() {
                   onChangeText={(text) => updateMilestoneTitle(selectedMilestone.id, text)}
                   style={styles.input}
                   placeholder="Milestone"
+                  placeholderTextColor="#6F7887"
+                />
+                <TextInput
+                  value={String(selectedMilestone.xpReward)}
+                  onChangeText={(text) => updateMilestoneXp(selectedMilestone.id, Number(text.replace(/[^0-9]/g, '')) || 0)}
+                  style={[styles.input, styles.secondaryInput]}
+                  keyboardType="number-pad"
+                  placeholder="XP"
                   placeholderTextColor="#6F7887"
                 />
 
@@ -685,6 +827,34 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     marginTop: 8,
   },
+  customGoalButton: {
+    alignItems: 'center',
+    backgroundColor: '#151B24',
+    borderColor: '#7D43E8',
+    borderRadius: 20,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+  },
+  customGoalTextWrap: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  customGoalTitle: {
+    color: '#C9A9FF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  customGoalText: {
+    color: '#B6BECA',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
+  },
   categoryRow: {
     gap: 22,
     paddingHorizontal: 20,
@@ -726,6 +896,31 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingHorizontal: 16,
     paddingVertical: 20,
+  },
+  emptyTemplateCard: {
+    alignItems: 'center',
+    backgroundColor: '#121824',
+    borderColor: '#202736',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginHorizontal: 20,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  emptyTemplateTitle: {
+    color: '#F5F7FB',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyTemplateText: {
+    color: '#9AA3B2',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 8,
+    textAlign: 'center',
   },
   templateIconWrap: {
     alignItems: 'center',
@@ -819,6 +1014,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'right',
   },
+  questPreviewBox: {
+    backgroundColor: '#121824',
+    borderRadius: 14,
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  questPreviewText: {
+    color: '#C7D0DB',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
+  },
   input: {
     backgroundColor: '#0F141D',
     borderColor: '#2A3040',
@@ -829,6 +1037,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
+  },
+  secondaryInput: {
+    marginTop: 10,
   },
   milestoneEditorCard: {
     borderTopColor: '#252B38',

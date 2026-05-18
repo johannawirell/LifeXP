@@ -9,6 +9,9 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet hjälper dig att identifiera triggers, skapa nya rutiner och bygga upp ett hållbart alkoholfritt vardagsmönster.',
     category: 'HEALTH',
+    difficulty: 'HARD',
+    goalXpReward: 250,
+    totalXpReward: 950,
     color: '#F08A45',
     isPopular: true,
     details: [
@@ -33,6 +36,9 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet ger dig en enkel struktur för att förstå vad som dränerar dig och bygga in återhämtning och lugnare rutiner.',
     category: 'HEALTH',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 720,
     color: '#67D86F',
     isPopular: true,
     details: [
@@ -58,6 +64,9 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
     category: 'HEALTH',
+    difficulty: 'HARD',
+    goalXpReward: 220,
+    totalXpReward: 880,
     color: '#F08A45',
     isPopular: false,
     details: [
@@ -83,6 +92,9 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
     category: 'HEALTH',
+    difficulty: 'HARD',
+    goalXpReward: 220,
+    totalXpReward: 880,
     color: '#F08A45',
     isPopular: false,
     details: [

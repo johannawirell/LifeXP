@@ -111,6 +111,13 @@ type GoalTemplateCard = {
       text: string;
     }[];
   }[];
+  quests: {
+    id: string;
+    title: string;
+    description?: string;
+    frequency: QuestType;
+    xpReward: number;
+  }[];
 };
 
 type GoalTemplatePageResponse = {
@@ -156,10 +163,35 @@ type GoalTemplateDetailResponse = {
       text: string;
     }[];
   }[];
+  quests: {
+    id: string;
+    title: string;
+    description?: string;
+    frequency: QuestType;
+    xpReward: number;
+  }[];
 };
 
 type CreateGoalFromTemplateInput = {
   title?: string;
+  milestones?: {
+    title: string;
+    description?: string;
+    xpReward?: number;
+    subtasks?: string[];
+    tips?: string[];
+  }[];
+};
+
+type CreateCustomGoalInput = {
+  title?: string;
+  subtitle?: string;
+  category?: string;
+  difficulty?: GoalDifficulty;
+  color?: string;
+  icon?: string;
+  goalXpReward?: number;
+  totalXpReward?: number;
   milestones?: {
     title: string;
     description?: string;
@@ -553,6 +585,82 @@ export class GoalsQueryService {
     };
   }
 
+  async createCustomGoal(userId: string, input?: CreateCustomGoalInput) {
+    const title = input?.title?.trim();
+
+    if (!title) {
+      throw new NotFoundException('Goal title is required.');
+    }
+
+    const milestones = (input?.milestones ?? []).filter((milestone) => milestone.title.trim().length > 0);
+    const totalMilestoneXp = milestones.reduce((sum, milestone) => sum + (milestone.xpReward ?? 0), 0);
+    const goalXpReward = Math.max(0, input?.goalXpReward ?? 0);
+
+    const createdGoal = await this.prisma.$transaction(async (tx) => {
+      const goal = await tx.goal.create({
+        data: {
+          userId,
+          title,
+          subtitle: input?.subtitle?.trim() || this.mapCategoryKeyToLabel((input?.category ?? 'productivity').toLowerCase()),
+          description: null,
+          category: this.mapCategoryKeyToLabel((input?.category ?? 'productivity').toLowerCase()),
+          icon: input?.icon?.trim() || 'flag-outline',
+          difficulty: input?.difficulty ?? 'MEDIUM',
+          goalXpReward,
+          totalXpReward: Math.max(goalXpReward + totalMilestoneXp, input?.totalXpReward ?? goalXpReward + totalMilestoneXp),
+          status: 'ACTIVE',
+          targetValue: milestones.length,
+          currentValue: 0,
+          percentLabel: '0 %',
+          cardColor: input?.color?.trim() || '#A866FF',
+        },
+      });
+
+      for (const [index, milestone] of milestones.entries()) {
+        const createdMilestone = await tx.milestone.create({
+          data: {
+            goalId: goal.id,
+            title: milestone.title.trim(),
+            description: milestone.description?.trim() || null,
+            xpReward: Math.max(0, milestone.xpReward ?? 0),
+            position: index,
+          },
+        });
+
+        const subtasks = (milestone.subtasks ?? []).map((subtask) => subtask.trim()).filter(Boolean);
+        const tips = (milestone.tips ?? []).map((tip) => tip.trim()).filter(Boolean);
+
+        if (subtasks.length > 0) {
+          await tx.milestoneSubtask.createMany({
+            data: subtasks.map((subtask, subtaskIndex) => ({
+              milestoneId: createdMilestone.id,
+              title: subtask,
+              position: subtaskIndex,
+            })),
+          });
+        }
+
+        if (tips.length > 0) {
+          await tx.milestoneTip.createMany({
+            data: tips.map((tip, tipIndex) => ({
+              milestoneId: createdMilestone.id,
+              text: tip,
+              position: tipIndex,
+            })),
+          });
+        }
+      }
+
+      return goal;
+    });
+
+    return {
+      goalId: createdGoal.id,
+      userId,
+      message: 'Custom goal created.',
+    };
+  }
+
   async deleteGoal(userId: string, goalId: string) {
     const goal = await this.prisma.goal.findFirst({
       where: {
@@ -577,31 +685,59 @@ export class GoalsQueryService {
     return this.getGoalsPage(userId);
   }
 
-  async getGoalTemplatePage(category = 'popular'): Promise<GoalTemplatePageResponse> {
+  async getGoalTemplatePage(userId: string | undefined, category = 'popular'): Promise<GoalTemplatePageResponse> {
     const normalizedCategory = category.toLowerCase();
-    const templates = await this.prisma.goalTemplate.findMany({
-      where:
-        normalizedCategory === 'popular'
-          ? { isPopular: true }
-          : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
-      include: {
-        details: {
-          orderBy: { position: 'asc' },
-        },
-        milestones: {
-          include: {
-            subtasks: {
-              orderBy: { position: 'asc' },
-            },
-            tips: {
-              orderBy: { position: 'asc' },
-            },
+    const [templates, existingGoals] = await Promise.all([
+      this.prisma.goalTemplate.findMany({
+        where:
+          normalizedCategory === 'popular'
+            ? { isPopular: true }
+            : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
+        include: {
+          details: {
+            orderBy: { position: 'asc' },
           },
-          orderBy: { position: 'asc' },
+          milestones: {
+            include: {
+              subtasks: {
+                orderBy: { position: 'asc' },
+              },
+              tips: {
+                orderBy: { position: 'asc' },
+              },
+            },
+            orderBy: { position: 'asc' },
+          },
+          quests: {
+            orderBy: { position: 'asc' },
+          },
         },
-      },
-      orderBy: [{ isPopular: 'desc' }, { position: 'asc' }],
-    });
+        orderBy: [{ isPopular: 'desc' }, { position: 'asc' }],
+      }),
+      userId
+        ? this.prisma.goal.findMany({
+            where: {
+              userId,
+              status: {
+                in: ['ACTIVE', 'COMPLETED'],
+              },
+            },
+            select: {
+              title: true,
+              sourceTemplateId: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+    const unavailableTemplateIds = new Set(
+      existingGoals.flatMap((goal) => (goal.sourceTemplateId ? [goal.sourceTemplateId] : []))
+    );
+    const unavailableTemplateTitles = new Set(existingGoals.map((goal) => goal.title.trim().toLowerCase()));
+    const availableTemplates = templates.filter(
+      (template) =>
+        !unavailableTemplateIds.has(template.id) &&
+        !unavailableTemplateTitles.has(template.title.trim().toLowerCase())
+    );
 
     const categories = [
       { key: 'popular', label: 'Populära', icon: 'star-outline', active: normalizedCategory === 'popular' },
@@ -621,7 +757,7 @@ export class GoalsQueryService {
       ],
       categories,
       selectedCategory: normalizedCategory,
-      templates: templates.map((template) => ({
+      templates: availableTemplates.map((template) => ({
         id: template.id,
         title: template.title,
         icon: template.icon,
@@ -659,6 +795,13 @@ export class GoalsQueryService {
             text: tip.text,
           })),
         })),
+        quests: template.quests.map((quest) => ({
+          id: quest.id,
+          title: quest.title,
+          description: quest.description ?? undefined,
+          frequency: quest.type,
+          xpReward: quest.xpReward,
+        })),
       })),
     };
   }
@@ -679,6 +822,9 @@ export class GoalsQueryService {
               orderBy: { position: 'asc' },
             },
           },
+          orderBy: { position: 'asc' },
+        },
+        quests: {
           orderBy: { position: 'asc' },
         },
       },
@@ -747,6 +893,13 @@ export class GoalsQueryService {
           text: tip.text,
         })),
       })),
+      quests: template.quests.map((quest) => ({
+        id: quest.id,
+        title: quest.title,
+        description: quest.description ?? undefined,
+        frequency: quest.type,
+        xpReward: quest.xpReward,
+      })),
     };
   }
 
@@ -765,11 +918,29 @@ export class GoalsQueryService {
           },
           orderBy: { position: 'asc' },
         },
+        quests: {
+          orderBy: { position: 'asc' },
+        },
       },
     });
 
     if (!template) {
       throw new NotFoundException('Goal template not found.');
+    }
+
+    const existingGoal = await this.prisma.goal.findFirst({
+      where: {
+        userId,
+        status: {
+          in: ['ACTIVE', 'COMPLETED'],
+        },
+        OR: [{ sourceTemplateId: template.id }, { title: template.title }],
+      },
+      select: { id: true },
+    });
+
+    if (existingGoal) {
+      throw new NotFoundException('Goal template is already active or completed for this user.');
     }
 
     const sourceMilestones = input?.milestones?.length
@@ -786,6 +957,7 @@ export class GoalsQueryService {
       const goal = await tx.goal.create({
         data: {
           userId,
+          sourceTemplateId: template.id,
           title: input?.title?.trim() || template.title,
           subtitle: template.subtitle,
           description: template.detailDescription,
@@ -813,23 +985,63 @@ export class GoalsQueryService {
           },
         });
 
-        const subtasks = milestone.subtasks?.length ? milestone.subtasks : [`Förbered: ${milestone.title}`];
-        const tips = milestone.tips?.length ? milestone.tips : [`Boka tid för "${milestone.title}".`];
+        const subtasks = milestone.subtasks?.length ? milestone.subtasks : [];
+        const tips = milestone.tips?.length ? milestone.tips : [];
 
-        await tx.milestoneSubtask.createMany({
-          data: subtasks.map((title, subtaskIndex) => ({
-            milestoneId: createdMilestone.id,
-            title,
-            position: subtaskIndex,
-          })),
+        if (subtasks.length > 0) {
+          await tx.milestoneSubtask.createMany({
+            data: subtasks.map((title, subtaskIndex) => ({
+              milestoneId: createdMilestone.id,
+              title,
+              position: subtaskIndex,
+            })),
+          });
+        }
+
+        if (tips.length > 0) {
+          await tx.milestoneTip.createMany({
+            data: tips.map((text, tipIndex) => ({
+              milestoneId: createdMilestone.id,
+              text,
+              position: tipIndex,
+            })),
+          });
+        }
+      }
+
+      if (template.quests.length > 0) {
+        const dailyQuestCount = await tx.quest.count({
+          where: { userId, type: 'DAILY' },
         });
+        const weeklyQuestCount = await tx.quest.count({
+          where: { userId, type: 'WEEKLY' },
+        });
+        let nextDailyPosition = dailyQuestCount + 1;
+        let nextWeeklyPosition = weeklyQuestCount + 1;
 
-        await tx.milestoneTip.createMany({
-          data: tips.map((text, tipIndex) => ({
-            milestoneId: createdMilestone.id,
-            text,
-            position: tipIndex,
-          })),
+        await tx.quest.createMany({
+          data: template.quests.map((quest) => {
+            const position = quest.type === 'DAILY' ? nextDailyPosition++ : nextWeeklyPosition++;
+
+            return {
+              userId,
+              goalId: goal.id,
+              title: quest.title,
+              description: quest.description,
+              type: quest.type,
+              category: this.mapGoalTemplateCategoryToQuestCategory(template.category),
+              difficulty: template.difficulty,
+              xpReward: quest.xpReward,
+              targetCount: 1,
+              currentCount: 0,
+              streakCount: 0,
+              isCustom: false,
+              completed: false,
+              periodStart: new Date(),
+              resetsAt: quest.type === 'DAILY' ? this.getNextDailyReset() : this.getNextWeeklyReset(),
+              position,
+            };
+          }),
         });
       }
 
@@ -912,6 +1124,25 @@ export class GoalsQueryService {
     }
   }
 
+  private mapCategoryKeyToLabel(category: string) {
+    switch (category) {
+      case 'job':
+        return 'Jobb';
+      case 'study':
+        return 'Plugg';
+      case 'training':
+        return 'Träning';
+      case 'health':
+        return 'Hälsa';
+      case 'finance':
+        return 'Ekonomi';
+      case 'relationship':
+        return 'Relationer';
+      default:
+        return 'Produktivitet';
+    }
+  }
+
   private mapCategoryEnumToLabel(category: GoalTemplateCategory): string {
     switch (category) {
       case 'JOB':
@@ -928,6 +1159,25 @@ export class GoalsQueryService {
         return 'Relationer';
       default:
         return 'Träning';
+    }
+  }
+
+  private mapGoalTemplateCategoryToQuestCategory(category: GoalTemplateCategory): QuestCategory {
+    switch (category) {
+      case 'JOB':
+        return 'CAREER';
+      case 'STUDY':
+        return 'PRODUCTIVITY';
+      case 'TRAINING':
+        return 'TRAINING';
+      case 'HEALTH':
+        return 'HEALTH';
+      case 'FINANCE':
+        return 'FINANCE';
+      case 'RELATIONSHIP':
+        return 'SOCIAL';
+      default:
+        return 'PRODUCTIVITY';
     }
   }
 

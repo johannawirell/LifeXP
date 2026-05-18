@@ -9,6 +9,9 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du vågar ta nästa steg.',
     category: 'JOB',
+    difficulty: 'HARD',
+    goalXpReward: 250,
+    totalXpReward: 1100,
     color: '#5E8BFF',
     isPopular: true,
     details: [
@@ -62,6 +65,9 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     summaryDescription: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
     detailDescription: 'Byt riktning och satsa på något som passar dig bättre. Börja idag och bygg momentum steg för steg.',
     category: 'JOB',
+    difficulty: 'HARD',
+    goalXpReward: 200,
+    totalXpReward: 900,
     color: '#5E8BFF',
     isPopular: false,
     details: [
@@ -105,6 +111,9 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     summaryDescription: 'Bygg en konkret plan för att utveckla dina färdigheter inom ditt nuvarande område.',
     detailDescription: 'Fokusera på att förbättra och fördjupa dina kompetenser för att bli mer framgångsrik i din nuvarande roll.',
     category: 'JOB',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 760,
     color: '#5E8BFF',
     isPopular: false,
     details: [

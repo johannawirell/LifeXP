@@ -9,6 +9,9 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
     category: 'RELATIONSHIP',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 760,
     color: '#FF77C8',
     isPopular: true,
     details: [
@@ -34,6 +37,9 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet bryter ner social utveckling i små steg så att du enklare kan skapa nya kontakter och följa upp dem.',
     category: 'RELATIONSHIP',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 760,
     color: '#7A8CFF',
     isPopular: false,
     details: [
@@ -58,6 +64,9 @@ export const relationshipGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
     category: 'RELATIONSHIP',
+    difficulty: 'MEDIUM',
+    goalXpReward: 160,
+    totalXpReward: 680,
     color: '#FF77C8',
     isPopular: true,
     details: [

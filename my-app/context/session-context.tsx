@@ -3,7 +3,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 
 import { disconnectLiveUpdatesSocket } from '@/lib/live-updates';
 
-type SessionMode = 'guest' | 'demo' | 'empty' | 'authenticated';
+type SessionMode = 'guest' | 'empty' | 'authenticated';
 
 type AuthSessionPayload = {
   accessToken: string;
@@ -19,7 +19,6 @@ type SessionContextValue = {
   accessToken: string | null;
   refreshToken: string | null;
   authProvider: string | null;
-  startDemoMode: () => void;
   startEmptyMode: () => void;
   startAuthenticatedSession: (payload: AuthSessionPayload) => void;
   resetSession: () => void;
@@ -75,9 +74,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       mode,
       isHydrating,
       userId:
-        mode === 'demo'
-          ? 'demo-auth-user-1'
-          : mode === 'empty'
+        mode === 'empty'
             ? 'empty-auth-user-1'
             : mode === 'authenticated'
               ? authSession?.userId ?? null
@@ -85,12 +82,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       accessToken: authSession?.accessToken ?? null,
       refreshToken: authSession?.refreshToken ?? null,
       authProvider: authSession?.provider ?? null,
-      startDemoMode: () => {
-        disconnectLiveUpdatesSocket();
-        setAuthSession(null);
-        setMode('demo');
-        void persistSession('demo', null);
-      },
       startEmptyMode: () => {
         disconnectLiveUpdatesSocket();
         setAuthSession(null);

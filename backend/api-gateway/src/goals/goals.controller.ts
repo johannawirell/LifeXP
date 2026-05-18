@@ -7,11 +7,26 @@ import { LiveUpdatesGateway } from '../live-updates/live-updates.gateway';
 export class GoalsController {
   constructor(private readonly liveUpdatesGateway: LiveUpdatesGateway) {}
 
+  private emitUserUpdate(payload: {
+    userId: string;
+    resources: string[];
+    type: 'invalidate' | 'reward';
+    reward?: {
+      totalXp: number;
+      title: string;
+    } | null;
+  }) {
+    this.liveUpdatesGateway?.emitUserUpdate(payload);
+  }
+
   @Get('templates/list')
-  async getGoalTemplates(@Query('category') category?: string) {
+  async getGoalTemplates(@Query('userId') userId?: string, @Query('category') category?: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`, {
-      params: category ? { category } : undefined,
+      params: {
+        ...(category ? { category } : {}),
+        ...(userId ? { userId } : {}),
+      },
     });
 
     return response.data;
@@ -33,7 +48,7 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`, body);
-    this.liveUpdatesGateway.emitUserUpdate({
+    this.emitUserUpdate({
       userId,
       resources: ['goals', 'profile', 'statistics'],
       type: 'invalidate',
@@ -46,7 +61,20 @@ export class GoalsController {
   async createCustomQuest(@Param('userId') userId: string, @Body() body?: unknown) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/quests`, body);
-    this.liveUpdatesGateway.emitUserUpdate({
+    this.emitUserUpdate({
+      userId,
+      resources: ['goals', 'profile', 'statistics'],
+      type: 'invalidate',
+    });
+
+    return response.data;
+  }
+
+  @Post(':userId/custom')
+  async createCustomGoal(@Param('userId') userId: string, @Body() body?: unknown) {
+    const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
+    const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/custom`, body);
+    this.emitUserUpdate({
       userId,
       resources: ['goals', 'profile', 'statistics'],
       type: 'invalidate',
@@ -79,7 +107,7 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/subtasks/${subtaskId}`, body);
-    this.liveUpdatesGateway.emitUserUpdate({
+    this.emitUserUpdate({
       userId,
       resources: ['goals', 'profile', 'statistics'],
       type: response.data?.reward ? 'reward' : 'invalidate',
@@ -102,7 +130,7 @@ export class GoalsController {
   ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.patch(`${goalsServiceUrl}/goals/${userId}/quests/${questId}`, body);
-    this.liveUpdatesGateway.emitUserUpdate({
+    this.emitUserUpdate({
       userId,
       resources: ['goals', 'profile', 'statistics'],
       type: response.data?.reward ? 'reward' : 'invalidate',
@@ -121,7 +149,7 @@ export class GoalsController {
   async deleteGoal(@Param('userId') userId: string, @Param('goalId') goalId: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     const response = await axios.delete(`${goalsServiceUrl}/goals/${userId}/${goalId}`);
-    this.liveUpdatesGateway.emitUserUpdate({
+    this.emitUserUpdate({
       userId,
       resources: ['goals', 'profile', 'statistics'],
       type: 'invalidate',

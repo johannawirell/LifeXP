@@ -9,6 +9,9 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet hjälper dig att bryta ner kursen i tydliga studiesteg, hålla deadlines och skapa ett lugnare studieupplägg.',
     category: 'STUDY',
+    difficulty: 'MEDIUM',
+    goalXpReward: 180,
+    totalXpReward: 700,
     color: '#B269FF',
     isPopular: true,
     details: [
@@ -33,6 +36,9 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Målet ger dig en struktur för att prioritera kurser, planera terminen och minska risken att halka efter innan examen.',
     category: 'STUDY',
+    difficulty: 'HARD',
+    goalXpReward: 250,
+    totalXpReward: 1000,
     color: '#B269FF',
     isPopular: false,
     details: [
@@ -58,6 +64,9 @@ export const studyGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet låter dig strukturera körkortsresan från teori till uppkörning i tydliga etapper.',
     category: 'STUDY',
+    difficulty: 'HARD',
+    goalXpReward: 300,
+    totalXpReward: 1200,
     color: '#B269FF',
     isPopular: false,
     details: [

@@ -9,8 +9,8 @@ const goalsQueryService = new GoalsQueryService(prisma);
 @Controller('goals')
 export class GoalsController {
   @Get('templates/list')
-  getGoalTemplates(@Query('category') category?: string) {
-    return goalsQueryService.getGoalTemplatePage(category);
+  getGoalTemplates(@Query('userId') userId?: string, @Query('category') category?: string) {
+    return goalsQueryService.getGoalTemplatePage(userId, category);
   }
 
   @Get('templates/:templateId')
@@ -30,6 +30,11 @@ export class GoalsController {
   @Post(':userId/quests')
   createCustomQuest(@Param('userId') userId: string, @Body() body?: unknown) {
     return goalsQueryService.createCustomQuest(userId, body as never);
+  }
+
+  @Post(':userId/custom')
+  createCustomGoal(@Param('userId') userId: string, @Body() body?: unknown) {
+    return goalsQueryService.createCustomGoal(userId, body as never);
   }
 
   @Get(':userId/detail/:goalId')

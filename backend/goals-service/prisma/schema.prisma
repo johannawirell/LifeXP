@@ -11,6 +11,7 @@ datasource db {
 model Goal {
   id              String         @id @default(uuid())
   userId          String
+  sourceTemplateId String?
   title           String
   icon            String?
   subtitle        String?
@@ -35,6 +36,7 @@ model Goal {
   milestones      Milestone[]
   progressEntries ProgressEntry[]
   schedules       GoalSchedule[]
+  quests          Quest[]
 
   @@index([userId, status])
 }
@@ -129,6 +131,7 @@ model GoalTemplate {
   updatedAt          DateTime             @updatedAt
   milestones         GoalTemplateMilestone[]
   details            GoalTemplateDetail[]
+  quests             GoalTemplateQuest[]
 
   @@index([category, position])
 }
@@ -187,9 +190,25 @@ model GoalTemplateDetail {
   @@index([goalTemplateId, visibility, position])
 }
 
+model GoalTemplateQuest {
+  id             String       @id @default(uuid())
+  goalTemplateId String
+  title          String
+  description    String?
+  xpReward       Int          @default(0)
+  type           QuestType
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  goalTemplate   GoalTemplate @relation(fields: [goalTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([goalTemplateId, position])
+}
+
 model Quest {
   id           String         @id @default(uuid())
   userId       String
+  goalId       String?
   title        String
   description  String?
   type         QuestType
@@ -207,9 +226,11 @@ model Quest {
   position     Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  goal         Goal?          @relation(fields: [goalId], references: [id], onDelete: Cascade)
 
   @@index([userId, type, completed])
   @@index([userId, position])
+  @@index([goalId])
 }
 
 enum GoalStatus {
