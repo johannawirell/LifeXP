@@ -16,7 +16,11 @@ function PlusTabButton({ onPress }: BottomTabBarButtonProps) {
 }
 
 export default function TabLayout() {
-  const { mode } = useSession();
+  const { mode, isHydrating } = useSession();
+
+  if (isHydrating) {
+    return null;
+  }
 
   if (mode === 'guest') {
     return <Redirect href="/" />;
@@ -24,6 +28,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="profile"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#9B5CF6',

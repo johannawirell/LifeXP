@@ -26,13 +26,23 @@ const providerButtons: {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen() {
-  const { mode, startAuthenticatedSession } = useSession();
+  const { mode, isHydrating, startAuthenticatedSession } = useSession();
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [pendingProvider, setPendingProvider] = useState<ProviderId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  if (isHydrating) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color="#A866FF" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (mode !== 'guest') {
-    return <Redirect href="/(tabs)/goals" />;
+    return <Redirect href="/(tabs)/profile" />;
   }
 
   const startOAuth = async (provider: ProviderId) => {
@@ -72,7 +82,7 @@ export default function AuthScreen() {
         provider: authProvider,
       });
 
-      router.replace('/(tabs)/goals');
+      router.replace('/(tabs)/profile');
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : 'OAuth-flödet misslyckades.');
     } finally {
@@ -216,6 +226,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 18,
+  },
+  loadingState: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   cardTitle: {
     color: '#F5F7FB',
