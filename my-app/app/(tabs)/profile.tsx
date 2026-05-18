@@ -1,5 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -63,13 +65,14 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { mode, userId, resetSession } = useSession();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (mode === 'empty') {
       setProfile(null);
       setError(null);
@@ -94,36 +97,17 @@ export default function ProfileScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [mode, userId]);
 
   useEffect(() => {
-    void (async () => {
-      if (mode === 'empty') {
-        setProfile(null);
-        setError(null);
-        setIsLoading(false);
-        return;
-      }
+    void loadProfile();
+  }, [loadProfile]);
 
-      if (!userId) {
-        setProfile(null);
-        setError('Ingen användare vald.');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await fetchJson<ProfileResponse>(`/profile/${userId}`);
-        setProfile(data);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unknown error');
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [mode, userId]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfile();
+    }, [loadProfile])
+  );
 
   if (mode === 'empty') {
     return (
@@ -173,6 +157,20 @@ export default function ProfileScreen() {
 
   const xpLeft = Math.max(profile.nextLevelXp - profile.totalXp, 0);
   const levelProgress = profile.nextLevelXp > 0 ? (profile.totalXp / profile.nextLevelXp) * 100 : 0;
+
+  const openGoalsPage = () => {
+    router.push('/goals');
+  };
+
+  const openGoalFromProfile = (goalId: string) => {
+    router.push({
+      pathname: '/goals',
+      params: {
+        goalId,
+        tab: 'active',
+      },
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -264,10 +262,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionCard}>
-          <SectionHeader title="Aktiva mål" action="Visa alla" />
+          <Pressable onPress={openGoalsPage}>
+            <SectionHeader title="Aktiva mål" action="Visa alla" />
+          </Pressable>
           {profile.activeGoals.map((goal, index) => (
-            <View
+            <Pressable
               key={goal.id}
+              onPress={() => openGoalFromProfile(goal.id)}
               style={[styles.goalRow, index < profile.activeGoals.length - 1 ? styles.goalRowBorder : null]}>
               <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
                 <Ionicons name={goal.icon} size={24} color={goal.color} />
@@ -290,7 +291,7 @@ export default function ProfileScreen() {
                   <Text style={styles.goalPercent}>{goal.percentLabel}</Text>
                 </View>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
 

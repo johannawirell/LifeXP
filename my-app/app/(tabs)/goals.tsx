@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -63,6 +64,8 @@ const overviewItems = [
 ] as const;
 
 export default function GoalsScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ goalId?: string | string[]; tab?: string | string[] }>();
   const { userId, resetSession } = useSession();
   const [goalsPage, setGoalsPage] = useState<GoalsPageResponse | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<GoalCard | null>(null);
@@ -72,6 +75,8 @@ export default function GoalsScreen() {
   const [isGoalDetailLoading, setIsGoalDetailLoading] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState<GoalTab>('active');
+  const routeGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
+  const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
 
   const loadGoals = useCallback(async () => {
     if (!userId) {
@@ -93,7 +98,7 @@ export default function GoalsScreen() {
     }
   }, [userId]);
 
-  const loadGoalDetail = async (goalId: string) => {
+  const loadGoalDetail = useCallback(async (goalId: string) => {
     if (!userId) {
       return;
     }
@@ -104,9 +109,30 @@ export default function GoalsScreen() {
       setSelectedGoal(data);
       setExpandedMilestoneId(null);
     } catch (loadError) {
+      setSelectedGoal(null);
+      setExpandedMilestoneId(null);
+
+      if (routeGoalId === goalId || routeTab) {
+        router.replace('/goals');
+        void loadGoals();
+        return;
+      }
+
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
       setIsGoalDetailLoading(false);
+    }
+  }, [loadGoals, routeGoalId, routeTab, router, userId]);
+
+  const closeGoalDetail = () => {
+    setSelectedGoal(null);
+    setExpandedMilestoneId(null);
+
+    if (routeGoalId || routeTab) {
+      router.replace({
+        pathname: '/goals',
+        params: routeTab === 'completed' ? { tab: 'completed' } : {},
+      });
     }
   };
 
@@ -146,8 +172,7 @@ export default function GoalsScreen() {
       setIsDeleteConfirmVisible(false);
       const data = await deleteJson<GoalsPageResponse>(`/goals/${userId}/${goalId}`);
       setGoalsPage(data);
-      setSelectedGoal(null);
-      setExpandedMilestoneId(null);
+      closeGoalDetail();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Unknown error');
     }
@@ -156,6 +181,25 @@ export default function GoalsScreen() {
   useEffect(() => {
     void loadGoals();
   }, [loadGoals]);
+
+  useEffect(() => {
+    if (routeTab === 'completed') {
+      setSelectedTab('completed');
+      return;
+    }
+
+    if (routeTab === 'active') {
+      setSelectedTab('active');
+    }
+  }, [routeTab]);
+
+  useEffect(() => {
+    if (!goalsPage || !routeGoalId || isGoalDetailLoading || selectedGoal?.id === routeGoalId) {
+      return;
+    }
+
+    void loadGoalDetail(routeGoalId);
+  }, [goalsPage, isGoalDetailLoading, loadGoalDetail, routeGoalId, selectedGoal?.id]);
 
   if (isLoading) {
     return (
@@ -276,7 +320,7 @@ export default function GoalsScreen() {
         ))}
       </ScrollView>
 
-      <Modal visible={Boolean(selectedGoal) || isGoalDetailLoading} animationType="slide" transparent onRequestClose={() => setSelectedGoal(null)}>
+      <Modal visible={Boolean(selectedGoal) || isGoalDetailLoading} animationType="slide" transparent onRequestClose={closeGoalDetail}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -287,7 +331,7 @@ export default function GoalsScreen() {
                     <Ionicons name="trash-outline" size={20} color="#C9A9FF" />
                   </Pressable>
                 ) : null}
-                <Pressable onPress={() => setSelectedGoal(null)} style={styles.iconActionButton}>
+                <Pressable onPress={closeGoalDetail} style={styles.iconActionButton}>
                   <Ionicons name="close" size={22} color="#F5F7FB" />
                 </Pressable>
               </View>
