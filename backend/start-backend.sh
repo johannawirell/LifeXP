@@ -5,6 +5,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cleanup() {
+  if [[ -n "${AUTH_SERVICE_PID:-}" ]]; then
+    kill "$AUTH_SERVICE_PID" >/dev/null 2>&1 || true
+  fi
+
   if [[ -n "${USER_SERVICE_PID:-}" ]]; then
     kill "$USER_SERVICE_PID" >/dev/null 2>&1 || true
   fi
@@ -55,6 +59,10 @@ echo "Starting user-service..."
 npm run dev:user-service &
 USER_SERVICE_PID=$!
 
+echo "Starting auth-service..."
+npm run dev:auth-service &
+AUTH_SERVICE_PID=$!
+
 echo "Starting goals-service..."
 npm run dev:goals-service &
 GOALS_SERVICE_PID=$!
@@ -73,9 +81,10 @@ API_GATEWAY_PID=$!
 
 echo "Backend is starting."
 echo "Scriptet har kört: infra, prisma generate, prisma push, seed:all och alla tjänster."
+echo "Auth start endpoint: http://localhost:3005/auth/google/start"
 echo "Profile endpoint: http://localhost:3000/api/profile/demo-auth-user-1"
 echo "Goals endpoint: http://localhost:3000/api/goals/demo-auth-user-1"
 echo "Goal templates endpoint: http://localhost:3000/api/goals/templates/list"
 echo "Press Ctrl+C to stop the services started by this script."
 
-wait "$USER_SERVICE_PID" "$GOALS_SERVICE_PID" "$ANALYTICS_SERVICE_PID" "$GAMIFICATION_SERVICE_PID" "$API_GATEWAY_PID"
+wait "$AUTH_SERVICE_PID" "$USER_SERVICE_PID" "$GOALS_SERVICE_PID" "$ANALYTICS_SERVICE_PID" "$GAMIFICATION_SERVICE_PID" "$API_GATEWAY_PID"

@@ -25,6 +25,7 @@ function resolveApiHost() {
 }
 
 export const API_BASE_URL = `http://${resolveApiHost()}:3000/api`;
+export const AUTH_BASE_URL = `http://${resolveApiHost()}:3005/auth`;
 
 export async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);

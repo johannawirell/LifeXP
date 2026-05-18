@@ -1,55 +1,82 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Linking from 'expo-linking';
 import { Redirect, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
+import { AUTH_BASE_URL } from '@/lib/api';
 
 type AuthMode = 'login' | 'register';
+type ProviderId = 'google' | 'apple' | 'android';
 
-type SocialProvider = {
-  id: 'apple' | 'google' | 'android';
-  label: string;
+const providerButtons: {
+  id: ProviderId;
+  title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-};
-
-const socialProviders: SocialProvider[] = [
-  { id: 'apple', label: 'Fortsätt med Apple ID', icon: 'logo-apple', tint: '#F5F7FB' },
-  { id: 'google', label: 'Fortsätt med Google', icon: 'logo-google', tint: '#F5F7FB' },
-  { id: 'android', label: 'Fortsätt med Android', icon: 'logo-android', tint: '#8EE46C' },
+  color: string;
+}[] = [
+  { id: 'google', title: 'Fortsätt med Google', icon: 'logo-google', color: '#F5F7FB' },
+  { id: 'apple', title: 'Fortsätt med Apple ID', icon: 'logo-apple', color: '#F5F7FB' },
+  { id: 'android', title: 'Fortsätt med Android', icon: 'logo-android', color: '#8EE46C' },
 ];
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function AuthScreen() {
-  const { mode, startDemoMode, startEmptyMode } = useSession();
+  const { mode, startAuthenticatedSession } = useSession();
   const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [pendingProvider, setPendingProvider] = useState<ProviderId | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (mode !== 'guest') {
     return <Redirect href="/(tabs)/goals" />;
   }
 
-  const submitAuth = () => {
-    if (authMode === 'login') {
-      startDemoMode();
-      router.replace('/(tabs)/goals');
+  const startOAuth = async (provider: ProviderId) => {
+    if (provider !== 'google') {
+      setError(`${provider === 'apple' ? 'Apple ID' : 'Android'} aktiveras senare. Google är först ut.`);
       return;
     }
 
-    startEmptyMode();
-    router.replace('/(tabs)/goals');
-  };
+    try {
+      setError(null);
+      setPendingProvider(provider);
 
-  const continueWithProvider = (provider: SocialProvider['id']) => {
-    if (authMode === 'login') {
-      startDemoMode();
-      router.replace('/(tabs)/goals');
-      return;
-    }
+      const redirectUri = Linking.createURL('/auth/callback');
+      const authUrl = `${AUTH_BASE_URL}/${provider}/start?redirectUri=${encodeURIComponent(redirectUri)}&intent=${authMode}`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
-    if (provider === 'apple' || provider === 'google' || provider === 'android') {
-      startEmptyMode();
+      if (result.type !== 'success' || !result.url) {
+        setPendingProvider(null);
+        return;
+      }
+
+      const parsed = Linking.parse(result.url);
+      const accessToken = typeof parsed.queryParams?.accessToken === 'string' ? parsed.queryParams.accessToken : null;
+      const refreshToken = typeof parsed.queryParams?.refreshToken === 'string' ? parsed.queryParams.refreshToken : null;
+      const userId = typeof parsed.queryParams?.userId === 'string' ? parsed.queryParams.userId : null;
+      const authProvider =
+        typeof parsed.queryParams?.provider === 'string' ? parsed.queryParams.provider : provider;
+
+      if (!accessToken || !refreshToken || !userId) {
+        throw new Error('OAuth-svaret saknade access token, refresh token eller userId.');
+      }
+
+      startAuthenticatedSession({
+        accessToken,
+        refreshToken,
+        userId,
+        provider: authProvider,
+      });
+
       router.replace('/(tabs)/goals');
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : 'OAuth-flödet misslyckades.');
+    } finally {
+      setPendingProvider(null);
     }
   };
 
@@ -58,11 +85,8 @@ export default function AuthScreen() {
       <View style={styles.container}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>LifeXP</Text>
-          <Text style={styles.title}>Turn your life into a game</Text>
-          <Text style={styles.subtitle}>
-            {authMode === 'login'
-              ? 'Logga in för att fortsätta med din profil, dina mål och din statistik.'
-              : 'Skapa konto för att börja från början och bygga upp din resa i appen.'}
+          <Text style={styles.title}>
+            {authMode === 'login' ? 'Logga in och fortsätt bygga.' : 'Skapa konto och starta din resa.'}
           </Text>
         </View>
 
@@ -84,52 +108,45 @@ export default function AuthScreen() {
         </View>
 
         <View style={styles.card}>
-          {authMode === 'register' ? (
-            <TextInput
-              placeholder="Namn"
-              placeholderTextColor="#6F7887"
-              style={styles.input}
-            />
-          ) : null}
-          <TextInput
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="E-post"
-            placeholderTextColor="#6F7887"
-            style={styles.input}
-          />
-          <TextInput
-            secureTextEntry
-            placeholder="Lösenord"
-            placeholderTextColor="#6F7887"
-            style={styles.input}
-          />
+          <Text style={styles.cardTitle}>
+            {authMode === 'login' ? 'Välj hur du vill logga in' : 'Välj hur du vill skapa konto'}
+          </Text>
 
-          <Pressable onPress={submitAuth} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>
-              {authMode === 'login' ? 'Logga in' : 'Skapa konto'}
+          <View style={styles.providerList}>
+            {providerButtons.map((provider) => {
+              const isLoading = pendingProvider === provider.id;
+
+              return (
+                <Pressable
+                  key={provider.id}
+                  disabled={Boolean(pendingProvider) || (provider.id !== 'google' && pendingProvider === null)}
+                  onPress={() => void startOAuth(provider.id)}
+                  style={[
+                    styles.providerButton,
+                    isLoading ? styles.providerButtonDisabled : null,
+                    provider.id !== 'google' ? styles.providerButtonDisabled : null,
+                  ]}>
+                  {isLoading ? (
+                    <ActivityIndicator color="#F5F7FB" />
+                  ) : (
+                    <Ionicons color={provider.color} name={provider.icon} size={22} />
+                  )}
+                  <View style={styles.providerTextWrap}>
+                    <Text style={styles.providerButtonText}>{provider.title}</Text>
+                    {provider.id !== 'google' ? <Text style={styles.providerSoonText}>Kommer snart</Text> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle-outline" size={18} color="#A866FF" />
+            <Text style={styles.infoText}>
+              Google är det enda aktiva OAuth-flödet just nu. Apple ID och Android visas kvar men är inte aktiverade ännu.
             </Text>
-          </Pressable>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>eller</Text>
-            <View style={styles.dividerLine} />
           </View>
-
-          <View style={styles.socialList}>
-            {socialProviders.map((provider) => (
-              <Pressable
-                key={provider.id}
-                onPress={() => continueWithProvider(provider.id)}
-                style={styles.socialButton}>
-                <Ionicons color={provider.tint} name={provider.icon} size={20} />
-                <Text style={styles.socialButtonText}>{provider.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </View>
     </SafeAreaView>
@@ -203,48 +220,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 18,
   },
-  input: {
-    backgroundColor: '#0E141D',
-    borderColor: '#252D3A',
-    borderRadius: 16,
-    borderWidth: 1,
+  cardTitle: {
     color: '#F5F7FB',
-    fontSize: 15,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-  },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#8B4EF4',
-    borderRadius: 16,
-    marginTop: 4,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    color: '#F7F3FF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    marginBottom: 16,
   },
-  dividerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginVertical: 18,
-  },
-  dividerLine: {
-    backgroundColor: '#27303D',
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    color: '#7F8896',
-    fontSize: 13,
-    marginHorizontal: 12,
-  },
-  socialList: {
+  providerList: {
     gap: 10,
   },
-  socialButton: {
+  providerButton: {
     alignItems: 'center',
     backgroundColor: '#0F151E',
     borderColor: '#252D3A',
@@ -252,15 +237,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
+    minHeight: 58,
     paddingHorizontal: 16,
     paddingVertical: 15,
   },
-  socialButtonText: {
+  providerButtonDisabled: {
+    opacity: 0.6,
+  },
+  providerButtonText: {
     color: '#F5F7FB',
     fontSize: 15,
     fontWeight: '600',
   },
-  devHintBox: {
+  providerTextWrap: {
+    flex: 1,
+  },
+  providerSoonText: {
+    color: '#7E8797',
+    fontSize: 12,
+    marginTop: 3,
+  },
+  infoBox: {
     alignItems: 'flex-start',
     backgroundColor: '#101621',
     borderColor: '#222B38',
@@ -272,10 +269,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  devHintText: {
+  infoText: {
     color: '#9FA8B7',
     flex: 1,
     fontSize: 13,
     lineHeight: 19,
+  },
+  errorText: {
+    color: '#E0B6FF',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 14,
   },
 });
