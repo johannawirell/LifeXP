@@ -4,7 +4,7 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Stärka relationen med partnern',
     icon: 'heart-outline',
-    subtitle: 'Relationer',
+    subtitle: ['social'],
     summaryDescription: 'Skapa mer kvalitetstid, bättre kommunikation och tydliga vanor tillsammans.',
     detailDescription:
       'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
@@ -32,7 +32,7 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Utöka mitt sociala nätverk',
     icon: 'people-outline',
-    subtitle: 'Relationer',
+    subtitle: ['social'],
     summaryDescription: 'Bygg fler meningsfulla relationer i vardagen.',
     detailDescription:
       'Det här målet bryter ner social utveckling i små steg så att du enklare kan skapa nya kontakter och följa upp dem.',
@@ -59,7 +59,7 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
   },
   {title: 'Förbättra relationen med familjen',
     icon: 'home-outline',
-    subtitle: 'Relationer',
+    subtitle: ['social'],
     summaryDescription: 'Skapa mer kvalitetstid, bättre kommunikation och tydliga vanor tillsammans.',
     detailDescription:
       'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',

@@ -4,7 +4,7 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Bygg en buffert',
     icon: 'wallet-outline',
-    subtitle: 'Ekonomi',
+    subtitle: ['finance'],
     summaryDescription: 'Spara ihop en trygg ekonomisk buffert steg för steg.',
     detailDescription:
       'Det här målet hjälper dig att skapa ett stabilare ekonomiskt läge genom att bygga upp en buffert med tydliga sparsteg.',
@@ -32,7 +32,7 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Betala av skulder',
     icon: 'card-outline',
-    subtitle: 'Ekonomi',
+    subtitle: ['finance'],
     summaryDescription: 'Skapa en konkret plan för att minska och bli fri från skulder.',
     detailDescription:
       'Målet bryter ner skuldsanering i tydliga steg så att du kan prioritera rätt, få överblick och följa avbetalningen löpande.',

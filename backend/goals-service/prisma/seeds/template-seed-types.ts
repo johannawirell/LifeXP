@@ -25,7 +25,7 @@ export type GoalTemplateDetailSeed = {
 export type GoalTemplateSeed = {
   title: string;
   icon: string;
-  subtitle: string;
+  subtitle: string[];
   summaryDescription: string;
   detailDescription: string;
   category: GoalTemplateCategory;

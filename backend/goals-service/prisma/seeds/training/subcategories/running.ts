@@ -5,7 +5,7 @@ export const runningGoals: GoalTemplateSeed[] = [
     {
     title: 'Springa 1 km',
     icon: 'walk-outline',
-    subtitle: 'Löpning',
+    subtitle: ['running'],
     summaryDescription: 'Kom igång med löpning och klara din första kilometer utan paus.',
     detailDescription:
       'Det här målet hjälper dig att komma i gång med löpning på ett lugnt och hållbart sätt tills du klarar att springa en kilometer.',
@@ -56,7 +56,7 @@ export const runningGoals: GoalTemplateSeed[] = [
   {
     title: 'Springa 5 km',
     icon: 'walk-outline',
-    subtitle: 'Träning',
+    subtitle: ['running'],
     summaryDescription: 'Bygg upp din kondition och spring 5 km utan att stanna.',
     detailDescription:
       'Det här målet hjälper dig att bygga upp uthållighet steg för steg tills du klarar att springa 5 kilometer.',
@@ -137,7 +137,7 @@ export const runningGoals: GoalTemplateSeed[] = [
   {
     title: 'Springa 10 km',
     icon: 'walk-outline',
-    subtitle: 'Träning',
+    subtitle: ['running'],
     summaryDescription: 'Bygg vidare från 5 km och klara att springa 10 km i ett hållbart tempo.',
     detailDescription:
       'Det här målet passar dig som redan klarar kortare distanser och vill bygga upp mer uthållighet mot 10 km.',
@@ -164,7 +164,7 @@ export const runningGoals: GoalTemplateSeed[] = [
   {
     title: 'Springa halvmaraton',
     icon: 'walk-outline',
-    subtitle: 'Träning',
+    subtitle: ['running'],
     summaryDescription: 'Träna stegvis för att kunna genomföra ett halvmaraton.',
     detailDescription:
       'Målet guidar dig genom ett längre löparupplägg där du successivt ökar volym, långpass och återhämtning inför loppet.',
@@ -193,7 +193,7 @@ export const runningGoals: GoalTemplateSeed[] = [
   {
     title: 'Springa maraton',
     icon: 'walk-outline',
-    subtitle: 'Träning',
+    subtitle: ['running'],
     summaryDescription: 'Bygg upp kroppen och rutinerna för att klara ett helt maraton.',
     detailDescription:
       'Det här är ett långt main quest för dig som vill genomföra ett maraton med struktur, tålamod och tydlig progression.',

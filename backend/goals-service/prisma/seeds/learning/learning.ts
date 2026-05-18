@@ -4,7 +4,7 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Klara en kurs',
     icon: 'school-outline',
-    subtitle: 'Plugg',
+    subtitle: ['learning'],
     summaryDescription: 'Följ en plan och klara din kurs med bra resultat.',
     detailDescription:
       'Det här målet hjälper dig att bryta ner kursen i tydliga studiesteg, hålla deadlines och skapa ett lugnare studieupplägg.',
@@ -31,7 +31,7 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Ta examen',
     icon: 'school-outline',
-    subtitle: 'Plugg',
+    subtitle: ['learning'],
     summaryDescription: 'Planera dina studier så att du klarar alla moment innan examen.',
     detailDescription:
       'Målet ger dig en struktur för att prioritera kurser, planera terminen och minska risken att halka efter innan examen.',
@@ -59,7 +59,7 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Ta körkort',
     icon: 'school-outline',
-    subtitle: 'Plugg',
+    subtitle: ['learning'],
     summaryDescription: 'Ta dig steg för steg fram till körkortet.',
     detailDescription:
       'Det här målet låter dig strukturera körkortsresan från teori till uppkörning i tydliga etapper.',

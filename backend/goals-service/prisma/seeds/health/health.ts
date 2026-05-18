@@ -4,7 +4,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Sluta med alkohol',
     icon: 'ban-outline',
-    subtitle: 'Hälsa',
+    subtitle: ['health'],
     summaryDescription: 'Bygg nya vanor och bli helt fri från alkohol.',
     detailDescription:
       'Målet hjälper dig att identifiera triggers, skapa nya rutiner och bygga upp ett hållbart alkoholfritt vardagsmönster.',
@@ -31,7 +31,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Minska stress',
     icon: 'leaf-outline',
-    subtitle: 'Hälsa',
+    subtitle: ['health'],
     summaryDescription: 'Skapa lugn i vardagen och må bättre mentalt.',
     detailDescription:
       'Målet ger dig en enkel struktur för att förstå vad som dränerar dig och bygga in återhämtning och lugnare rutiner.',
@@ -59,7 +59,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Gå ner 5 kg',
     icon: 'fitness-outline',
-    subtitle: 'Hälsa',
+    subtitle: ['health'],
     summaryDescription: 'Skapa hållbara vanor kring kost, rörelse och återhämtning.',
     detailDescription:
       'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
@@ -87,7 +87,7 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Gå upp 5 kg',
     icon: 'fitness-outline',
-    subtitle: 'Hälsa',
+    subtitle: ['health'],
     summaryDescription: 'Skapa hållbara vanor kring kost, rörelse och återhämtning.',
     detailDescription:
       'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',

@@ -23,3 +23,7 @@ export const runningSharedQuests: GoalTemplateQuestSeed[] = [
     frequency: 'WEEKLY',
   },
 ];
+
+export const strengthSharedQuests: GoalTemplateQuestSeed[] = [
+  
+];

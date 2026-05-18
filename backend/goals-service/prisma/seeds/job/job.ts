@@ -4,7 +4,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Bli redo för en befordran',
     icon: 'briefcase-outline',
-    subtitle: 'Jobb',
+    subtitle: ['job'],
     summaryDescription: 'Utveckla dina skills och ta nästa steg i karriären.',
     detailDescription:
       'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du vågar ta nästa steg.',
@@ -61,7 +61,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Byta jobb',
     icon: 'briefcase-outline',
-    subtitle: 'Jobb',
+    subtitle: ['job'],
     summaryDescription: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
     detailDescription: 'Byt riktning och satsa på något som passar dig bättre. Börja idag och bygg momentum steg för steg.',
     category: 'JOB',
@@ -107,7 +107,7 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Utveckla dig inom ditt nuvarande område',
     icon: 'briefcase-outline',
-    subtitle: 'Jobb',
+    subtitle: ['job'],
     summaryDescription: 'Bygg en konkret plan för att utveckla dina färdigheter inom ditt nuvarande område.',
     detailDescription: 'Fokusera på att förbättra och fördjupa dina kompetenser för att bli mer framgångsrik i din nuvarande roll.',
     category: 'JOB',
