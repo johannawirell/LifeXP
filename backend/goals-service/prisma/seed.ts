@@ -145,7 +145,7 @@ async function main() {
   const seededGoals = [
     {
       title: 'Springa 5 km',
-      subtitle: 'Träning',
+      subtitle: ['training'],
       icon: 'walk-outline',
       cardColor: '#73D86A',
       difficulty: 'MEDIUM' as GoalDifficulty,
@@ -161,7 +161,7 @@ async function main() {
     },
     {
       title: 'Klara kursen i Matematik 2',
-      subtitle: 'Plugg',
+      subtitle: ['study'],
       icon: 'school-outline',
       cardColor: '#B269FF',
       difficulty: 'HARD' as GoalDifficulty,
@@ -175,7 +175,7 @@ async function main() {
     },
     {
       title: 'Sluta med alkohol',
-      subtitle: 'Hälsa',
+      subtitle: ['health'],
       icon: 'ban-outline',
       cardColor: '#F08A45',
       difficulty: 'HARD' as GoalDifficulty,
@@ -191,7 +191,7 @@ async function main() {
     },
     {
       title: 'Meditera varje dag',
-      subtitle: 'Mindfulness',
+      subtitle: ['mindfulness'],
       icon: 'leaf-outline',
       cardColor: '#5E8BFF',
       difficulty: 'MEDIUM' as GoalDifficulty,

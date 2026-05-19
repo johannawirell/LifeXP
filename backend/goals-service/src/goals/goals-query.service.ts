@@ -91,7 +91,7 @@ type GoalTemplateCard = {
   id: string;
   title: string;
   icon: string;
-  subtitle: string;
+  subtitle: string[];
   summaryDescription: string;
   category: string;
   difficulty: GoalDifficulty;
@@ -136,7 +136,7 @@ type GoalTemplateDetailResponse = {
   id: string;
   title: string;
   icon: string;
-  subtitle: string;
+  subtitle: string[];
   summaryDescription: string;
   detailDescription: string;
   category: string;
@@ -190,7 +190,7 @@ type CreateGoalFromTemplateInput = {
 
 type CreateCustomGoalInput = {
   title?: string;
-  subtitle?: string;
+  subtitle?: string | string[];
   category?: string;
   difficulty?: GoalDifficulty;
   color?: string;
@@ -423,7 +423,10 @@ export class GoalsQueryService {
     let goalBonusXpToGrant = 0;
     let completedMilestoneTitle = '';
     let completedGoalTitle = '';
-    let categoryLabel = subtask.milestone.goal.subtitle ?? subtask.milestone.goal.category ?? 'Produktivitet';
+    let categoryLabel =
+      this.mapSubtitleKeysToLabels(subtask.milestone.goal.subtitle).join(' • ') ||
+      subtask.milestone.goal.category ||
+      'Produktivitet';
 
     await this.prisma.$transaction(async (tx) => {
       await tx.milestoneSubtask.update({
@@ -647,13 +650,14 @@ export class GoalsQueryService {
     const milestones = (input?.milestones ?? []).filter((milestone) => milestone.title.trim().length > 0);
     const totalMilestoneXp = milestones.reduce((sum, milestone) => sum + (milestone.xpReward ?? 0), 0);
     const goalXpReward = Math.max(0, input?.goalXpReward ?? 0);
+    const subtitleKeys = this.normalizeSubtitleArray(input?.subtitle, input?.category);
 
     const createdGoal = await this.prisma.$transaction(async (tx) => {
       const goal = await tx.goal.create({
         data: {
           userId,
           title,
-          subtitle: input?.subtitle?.trim() || this.mapCategoryKeyToLabel((input?.category ?? 'productivity').toLowerCase()),
+          subtitle: subtitleKeys,
           description: null,
           category: this.mapCategoryKeyToLabel((input?.category ?? 'productivity').toLowerCase()),
           icon: input?.icon?.trim() || 'flag-outline',
@@ -739,12 +743,18 @@ export class GoalsQueryService {
 
   async getGoalTemplatePage(userId: string | undefined, category = 'popular'): Promise<GoalTemplatePageResponse> {
     const normalizedCategory = category.toLowerCase();
-    const [templates, existingGoals] = await Promise.all([
+    const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';
+    const [templates, existingGoals, gamificationResponse] = await Promise.all([
       this.prisma.goalTemplate.findMany({
         where:
           normalizedCategory === 'popular'
             ? { isPopular: true }
-            : { category: this.mapCategoryKeyToEnum(normalizedCategory) },
+            : {
+                OR: [
+                  { category: this.mapCategoryKeyToEnum(normalizedCategory) },
+                  { subtitle: { has: normalizedCategory } },
+                ],
+              },
         include: {
           details: {
             orderBy: { position: 'asc' },
@@ -780,6 +790,9 @@ export class GoalsQueryService {
             },
           })
         : Promise.resolve([]),
+      userId
+        ? axios.get(`${gamificationServiceUrl}/profile-gamification/${userId}`).catch(() => null)
+        : Promise.resolve(null),
     ]);
     const unavailableTemplateIds = new Set(
       existingGoals.flatMap((goal) => (goal.sourceTemplateId ? [goal.sourceTemplateId] : []))
@@ -790,6 +803,22 @@ export class GoalsQueryService {
         !unavailableTemplateIds.has(template.id) &&
         !unavailableTemplateTitles.has(template.title.trim().toLowerCase())
     );
+    const focusAreas =
+      (gamificationResponse?.data as
+        | {
+            focusAreas?: { key: string; level: number }[];
+          }
+        | undefined)?.focusAreas ?? [];
+    const sortedTemplates = [...availableTemplates].sort((left, right) => {
+      const leftScore = this.getTemplateSortingScore(left, normalizedCategory, focusAreas);
+      const rightScore = this.getTemplateSortingScore(right, normalizedCategory, focusAreas);
+
+      if (leftScore !== rightScore) {
+        return leftScore - rightScore;
+      }
+
+      return left.position - right.position;
+    });
 
     const categories = [
       { key: 'popular', label: 'Populära', icon: 'star-outline', active: normalizedCategory === 'popular' },
@@ -809,7 +838,7 @@ export class GoalsQueryService {
       ],
       categories,
       selectedCategory: normalizedCategory,
-      templates: availableTemplates.map((template) => ({
+      templates: sortedTemplates.map((template) => ({
         id: template.id,
         title: template.title,
         icon: template.icon,
@@ -1251,6 +1280,170 @@ export class GoalsQueryService {
     }
   }
 
+  private normalizeSubtitleArray(subtitle: string | string[] | undefined, category?: string) {
+    const fallback = (category ?? 'training').toLowerCase();
+
+    if (Array.isArray(subtitle)) {
+      const values = subtitle.map((item) => item.trim().toLowerCase()).filter(Boolean);
+      return values.length > 0 ? values : [fallback];
+    }
+
+    if (typeof subtitle === 'string') {
+      const values = subtitle
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+
+      return values.length > 0 ? values : [fallback];
+    }
+
+    return [fallback];
+  }
+
+  private mapSubtitleKeyToLabel(subtitle: string) {
+    switch (subtitle.toLowerCase()) {
+      case 'running':
+        return 'Löpning';
+      case 'strength':
+        return 'Styrka';
+      case 'health':
+        return 'Hälsa';
+      case 'mindfulness':
+        return 'Mindfulness';
+      case 'study':
+      case 'learning':
+        return 'Plugg';
+      case 'job':
+        return 'Jobb';
+      case 'social':
+      case 'relationship':
+        return 'Relationer';
+      case 'finance':
+        return 'Ekonomi';
+      case 'football':
+        return 'Fotboll';
+      case 'riding':
+        return 'Ridsport';
+      case 'training':
+        return 'Träning';
+      default:
+        return subtitle.charAt(0).toUpperCase() + subtitle.slice(1);
+    }
+  }
+
+  private mapSubtitleKeysToLabels(subtitles: string[]) {
+    return subtitles.map((subtitle) => this.mapSubtitleKeyToLabel(subtitle));
+  }
+
+  private mapGoalCategoryToFocusAreaKey(category: string) {
+    const normalized = category.toLowerCase();
+
+    switch (normalized) {
+      case 'jobb':
+      case 'job':
+        return 'CAREER';
+      case 'plugg':
+      case 'study':
+      case 'learning':
+        return 'PRODUCTIVITY';
+      case 'träning':
+      case 'training':
+        return 'TRAINING';
+      case 'hälsa':
+      case 'health':
+        return 'HEALTH';
+      case 'ekonomi':
+      case 'finance':
+        return 'FINANCE';
+      case 'relationer':
+      case 'social':
+      case 'relationship':
+        return 'SOCIAL';
+      default:
+        return 'PRODUCTIVITY';
+    }
+  }
+
+  private getDifficultyRank(difficulty: GoalDifficulty) {
+    switch (difficulty) {
+      case 'EASY':
+        return 1;
+      case 'MEDIUM':
+        return 2;
+      case 'HARD':
+        return 3;
+      case 'EPIC':
+        return 4;
+      case 'LEGENDARY':
+        return 5;
+      default:
+        return 2;
+    }
+  }
+
+  private getRecommendedDifficultyRank(level: number) {
+    if (level <= 1) {
+      return 1;
+    }
+    if (level <= 3) {
+      return 2;
+    }
+    if (level <= 6) {
+      return 3;
+    }
+    if (level <= 10) {
+      return 4;
+    }
+
+    return 5;
+  }
+
+  private mapTemplateCategoryToFocusAreaKey(category: GoalTemplateCategory) {
+    switch (category) {
+      case 'JOB':
+        return 'CAREER';
+      case 'STUDY':
+        return 'PRODUCTIVITY';
+      case 'TRAINING':
+        return 'TRAINING';
+      case 'HEALTH':
+        return 'HEALTH';
+      case 'FINANCE':
+        return 'FINANCE';
+      case 'RELATIONSHIP':
+        return 'SOCIAL';
+      default:
+        return 'TRAINING';
+    }
+  }
+
+  private getTemplateSortingScore(
+    template: {
+      category: GoalTemplateCategory;
+      difficulty: GoalDifficulty;
+      subtitle: string[];
+      position: number;
+    },
+    selectedCategory: string,
+    focusAreas: { key: string; level: number }[]
+  ) {
+    const baseFocusKey = this.mapTemplateCategoryToFocusAreaKey(template.category);
+    const selectedFocusKey =
+      selectedCategory !== 'popular'
+        ? this.mapTemplateCategoryToFocusAreaKey(this.mapCategoryKeyToEnum(selectedCategory))
+        : baseFocusKey;
+    const focusLevel =
+      focusAreas.find((area) => area.key === selectedFocusKey)?.level ??
+      focusAreas.find((area) => area.key === baseFocusKey)?.level ??
+      1;
+    const recommendedRank = this.getRecommendedDifficultyRank(focusLevel);
+    const difficultyDistance = Math.abs(this.getDifficultyRank(template.difficulty) - recommendedRank);
+    const overlapBoost =
+      selectedCategory !== 'popular' && template.subtitle.includes(selectedCategory) ? -0.25 : 0;
+
+    return difficultyDistance + overlapBoost;
+  }
+
   private mapCategoryLabelToSkillCategory(label: string) {
     const normalized = label.toLowerCase();
 
@@ -1330,8 +1523,8 @@ export class GoalsQueryService {
       id: goal.id,
       icon: goal.icon ?? 'flag-outline',
       title: goal.title,
-      subtitle: goal.subtitle ?? goal.category ?? '',
-      category: goal.category ?? goal.subtitle ?? '',
+      subtitle: this.mapSubtitleKeysToLabels(goal.subtitle).join(' • ') || goal.category || '',
+      category: goal.category || this.mapSubtitleKeysToLabels(goal.subtitle).join(' • ') || '',
       difficulty: goal.difficulty,
       progress: this.getGoalProgress(goal),
       percentLabel: `${Math.round(this.getGoalProgress(goal) * 100)} %`,

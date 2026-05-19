@@ -114,7 +114,9 @@ export default function GoalsScreen() {
         setDismissedGoalId(null);
         const data = await fetchJson<GoalCard>(`/goals/${userId}/detail/${goalId}`);
         setSelectedGoal(data);
-        setExpandedMilestoneId(null);
+        setExpandedMilestoneId(
+          data.milestones.find((milestone) => !milestone.completed)?.id ?? data.milestones[0]?.id ?? null
+        );
       } catch (loadError) {
         setSelectedGoal(null);
         setExpandedMilestoneId(null);

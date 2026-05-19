@@ -143,9 +143,18 @@ export function GoalDetailModal({
 
               {goal.milestones.map((milestone) => {
                 const isExpanded = expandedMilestoneId === milestone.id;
+                const activeMilestone =
+                  goal.milestones.find((item) => !item.completed)?.id ?? goal.milestones[0]?.id;
+                const isActiveMilestone = milestone.id === activeMilestone && !milestone.completed;
 
                 return (
-                  <View key={milestone.id} style={styles.milestoneCard}>
+                  <View
+                    key={milestone.id}
+                    style={[
+                      styles.milestoneCard,
+                      isActiveMilestone ? styles.milestoneCardActive : null,
+                      milestone.completed ? styles.milestoneCardCompleted : null,
+                    ]}>
                     <Pressable onPress={() => onToggleMilestone(milestone.id)} style={styles.milestoneHeader}>
                       <View style={styles.milestoneHeaderLeft}>
                         <Ionicons
@@ -155,6 +164,7 @@ export function GoalDetailModal({
                         />
                         <View style={styles.milestoneTextWrap}>
                           <Text style={styles.milestoneTitle}>{milestone.title}</Text>
+                          {isActiveMilestone ? <Text style={styles.activeMilestonePill}>Aktivt steg</Text> : null}
                           <Text style={styles.milestoneLabel}>
                             {milestone.completedLabel ?? `${milestone.xpReward} XP när du klarar den`}
                           </Text>
@@ -304,10 +314,31 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     padding: 16,
   },
+  milestoneCardActive: {
+    borderColor: '#8B4EF4',
+    shadowColor: '#8B4EF4',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+  },
+  milestoneCardCompleted: {
+    borderColor: '#2F5B38',
+  },
   milestoneHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   milestoneHeaderLeft: { alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12 },
   milestoneTextWrap: { flex: 1 },
   milestoneTitle: { color: '#F5F7FB', fontSize: 16, fontWeight: '700' },
+  activeMilestonePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#24183B',
+    borderRadius: 999,
+    color: '#D6B9FF',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 6,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   milestoneLabel: { color: '#97A0AE', fontSize: 12, marginTop: 4 },
   milestoneBadge: {
     backgroundColor: '#231A39',

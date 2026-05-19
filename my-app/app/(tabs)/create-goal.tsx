@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -21,7 +22,7 @@ type GoalTemplateSummary = {
   id: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  subtitle: string;
+  subtitle: string[];
   summaryDescription: string;
   category: string;
   color: string;
@@ -57,7 +58,7 @@ type GoalTemplateDetailResponse = {
   id: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  subtitle: string;
+  subtitle: string[];
   summaryDescription: string;
   detailDescription: string;
   category: string;
@@ -122,6 +123,7 @@ export default function CreateGoalScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const [showTemplateQuests, setShowTemplateQuests] = useState(false);
   const isCustomGoal = !selectedTemplate && Boolean(draft);
 
   const selectedMilestone =
@@ -129,6 +131,57 @@ export default function CreateGoalScreen() {
   const computedTotalXpReward = draft
     ? draft.goalXpReward + draft.milestones.reduce((sum, milestone) => sum + milestone.xpReward, 0)
     : 0;
+
+  const parseSubtitleTokens = (subtitle: string | string[]) =>
+    (Array.isArray(subtitle) ? subtitle : subtitle.split(','))
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean);
+
+  const mapSubtitleLabel = (subtitle: string) => {
+    switch (subtitle) {
+      case 'running':
+        return 'Löpning';
+      case 'strength':
+        return 'Styrka';
+      case 'health':
+        return 'Hälsa';
+      case 'training':
+        return 'Träning';
+      case 'study':
+      case 'learning':
+        return 'Plugg';
+      case 'job':
+        return 'Jobb';
+      case 'finance':
+        return 'Ekonomi';
+      case 'social':
+      case 'relationship':
+        return 'Relationer';
+      case 'football':
+        return 'Fotboll';
+      case 'riding':
+        return 'Ridsport';
+      default:
+        return subtitle.charAt(0).toUpperCase() + subtitle.slice(1);
+    }
+  };
+
+  const renderSubtitleIcon = (subtitle: string, color: string) => {
+    switch (subtitle) {
+      case 'running':
+        return <Ionicons name="walk-outline" size={14} color={color} />;
+      case 'strength':
+        return <Ionicons name="barbell-outline" size={14} color={color} />;
+      case 'health':
+        return <Ionicons name="heart-outline" size={14} color={color} />;
+      case 'football':
+        return <Ionicons name="football-outline" size={14} color={color} />;
+      case 'riding':
+        return <MaterialCommunityIcons name="horse-variant-fast" size={14} color={color} />;
+      default:
+        return <Ionicons name="ellipse-outline" size={14} color={color} />;
+    }
+  };
 
   const buildCustomGoalDraft = (): EditableTemplateDraft => ({
     title: '',
@@ -197,10 +250,11 @@ export default function CreateGoalScreen() {
       setError(null);
       const data = await fetchJson<GoalTemplateDetailResponse>(`/goals/templates/${templateId}`);
       setSelectedTemplate(data);
+      setShowTemplateQuests(false);
       setDraft({
         id: data.id,
         title: data.title,
-        subtitle: data.subtitle,
+        subtitle: data.subtitle.join(', '),
         category: data.category,
         color: data.color,
         icon: data.icon,
@@ -551,14 +605,30 @@ export default function CreateGoalScreen() {
                   <Ionicons name={template.icon} size={28} color={template.color} />
                 </View>
                 <View style={styles.templateContent}>
-                  <Text style={styles.templateTitle}>{template.title}</Text>
-                  <Text style={styles.templateDescription}>{template.summaryDescription}</Text>
-                  <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
-                    <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
+                  <View style={styles.templateHeaderRow}>
+                    <Text style={styles.templateTitle}>{template.title}</Text>
+                    <View style={styles.xpHighlightPill}>
+                      <Text style={styles.xpHighlightPillText}>{template.totalXpReward} XP</Text>
+                    </View>
                   </View>
-                  <Text style={styles.templateMetaText}>
-                    {template.milestones.length} milestones • {template.totalXpReward} XP
-                  </Text>
+                  <Text style={styles.templateDescription}>{template.summaryDescription}</Text>
+                  <View style={styles.templateMetaRow}>
+                    <View style={[styles.templateTag, { backgroundColor: `${template.color}22` }]}>
+                      <Text style={[styles.templateTagText, { color: template.color }]}>{template.category}</Text>
+                    </View>
+                    <View style={styles.difficultyPill}>
+                      <Text style={styles.difficultyPillText}>{template.difficulty}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.subtitleBadgeRow}>
+                    {template.subtitle.map((subtitle) => (
+                      <View key={`${template.id}-${subtitle}`} style={styles.subtitleBadge}>
+                        {renderSubtitleIcon(subtitle, '#C9A9FF')}
+                        <Text style={styles.subtitleBadgeText}>{mapSubtitleLabel(subtitle)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={styles.templateMetaText}>{template.milestones.length} milestones</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
@@ -581,7 +651,16 @@ export default function CreateGoalScreen() {
         ) : (
           <>
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Måltitel</Text>
+              <View style={styles.detailHeroRow}>
+                <View style={styles.detailHeroCopy}>
+                  <Text style={styles.detailCardTitle}>Måltitel</Text>
+                  <Text style={styles.detailDifficultyText}>{draft.difficulty}</Text>
+                </View>
+                <View style={styles.detailXpBadge}>
+                  <Text style={styles.detailXpBadgeValue}>{computedTotalXpReward}</Text>
+                  <Text style={styles.detailXpBadgeLabel}>XP</Text>
+                </View>
+              </View>
               <TextInput
                 value={draft.title}
                 onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
@@ -598,6 +677,14 @@ export default function CreateGoalScreen() {
                   placeholderTextColor="#6F7887"
                 />
               ) : null}
+              <View style={styles.subtitleBadgeRow}>
+                {parseSubtitleTokens(draft.subtitle).map((subtitle) => (
+                  <View key={`draft-${subtitle}`} style={styles.subtitleBadge}>
+                    {renderSubtitleIcon(subtitle, '#C9A9FF')}
+                    <Text style={styles.subtitleBadgeText}>{mapSubtitleLabel(subtitle)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
             <View style={styles.detailCard}>
@@ -626,14 +713,35 @@ export default function CreateGoalScreen() {
                 </View>
               ))}
               {selectedTemplate?.quests?.length ? (
-                <View style={styles.questPreviewBox}>
-                  <Text style={styles.editorSectionTitle}>Quests som skapas med målet</Text>
-                  {selectedTemplate.quests.map((quest) => (
-                    <Text key={quest.id} style={styles.questPreviewText}>
-                      • {quest.title} ({quest.frequency.toLowerCase()}) +{quest.xpReward} XP
-                    </Text>
-                  ))}
-                </View>
+                <>
+                  <Pressable style={styles.questCollapseButton} onPress={() => setShowTemplateQuests((current) => !current)}>
+                    <View style={styles.questCollapseLabelRow}>
+                      <Ionicons name="sparkles-outline" size={16} color="#C9A9FF" />
+                      <Text style={styles.questCollapseButtonText}>
+                        {showTemplateQuests
+                          ? 'Dölj quests som skapas med målet'
+                          : `Visa quests som skapas med målet (${selectedTemplate.quests.length})`}
+                      </Text>
+                    </View>
+                    <Ionicons name={showTemplateQuests ? 'chevron-up' : 'chevron-down'} size={18} color="#D8DEE7" />
+                  </Pressable>
+                  {showTemplateQuests ? (
+                    <View style={styles.questPreviewBox}>
+                      {selectedTemplate.quests.map((quest) => (
+                        <View key={quest.id} style={styles.questPreviewRow}>
+                          <View style={styles.questPreviewInfo}>
+                            <Text style={styles.questPreviewTitle}>{quest.title}</Text>
+                            {quest.description ? <Text style={styles.questPreviewText}>{quest.description}</Text> : null}
+                          </View>
+                          <View style={styles.questPreviewMeta}>
+                            <Text style={styles.questPreviewFrequency}>{quest.frequency}</Text>
+                            <Text style={styles.questPreviewXp}>+{quest.xpReward} XP</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
               ) : null}
             </View>
 
@@ -978,16 +1086,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  templateHeaderRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
   templateDescription: {
     color: '#C5CCD8',
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  templateMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 8,
   },
   templateTag: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    marginTop: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -998,7 +1118,53 @@ const styles = StyleSheet.create({
   templateMetaText: {
     color: '#9AA3B2',
     fontSize: 12,
-    marginTop: 10,
+    marginTop: 8,
+  },
+  xpHighlightPill: {
+    backgroundColor: '#8B4EF4',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  xpHighlightPillText: {
+    color: '#F7F3FF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  difficultyPill: {
+    backgroundColor: '#111824',
+    borderColor: '#2B3342',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  difficultyPillText: {
+    color: '#C4CCDA',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  subtitleBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  subtitleBadge: {
+    alignItems: 'center',
+    backgroundColor: '#101722',
+    borderColor: '#222B38',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  subtitleBadgeText: {
+    color: '#C9A9FF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   detailCard: {
     backgroundColor: '#151B24',
@@ -1009,6 +1175,43 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 16,
     paddingVertical: 18,
+  },
+  detailHeroRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  detailHeroCopy: {
+    flex: 1,
+  },
+  detailDifficultyText: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  detailXpBadge: {
+    alignItems: 'center',
+    backgroundColor: '#241539',
+    borderColor: '#8B4EF4',
+    borderRadius: 18,
+    borderWidth: 1,
+    minWidth: 86,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  detailXpBadgeValue: {
+    color: '#F7F3FF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  detailXpBadgeLabel: {
+    color: '#C9A9FF',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
   },
   milestonesHeaderRow: {
     alignItems: 'center',
@@ -1057,15 +1260,72 @@ const styles = StyleSheet.create({
   questPreviewBox: {
     backgroundColor: '#121824',
     borderRadius: 14,
-    marginTop: 16,
+    marginTop: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  questCollapseButton: {
+    alignItems: 'center',
+    backgroundColor: '#111824',
+    borderColor: '#222B38',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  questCollapseLabelRow: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 10,
+  },
+  questCollapseButtonText: {
+    color: '#F5F7FB',
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  questPreviewRow: {
+    alignItems: 'flex-start',
+    borderTopColor: '#252B38',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  questPreviewInfo: {
+    flex: 1,
+  },
+  questPreviewTitle: {
+    color: '#F5F7FB',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   questPreviewText: {
     color: '#C7D0DB',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  questPreviewMeta: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  questPreviewFrequency: {
+    color: '#97A0AE',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  questPreviewXp: {
+    color: '#C9A9FF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   input: {
     backgroundColor: '#0F141D',

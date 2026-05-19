@@ -14,7 +14,7 @@ model Goal {
   sourceTemplateId String?
   title           String
   icon            String?
-  subtitle        String?
+  subtitle        String[]
   description     String?
   category        String?
   difficulty      GoalDifficulty @default(MEDIUM)
@@ -117,7 +117,7 @@ model GoalTemplate {
   id                 String               @id @default(uuid())
   title              String
   icon               String
-  subtitle           String
+  subtitle           String []
   summaryDescription String
   detailDescription  String
   category           GoalTemplateCategory
