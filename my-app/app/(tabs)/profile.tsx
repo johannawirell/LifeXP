@@ -12,14 +12,15 @@ import type { ProfileResponse } from '@/components/profile/types';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { ApiError, deleteJson, fetchJson, postJson } from '@/lib/api';
+import { CATEGORY_COLORS } from '@/lib/category-colors';
 
 const fallbackFocusAreas: ProfileResponse['focusAreas'] = [
-  { id: 'training', key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', level: 1, currentXp: 0, maxXp: 100, color: '#73D86A' },
-  { id: 'career', key: 'CAREER', icon: 'briefcase-outline', title: 'Jobb', level: 1, currentXp: 0, maxXp: 100, color: '#6DA6FF' },
-  { id: 'productivity', key: 'PRODUCTIVITY', icon: 'school-outline', title: 'Lärande', level: 1, currentXp: 0, maxXp: 100, color: '#6DA6FF' },
-  { id: 'social', key: 'SOCIAL', icon: 'people-outline', title: 'Relationer', level: 1, currentXp: 0, maxXp: 100, color: '#FF7EA8' },
-  { id: 'health', key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', level: 1, currentXp: 0, maxXp: 100, color: '#F5C13C' },
-  { id: 'finance', key: 'FINANCE', icon: 'wallet-outline', title: 'Ekonomi', level: 1, currentXp: 0, maxXp: 100, color: '#56D2C5' },
+  { id: 'training', key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.training },
+  { id: 'job', key: 'JOB', icon: 'briefcase-outline', title: 'Jobb', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.job },
+  { id: 'learning', key: 'LEARNING', icon: 'school-outline', title: 'Lärande', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.learning },
+  { id: 'social', key: 'SOCIAL', icon: 'people-outline', title: 'Relationer', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.social },
+  { id: 'health', key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.health },
+  { id: 'finance', key: 'FINANCE', icon: 'wallet-outline', title: 'Ekonomi', level: 1, currentXp: 0, maxXp: 100, color: CATEGORY_COLORS.finance },
 ];
 
 export default function ProfileScreen() {
@@ -318,9 +319,9 @@ export default function ProfileScreen() {
         return 'training';
       case 'HEALTH':
         return 'health';
-      case 'CAREER':
+      case 'JOB':
         return 'job';
-      case 'PRODUCTIVITY':
+      case 'LEARNING':
         return 'learning';
       case 'SOCIAL':
         return 'social';
@@ -410,6 +411,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.heroCard}>
+          <View style={styles.heroArtwork} />
           <View style={styles.heroTop}>
             <View style={styles.avatarWrap}>
               <View style={styles.avatarOuter}>
@@ -424,7 +426,7 @@ export default function ProfileScreen() {
 
             <View style={styles.heroInfo}>
               <Text style={styles.name}>{profile.displayName}</Text>
-              <Text style={styles.tagline}>{profile.headline ?? ''}</Text>
+              <Text style={styles.tagline}>{profile.headline || '🌟 Ny i appen • Din resa börjar nu!'}</Text>
 
               <View style={styles.levelRow}>
                 <Text style={styles.levelText}>Level {profile.currentLevel}</Text>
@@ -454,7 +456,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionCard}>
-          <SectionHeader title="Dina kategoriers level" action="Visa alla" onPress={() => openCategoryHistory()} />
+          <SectionHeader title="Dina kategorier & level" action="Visa alla" onPress={() => openCategoryHistory()} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryLevelRow}>
             {focusAreas.map((item) => (
               <Pressable key={item.id} style={styles.categoryLevelCard} onPress={() => openCategoryHistory(item.key)}>
@@ -574,20 +576,19 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.sectionCard}>
-          <SectionHeader title="Prestationer" />
-          <View style={styles.achievementRow}>
-            {profile.achievements.map((item) => (
-              <View key={item.id} style={styles.achievementCard}>
-                <View style={[styles.achievementIconWrap, { borderColor: item.color }]}>
-                  <Ionicons name={item.icon} size={24} color={item.color} />
-                </View>
-                <Text style={styles.achievementTitle}>{item.title}</Text>
-                <Text style={styles.achievementSubtitle}>{item.subtitle}</Text>
-                <Text style={styles.achievementRarity}>{item.rarity}</Text>
+        <View style={styles.slimSectionCard}>
+          <Pressable style={styles.slimSectionRow}>
+            <View style={styles.slimSectionCopy}>
+              <View style={styles.slimSectionTitleRow}>
+                <Ionicons name="ribbon-outline" size={20} color="#B77BFF" />
+                <Text style={styles.slimSectionTitle}>Prestationer</Text>
               </View>
-            ))}
-          </View>
+              <Text style={styles.slimSectionSubtitle}>
+                {profile.achievements.length} upplåsta prestationer
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#C9D1DA" />
+          </Pressable>
         </View>
 
         <View style={styles.sectionCard}>

@@ -311,11 +311,7 @@ async function main() {
       summaryDescription: template.summaryDescription,
       category: template.category,
       difficulty: template.difficulty,
-      focusLabel:
-        template.focusLabel ??
-        template.details?.find((detail) => detail.label.toLowerCase() === 'fokus')?.value ??
-        template.subtitle[0] ??
-        template.category.toLowerCase(),
+      focusLabel: template.focusLabel ?? template.subtitle[0] ?? template.category.toLowerCase(),
       structureType:
         template.structureType ??
         (template.milestones.length <= 1 ? 'SINGLE' : 'MILESTONE_PATH'),

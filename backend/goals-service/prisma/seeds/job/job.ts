@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from '../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../template-seed-types';
 
 export const jobGoalTemplates: GoalTemplateSeed[] = [
   {
@@ -6,19 +6,12 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     icon: 'briefcase-outline',
     subtitle: ['job'],
     summaryDescription: 'Utveckla dina skills och ta nästa steg i karriären.',
-    detailDescription:
-      'Det här målet hjälper dig att bli tydligare i vilken roll du siktar på, vilka kompetenser som behöver stärkas och hur du vågar ta nästa steg.',
     category: 'JOB',
     difficulty: 'HARD',
-    goalXpReward: 250,
+    focusLabel: 'Karriär och utveckling',
     totalXpReward: 1100,
-    color: '#5E8BFF',
+    color: CATEGORY_COLORS.job,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Karriär, utveckling', visibility: 'DETAIL' }
-    ],
     milestones: [
       {
         title: 'Definiera rollen du vill nå',
@@ -63,19 +56,12 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     icon: 'briefcase-outline',
     subtitle: ['job'],
     summaryDescription: 'Bygg en konkret plan för att hitta och landa ett nytt jobb.',
-    detailDescription: 'Byt riktning och satsa på något som passar dig bättre. Börja idag och bygg momentum steg för steg.',
     category: 'JOB',
     difficulty: 'HARD',
-    goalXpReward: 200,
+    focusLabel: 'CV, ansökningar och intervjuträning',
     totalXpReward: 900,
-    color: '#5E8BFF',
+    color: CATEGORY_COLORS.job,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'CV, ansökningar och intervjuträning', visibility: 'DETAIL' },
-
-    ],
     milestones: [
       {
         title: 'Bestäm vilken typ av roller du söker',
@@ -109,19 +95,12 @@ export const jobGoalTemplates: GoalTemplateSeed[] = [
     icon: 'briefcase-outline',
     subtitle: ['job'],
     summaryDescription: 'Bygg en konkret plan för att utveckla dina färdigheter inom ditt nuvarande område.',
-    detailDescription: 'Fokusera på att förbättra och fördjupa dina kompetenser för att bli mer framgångsrik i din nuvarande roll.',
     category: 'JOB',
     difficulty: 'MEDIUM',
-    goalXpReward: 180,
+    focusLabel: 'Kompetensutveckling',
     totalXpReward: 760,
-    color: '#5E8BFF',
+    color: CATEGORY_COLORS.job,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Jobb', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kompetensutveckling', visibility: 'DETAIL' },
-
-    ],
     milestones: [
       { title: 'Kolla på en som har den kompetensen du vill utveckla', 
         subtasks: ['Välj en person som är duktig på det du vill lära dig', 'Studera hur de jobbar och vad de fokuserar på', 'Försök förstå deras tänk och metod'], 

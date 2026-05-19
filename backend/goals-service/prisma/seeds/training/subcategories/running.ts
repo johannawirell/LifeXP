@@ -1,26 +1,18 @@
-import type { GoalTemplateSeed } from '../../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../../template-seed-types';
 import { runningSharedQuests } from './training-types';
 
 export const runningGoals: GoalTemplateSeed[] = [
-    {
+  {
     title: 'Springa 1 km',
     icon: 'walk-outline',
     subtitle: ['running'],
     summaryDescription: 'Kom igång med löpning och klara din första kilometer utan paus.',
-    detailDescription:
-      'Det här målet hjälper dig att komma i gång med löpning på ett lugnt och hållbart sätt tills du klarar att springa en kilometer.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    goalXpReward: 120,
+    focusLabel: 'Låg tröskel och första löpvanan',
     totalXpReward: 420,
-    color: '#73D86A',
+    color: CATEGORY_COLORS.training,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '1 km löpning', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Låg tröskel och första löpvanan', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Kom i gång',
@@ -58,20 +50,12 @@ export const runningGoals: GoalTemplateSeed[] = [
     icon: 'walk-outline',
     subtitle: ['running'],
     summaryDescription: 'Bygg upp din kondition och spring 5 km utan att stanna.',
-    detailDescription:
-      'Det här målet hjälper dig att bygga upp uthållighet steg för steg tills du klarar att springa 5 kilometer.',
     category: 'TRAINING',
     difficulty: 'MEDIUM',
-    goalXpReward: 500,
+    focusLabel: 'Kondition och uthållighet',
     totalXpReward: 1200,
-    color: '#73D86A',
+    color: CATEGORY_COLORS.training,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '5 km löpning', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kondition och uthållighet', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Startmål',
@@ -139,20 +123,12 @@ export const runningGoals: GoalTemplateSeed[] = [
     icon: 'walk-outline',
     subtitle: ['running'],
     summaryDescription: 'Bygg vidare från 5 km och klara att springa 10 km i ett hållbart tempo.',
-    detailDescription:
-      'Det här målet passar dig som redan klarar kortare distanser och vill bygga upp mer uthållighet mot 10 km.',
     category: 'TRAINING',
     difficulty: 'HARD',
-    goalXpReward: 240,
+    focusLabel: 'Distansökning, veckovolym och återhämtning',
     totalXpReward: 980,
-    color: '#73D86A',
+    color: CATEGORY_COLORS.training,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '10 km löpning', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Distansökning, veckovolym och återhämtning', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Stabilisera 5 km som grund', xpReward: 120, subtasks: ['Spring 5 km två gånger', 'Hitta ett jämnt tempo', 'Återhämta dig bra mellan passen'], tips: ['Pressa inte tempot ännu.', 'Fokusera på trygg bas.'] },
       { title: 'Öka veckovolymen', xpReward: 180, subtasks: ['Lägg till ett extra pass per vecka', 'Öka total distans försiktigt', 'Logga passen du gör'], tips: ['Öka gradvis.', 'Hellre jämnt än snabbt.'] },
@@ -166,21 +142,12 @@ export const runningGoals: GoalTemplateSeed[] = [
     icon: 'walk-outline',
     subtitle: ['running'],
     summaryDescription: 'Träna stegvis för att kunna genomföra ett halvmaraton.',
-    detailDescription:
-      'Målet guidar dig genom ett längre löparupplägg där du successivt ökar volym, långpass och återhämtning inför loppet.',
     category: 'TRAINING',
     difficulty: 'EPIC',
-    goalXpReward: 300,
+    focusLabel: 'Långpass, veckovolym och återhämtning',
     totalXpReward: 1200,
-    color: '#73D86A',
+    color: CATEGORY_COLORS.training,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: 'Halvmaraton', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Långpass, veckovolym och återhämtning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'redan springer regelbundet och vill ta nästa steg', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Skapa ett 12-veckors träningsupplägg', xpReward: 100 },
       { title: 'Bygg upp veckovolymen gradvis', xpReward: 150 },
@@ -195,20 +162,12 @@ export const runningGoals: GoalTemplateSeed[] = [
     icon: 'walk-outline',
     subtitle: ['running'],
     summaryDescription: 'Bygg upp kroppen och rutinerna för att klara ett helt maraton.',
-    detailDescription:
-      'Det här är ett långt main quest för dig som vill genomföra ett maraton med struktur, tålamod och tydlig progression.',
     category: 'TRAINING',
     difficulty: 'LEGENDARY',
-    goalXpReward: 500,
+    focusLabel: 'Långsiktigt upplägg, återhämtning och långpass',
     totalXpReward: 1800,
-    color: '#73D86A',
+    color: CATEGORY_COLORS.training,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: 'Maraton', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Långsiktigt upplägg, återhämtning och långpass', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Sätt ett maratonupplägg', xpReward: 180, subtasks: ['Planera träningsveckor', 'Bestäm tidsram', 'Boka in nyckelpass'], tips: ['Ha marginaler i planen.', 'Utgå från din nuvarande nivå.'] },
       { title: 'Bygg stabil veckovolym', xpReward: 260, subtasks: ['Spring regelbundet varje vecka', 'Öka distans långsamt', 'Följ upp återhämtning'], tips: ['Volym kräver tålamod.', 'Hoppa inte över vila.'] },

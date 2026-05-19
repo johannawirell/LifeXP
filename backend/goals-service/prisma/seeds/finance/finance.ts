@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from '../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../template-seed-types';
 import { EverydaySavingSharedQuests } from './finance-types';
 export const financeGoalTemplates: GoalTemplateSeed[] = [
   // EASY
@@ -7,20 +7,12 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     icon: 'wallet-outline',
     subtitle: ['finance'],
     summaryDescription: 'Få bättre kontroll över din ekonomi genom att minska små onödiga köp.',
-    detailDescription:
-      '',
     category: 'FINANCE',
     difficulty: 'EASY',
-    goalXpReward: 100,
+    focusLabel: 'Sparande',
     totalXpReward: 600,
-    color: '#56D2C5',
+    color: CATEGORY_COLORS.finance,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Sparande och trygghet', visibility: 'SUMMARY' },
-      { label: 'Metod', value: 'Kartläggning, budget och löpande sparmål', visibility: 'DETAIL' },
-    ],
     milestones: [
      {
         title: 'Kartlägg  utgifter',
@@ -87,32 +79,6 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     ],
     quests: EverydaySavingSharedQuests,
   },
-  // { title: 'Spara 1000 kr',
-  //   icon: 'cash-outline',
-  //   subtitle: ['finance'],
-  //   summaryDescription: 'Börja bygga upp ditt sparkapital.',
-  //   detailDescription:
-  //     '',
-  //   category: 'FINANCE',
-  //   difficulty: 'EASY',
-  //   goalXpReward: 100,
-  //   totalXpReward: 100,
-  //   color: '#56D2C5',
-  //   isPopular: false,
-  //   details: [
-  //     { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
-  //     { label: 'Upplägg', value: 'engångsmål', visibility: 'SUMMARY' },
-  //   ],
-  //   milestones: [
-  //     {
-  //       title: '',
-  //       description: '',
-  //       xpReward: 100,
-  //       subtasks: [{}],
-  //       tips: []},
-  //     },
-  //   ],
-  // },
   // MEDIUM
   {
     title: 'Bli en cykelpendlare',
@@ -120,20 +86,12 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     subtitle: ['finance', 'training'],
     summaryDescription:
       'Minska på dina transportkostnader och spara på miljön genom att börja cykelpendla istället för att åka bil.',
-    detailDescription:
-      '',
     category: 'FINANCE',
     difficulty: 'MEDIUM',
-    goalXpReward: 100,
+    focusLabel: 'Minskade transportkostnader',
     totalXpReward: 600,
-    color: '#56D2C5',
+    color: CATEGORY_COLORS.finance,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Minskade transportkostnader', visibility: 'SUMMARY' },
-      { label: 'Metod', value: 'Planering, cykelpendling och veckomål', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Förbered cykelpendling',

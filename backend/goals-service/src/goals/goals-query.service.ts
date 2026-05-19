@@ -9,6 +9,7 @@ import {
   QuestCategory,
   QuestType,
 } from '../../generated/client';
+import { CATEGORY_COLORS as SEED_CATEGORY_COLORS } from '../../prisma/seeds/template-seed-types';
 
 type GoalsOverview = {
   activeGoals: number;
@@ -228,21 +229,19 @@ type GoalWithMilestones = Prisma.GoalGetPayload<{
 }>;
 
 const CATEGORY_COLORS: Record<string, string> = {
-  TRAINING: '#73D86A',
-  HEALTH: '#F08A45',
-  PRODUCTIVITY: '#5E8BFF',
-  MINDFULNESS: '#A866FF',
-  CAREER: '#6DA6FF',
-  CREATIVITY: '#FF77C8',
-  SOCIAL: '#7A8CFF',
-  FINANCE: '#56D2C5',
-  Träning: '#73D86A',
-  Hälsa: '#F08A45',
-  Plugg: '#B269FF',
-  Jobb: '#5E8BFF',
-  Mindfulness: '#A866FF',
-  Ekonomi: '#56D2C5',
-  Relationer: '#7A8CFF',
+  TRAINING: SEED_CATEGORY_COLORS.training,
+  HEALTH: SEED_CATEGORY_COLORS.health,
+  JOB: SEED_CATEGORY_COLORS.job,
+  STUDY: SEED_CATEGORY_COLORS.learning,
+  RELATIONSHIP: SEED_CATEGORY_COLORS.social,
+  FINANCE: SEED_CATEGORY_COLORS.finance,
+  Träning: SEED_CATEGORY_COLORS.training,
+  Hälsa: SEED_CATEGORY_COLORS.health,
+  Plugg: SEED_CATEGORY_COLORS.learning,
+  Lärande: SEED_CATEGORY_COLORS.learning,
+  Jobb: SEED_CATEGORY_COLORS.job,
+  Ekonomi: SEED_CATEGORY_COLORS.finance,
+  Relationer: SEED_CATEGORY_COLORS.social,
 };
 
 export class GoalsQueryService {

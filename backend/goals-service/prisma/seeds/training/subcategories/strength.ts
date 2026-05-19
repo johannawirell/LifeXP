@@ -1,6 +1,6 @@
 // strength.ts
 
-import type { GoalTemplateSeed } from '../../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../../template-seed-types';
 import { strengthSharedQuests } from './training-types';
 
 export const strengthGoals: GoalTemplateSeed[] = [
@@ -10,19 +10,12 @@ export const strengthGoals: GoalTemplateSeed[] = [
     icon: 'barbell-outline',
     subtitle: ['strength'],
     summaryDescription: 'Träna regelbundet och bygg styrka över tid.',
-    detailDescription:
-      'Målet fokuserar på kontinuitet, progressiv överbelastning och att följa din utveckling över tid.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    goalXpReward: 200,
+    focusLabel: 'Muskelmassa och styrka',
     totalXpReward: 700,
-    color: '#F5C13C',
+    color: CATEGORY_COLORS.training,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'Styrkeprogression', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Muskelmassa och styrka', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Skapa träningsrutin',
@@ -76,19 +69,12 @@ export const strengthGoals: GoalTemplateSeed[] = [
     icon: 'fitness-outline',
     subtitle: ['strength','health'],
     summaryDescription: 'Bygg självförtroende och gör gymmet till din plats.',
-    detailDescription:
-      'Målet hjälper dig att övervinna osäkerhet, hitta din rutin och känna dig trygg i gymmiljön.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    goalXpReward: 120,
+    focusLabel: 'Gymvana och självförtroende',
     totalXpReward: 420,
-    color: '#F5C13C',
+    color: CATEGORY_COLORS.training,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Gymvana och självförtroende', visibility: 'SUMMARY' },
-      { label: 'Passar dig som', value: 'känner osäkerhet inför gymmet', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Utforska gymmet',
@@ -142,19 +128,12 @@ export const strengthGoals: GoalTemplateSeed[] = [
     icon: 'body-outline',
     subtitle: ['strength'],
     summaryDescription: 'Bygg överkroppsstyrka och klara 10 armhävningar.',
-    detailDescription:
-      'Ett tydligt styrkemål där du gradvis bygger upp bröst, axlar, armar och core.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    goalXpReward: 120,
+    focusLabel: 'Överkropp och core',
     totalXpReward: 420,
-    color: '#F5C13C',
+    color: CATEGORY_COLORS.training,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Träning', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '10 armhävningar', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Överkropp och core', visibility: 'DETAIL' },
-    ],
     milestones: [
       {
         title: 'Bygg startstyrka',

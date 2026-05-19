@@ -35,6 +35,14 @@ const overviewItems = [
   { key: 'completedMilestones', label: 'Milestones klara', icon: 'checkmark-circle-outline', color: '#F5C13C' },
 ] as const;
 
+const difficultyColors: Record<string, string> = {
+  EASY: '#7EF0B0',
+  MEDIUM: '#C9A9FF',
+  HARD: '#6BC7FF',
+  EPIC: '#FF92DD',
+  LEGENDARY: '#F5C13C',
+};
+
 function filterGoals(goals: GoalCard[], filter: GoalCategoryFilter) {
   if (filter === 'latest') {
     return [...goals]
@@ -463,14 +471,21 @@ export default function GoalsScreen() {
 
         {goalCards.map((goal) => (
           <Pressable key={goal.id} style={styles.goalCard} onPress={() => void loadGoalDetail(goal.id)}>
-            <View style={styles.goalHeader}>
-              <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
-                <Ionicons name={goal.icon as keyof typeof Ionicons.glyphMap} size={30} color={goal.color} />
-              </View>
-              <View style={styles.goalHeaderText}>
-                <Text style={styles.goalTitle}>{goal.title}</Text>
-                <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
-                <Text style={styles.goalDifficulty}>{goal.difficulty} • {goal.totalXpReward} XP</Text>
+            <View style={[styles.goalArtworkGlow, { backgroundColor: `${goal.color}22` }]} />
+            <View style={styles.goalCardHeader}>
+              <View style={styles.goalHeader}>
+                <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
+                  <Ionicons name={goal.icon as keyof typeof Ionicons.glyphMap} size={30} color={goal.color} />
+                </View>
+                <View style={styles.goalHeaderText}>
+                  <Text style={styles.goalTitle}>{goal.title}</Text>
+                  <Text style={styles.goalSubtitle}>
+                    {goal.subtitle} •{' '}
+                    <Text style={[styles.goalDifficulty, { color: difficultyColors[goal.difficulty] ?? '#C9A9FF' }]}>
+                      {goal.difficulty}
+                    </Text>
+                  </Text>
+                </View>
               </View>
               <Text style={styles.goalPercent}>{goal.percentLabel}</Text>
             </View>
@@ -484,10 +499,24 @@ export default function GoalsScreen() {
               />
             </View>
 
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>{goal.leftMeta}</Text>
-              <Text style={styles.metaText}>{goal.rightMeta}</Text>
+            <View style={styles.goalStatRow}>
+              <View style={styles.goalStatChip}>
+                <Ionicons name="sparkles-outline" size={15} color="#D9C1FF" />
+                <Text style={styles.goalStatChipText}>{goal.totalXpReward} XP totalt</Text>
+              </View>
+              <View style={styles.goalStatChip}>
+                <Ionicons name="flag-outline" size={15} color="#D9C1FF" />
+                <Text style={styles.goalStatChipText}>{goal.milestones.length} milestones</Text>
+              </View>
             </View>
+
+            {goal.quests.length > 0 ? (
+              <Pressable style={styles.goalQuestButton} onPress={() => void loadGoalDetail(goal.id)}>
+                <Ionicons name="sparkles-outline" size={16} color="#F7F3FF" />
+                <Text style={styles.goalQuestButtonText}>Visa quests ({goal.quests.length})</Text>
+                <Ionicons name="chevron-forward" size={18} color="#F7F3FF" />
+              </Pressable>
+            ) : null}
           </Pressable>
         ))}
       </ScrollView>

@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from '../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../template-seed-types';
 
 export const learningGoalTemplates: GoalTemplateSeed[] = [
   {
@@ -6,20 +6,12 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
     icon: 'school-outline',
     subtitle: ['learning'],
     summaryDescription: 'Följ en plan och klara din kurs med bra resultat.',
-    detailDescription:
-      'Det här målet hjälper dig att bryta ner kursen i tydliga studiesteg, hålla deadlines och skapa ett lugnare studieupplägg.',
     category: 'STUDY',
     difficulty: 'MEDIUM',
-    goalXpReward: 180,
+    focusLabel: 'Studieplan, veckomål och examination',
     totalXpReward: 700,
-    color: '#B269FF',
+    color: CATEGORY_COLORS.learning,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Studieplan, veckomål och examination', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill ta kontroll över en pågående kurs', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Gör en studieplan för kursen' },
       { title: 'Dela upp kursen i veckomål' },
@@ -33,21 +25,12 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
     icon: 'school-outline',
     subtitle: ['learning'],
     summaryDescription: 'Planera dina studier så att du klarar alla moment innan examen.',
-    detailDescription:
-      'Målet ger dig en struktur för att prioritera kurser, planera terminen och minska risken att halka efter innan examen.',
     category: 'STUDY',
     difficulty: 'HARD',
-    goalXpReward: 250,
+    focusLabel: 'Kurser, deadlines och veckovis uppföljning',
     totalXpReward: 1000,
-    color: '#B269FF',
+    color: CATEGORY_COLORS.learning,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Tidsfokus', value: 'Terminsplanering', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kurser, deadlines och veckovis uppföljning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill få struktur över hela studieperioden', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Lista alla kvarvarande kurser och deadlines' },
       { title: 'Planera terminen vecka för vecka' },
@@ -61,21 +44,12 @@ export const learningGoalTemplates: GoalTemplateSeed[] = [
     icon: 'school-outline',
     subtitle: ['learning'],
     summaryDescription: 'Ta dig steg för steg fram till körkortet.',
-    detailDescription:
-      'Det här målet låter dig strukturera körkortsresan från teori till uppkörning i tydliga etapper.',
     category: 'STUDY',
     difficulty: 'HARD',
-    goalXpReward: 300,
+    focusLabel: 'Teori, körlektioner och prov',
     totalXpReward: 1200,
-    color: '#B269FF',
+    color: CATEGORY_COLORS.learning,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Plugg', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Måltyp', value: 'Körkort', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Teori, körlektioner och prov', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill göra körkortet mer strukturerat', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'del 1' },
     ],

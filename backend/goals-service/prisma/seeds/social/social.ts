@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from '../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../template-seed-types';
 
 export const socialGoalTemplates: GoalTemplateSeed[] = [
   {
@@ -6,21 +6,12 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
     icon: 'heart-outline',
     subtitle: ['social'],
     summaryDescription: 'Skapa mer kvalitetstid, bättre kommunikation och tydliga vanor tillsammans.',
-    detailDescription:
-      'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
     category: 'RELATIONSHIP',
     difficulty: 'MEDIUM',
-    goalXpReward: 180,
+    focusLabel: 'Partnerrelation',
     totalXpReward: 760,
-    color: '#FF77C8',
+    color: CATEGORY_COLORS.social,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokusområde', value: 'Partnerrelation', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kommunikation, kvalitetstid och gemensamma rutiner', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill investera mer aktivt i er relation', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Prata om vad ni båda vill förbättra' },
       { title: 'Planera in regelbunden kvalitetstid' },
@@ -34,21 +25,12 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
     icon: 'people-outline',
     subtitle: ['social'],
     summaryDescription: 'Bygg fler meningsfulla relationer i vardagen.',
-    detailDescription:
-      'Det här målet bryter ner social utveckling i små steg så att du enklare kan skapa nya kontakter och följa upp dem.',
     category: 'RELATIONSHIP',
     difficulty: 'MEDIUM',
-    goalXpReward: 180,
+    focusLabel: 'Nya sociala kontakter',
     totalXpReward: 760,
-    color: '#7A8CFF',
+    color: CATEGORY_COLORS.social,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokusområde', value: 'Nya sociala kontakter', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Initiativ, uppföljning och återkommande social vana', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill bredda ditt nätverk eller skapa fler relationer', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Identifiera sammanhang där du kan träffa nya personer' },
       { title: 'Ta initiativ till en ny social aktivitet' },
@@ -61,20 +43,12 @@ export const socialGoalTemplates: GoalTemplateSeed[] = [
     icon: 'home-outline',
     subtitle: ['social'],
     summaryDescription: 'Skapa mer kvalitetstid, bättre kommunikation och tydliga vanor tillsammans.',
-    detailDescription:
-      'Målet hjälper er att sätta ord på vad ni vill förbättra, planera kvalitetstid och skapa mer hållbara vanor tillsammans.',
     category: 'RELATIONSHIP',
     difficulty: 'MEDIUM',
-    goalXpReward: 160,
+    focusLabel: 'Familjerelationer',
     totalXpReward: 680,
-    color: '#FF77C8',
+    color: CATEGORY_COLORS.social,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Relationer', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokusområde', value: 'Familjerelationer', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kommunikation, kvalitetstid och gemensamma rutiner', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Prata om vad ni vill förbättra i relationen' },
       { title: 'Planera in regelbunden kvalitetstid tillsammans' },

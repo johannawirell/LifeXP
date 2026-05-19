@@ -1,4 +1,4 @@
-import type { GoalTemplateSeed } from '../template-seed-types';
+import { CATEGORY_COLORS, type GoalTemplateSeed } from '../template-seed-types';
 
 export const healthGoalTemplates: GoalTemplateSeed[] = [
   {
@@ -6,20 +6,12 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     icon: 'ban-outline',
     subtitle: ['health'],
     summaryDescription: 'Bygg nya vanor och bli helt fri från alkohol.',
-    detailDescription:
-      'Målet hjälper dig att identifiera triggers, skapa nya rutiner och bygga upp ett hållbart alkoholfritt vardagsmönster.',
     category: 'HEALTH',
     difficulty: 'HARD',
-    goalXpReward: 250,
+    focusLabel: 'Triggers, planering och nyktra rutiner',
     totalXpReward: 950,
-    color: '#F08A45',
+    color: CATEGORY_COLORS.health,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Triggers, planering och nyktra rutiner', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill skapa en tydlig plan för att bli alkoholfri', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Identifiera triggers och risksituationer' },
       { title: 'Skapa en plan för helger och sociala tillfällen' },
@@ -33,21 +25,12 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     icon: 'leaf-outline',
     subtitle: ['health'],
     summaryDescription: 'Skapa lugn i vardagen och må bättre mentalt.',
-    detailDescription:
-      'Målet ger dig en enkel struktur för att förstå vad som dränerar dig och bygga in återhämtning och lugnare rutiner.',
     category: 'HEALTH',
     difficulty: 'MEDIUM',
-    goalXpReward: 180,
+    focusLabel: 'Stress och återhämtning',
     totalXpReward: 720,
-    color: '#67D86F',
+    color: CATEGORY_COLORS.health,
     isPopular: true,
-    details: [
-      { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokusområde', value: 'Stress och återhämtning', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Rutiner, återhämtning och belastning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill få bättre balans i vardagen', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Kartlägg vad som stressar dig mest' },
       { title: 'Skapa en lugn morgon- eller kvällsrutin' },
@@ -61,21 +44,12 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     icon: 'fitness-outline',
     subtitle: ['health'],
     summaryDescription: 'Skapa hållbara vanor kring kost, rörelse och återhämtning.',
-    detailDescription:
-      'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
     category: 'HEALTH',
     difficulty: 'HARD',
-    goalXpReward: 220,
+    focusLabel: 'Kost, aktivitet och veckovis uppföljning',
     totalXpReward: 880,
-    color: '#F08A45',
+    color: CATEGORY_COLORS.health,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '5 kg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kost, aktivitet och veckovis uppföljning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill gå ner i vikt med hållbara vanor', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Sätt ett realistiskt kalori- och aktivitetsmål' },
       { title: 'Planera måltider för veckan' },
@@ -89,21 +63,12 @@ export const healthGoalTemplates: GoalTemplateSeed[] = [
     icon: 'fitness-outline',
     subtitle: ['health'],
     summaryDescription: 'Skapa hållbara vanor kring kost, rörelse och återhämtning.',
-    detailDescription:
-      'Det här målet fokuserar på hållbara livsstilsförändringar snarare än snabba lösningar, med tydliga steg för kost och rörelse.',
     category: 'HEALTH',
     difficulty: 'HARD',
-    goalXpReward: 220,
+    focusLabel: 'Kost, aktivitet och veckovis uppföljning',
     totalXpReward: 880,
-    color: '#F08A45',
+    color: CATEGORY_COLORS.health,
     isPopular: false,
-    details: [
-      { label: 'Kategori', value: 'Hälsa', visibility: 'SUMMARY' },
-      { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Målnivå', value: '5 kg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Kost, aktivitet och veckovis uppföljning', visibility: 'DETAIL' },
-      { label: 'Passar dig som', value: 'vill gå upp i vikt med hållbara vanor', visibility: 'DETAIL' },
-    ],
     milestones: [
       { title: 'Sätt ett realistiskt kalori- och aktivitetsmål' },
       { title: 'Planera måltider för veckan' },
