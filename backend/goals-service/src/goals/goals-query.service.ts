@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   GoalDifficulty,
   GoalTemplateCategory,
@@ -644,7 +644,7 @@ export class GoalsQueryService {
     });
 
     if (existingGoal) {
-      throw new NotFoundException('Goal already exists for this user.');
+      throw new BadRequestException('Goal already exists for this user.');
     }
 
     const milestones = (input?.milestones ?? []).filter((milestone) => milestone.title.trim().length > 0);
@@ -1021,7 +1021,7 @@ export class GoalsQueryService {
     });
 
     if (existingGoal) {
-      throw new NotFoundException('Goal template is already active or completed for this user.');
+      throw new BadRequestException('Goal template is already active or completed for this user.');
     }
 
     const sourceMilestones = input?.milestones?.length

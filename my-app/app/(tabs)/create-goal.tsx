@@ -457,6 +457,7 @@ export default function CreateGoalScreen() {
 
     try {
       setIsCreatingGoal(true);
+      setError(null);
       const endpoint =
         isCustomGoal || !selectedTemplate
           ? `/goals/${userId}/custom`
@@ -487,12 +488,16 @@ export default function CreateGoalScreen() {
         params: {
           tab: 'active',
           filter: 'latest',
+          notice: 'goal-added',
         },
       });
     } catch (createError) {
+      const message =
+        createError instanceof Error ? createError.message : 'Unknown error';
+      setError(message);
       Alert.alert(
         'Målet kunde inte läggas till',
-        createError instanceof Error ? createError.message : 'Unknown error'
+        message
       );
     } finally {
       setIsCreatingGoal(false);
@@ -650,6 +655,12 @@ export default function CreateGoalScreen() {
           </View>
         ) : (
           <>
+            {error ? (
+              <View style={styles.inlineErrorCard}>
+                <Ionicons name="alert-circle-outline" size={18} color="#F5C13C" />
+                <Text style={styles.inlineErrorText}>{error}</Text>
+              </View>
+            ) : null}
             <View style={styles.detailCard}>
               <View style={styles.detailHeroRow}>
                 <View style={styles.detailHeroCopy}>
@@ -1175,6 +1186,25 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 16,
     paddingVertical: 18,
+  },
+  inlineErrorCard: {
+    alignItems: 'center',
+    backgroundColor: '#2A2110',
+    borderColor: '#5A4820',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  inlineErrorText: {
+    color: '#F7E7B8',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
   },
   detailHeroRow: {
     alignItems: 'center',

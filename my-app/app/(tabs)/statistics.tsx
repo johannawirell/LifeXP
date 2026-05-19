@@ -68,7 +68,7 @@ const tabs: { key: PeriodKey; label: string }[] = [
 ];
 
 export default function StatisticsScreen() {
-  const { mode, userId, resetSession } = useSession();
+  const { mode, userId } = useSession();
   const [stats, setStats] = useState<StatisticsResponse | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('weekly');
   const [error, setError] = useState<string | null>(null);
@@ -144,9 +144,6 @@ export default function StatisticsScreen() {
           <Text style={styles.text}>
             Ingen statistik finns ännu eftersom den här användaren precis skapats. Bygg upp quests, XP och streaks först.
           </Text>
-          <Pressable onPress={resetSession} style={styles.button}>
-            <Text style={styles.buttonText}>Byt läge</Text>
-          </Pressable>
         </View>
       </SafeAreaView>
     );

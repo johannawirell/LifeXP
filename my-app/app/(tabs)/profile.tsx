@@ -165,9 +165,6 @@ export default function ProfileScreen() {
           <Text style={styles.feedbackText}>
             Profilen är tom just nu. Skapa dina första mål och quests för att börja bygga level, streak och achievements.
           </Text>
-          <Pressable onPress={resetSession} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Byt läge</Text>
-          </Pressable>
         </View>
       </SafeAreaView>
     );

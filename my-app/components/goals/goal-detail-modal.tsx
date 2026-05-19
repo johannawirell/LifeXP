@@ -146,6 +146,11 @@ export function GoalDetailModal({
                 const activeMilestone =
                   goal.milestones.find((item) => !item.completed)?.id ?? goal.milestones[0]?.id;
                 const isActiveMilestone = milestone.id === activeMilestone && !milestone.completed;
+                const statusLabel = milestone.completed
+                  ? 'Avklarat steg'
+                  : isActiveMilestone
+                    ? 'Nästa steg'
+                    : null;
 
                 return (
                   <View
@@ -164,7 +169,15 @@ export function GoalDetailModal({
                         />
                         <View style={styles.milestoneTextWrap}>
                           <Text style={styles.milestoneTitle}>{milestone.title}</Text>
-                          {isActiveMilestone ? <Text style={styles.activeMilestonePill}>Aktivt steg</Text> : null}
+                          {statusLabel ? (
+                            <Text
+                              style={[
+                                styles.statusPill,
+                                milestone.completed ? styles.completedMilestonePill : styles.activeMilestonePill,
+                              ]}>
+                              {statusLabel}
+                            </Text>
+                          ) : null}
                           <Text style={styles.milestoneLabel}>
                             {milestone.completedLabel ?? `${milestone.xpReward} XP när du klarar den`}
                           </Text>
@@ -327,17 +340,23 @@ const styles = StyleSheet.create({
   milestoneHeaderLeft: { alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12 },
   milestoneTextWrap: { flex: 1 },
   milestoneTitle: { color: '#F5F7FB', fontSize: 16, fontWeight: '700' },
-  activeMilestonePill: {
+  statusPill: {
     alignSelf: 'flex-start',
-    backgroundColor: '#24183B',
     borderRadius: 999,
-    color: '#D6B9FF',
     fontSize: 11,
     fontWeight: '800',
     marginTop: 6,
     overflow: 'hidden',
     paddingHorizontal: 8,
     paddingVertical: 4,
+  },
+  activeMilestonePill: {
+    backgroundColor: '#24183B',
+    color: '#D6B9FF',
+  },
+  completedMilestonePill: {
+    backgroundColor: '#183123',
+    color: '#93E09F',
   },
   milestoneLabel: { color: '#97A0AE', fontSize: 12, marginTop: 4 },
   milestoneBadge: {

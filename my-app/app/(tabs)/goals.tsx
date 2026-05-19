@@ -64,8 +64,14 @@ function filterGoals(goals: GoalCard[], filter: GoalCategoryFilter) {
 
 export default function GoalsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ goalId?: string | string[]; tab?: string | string[]; focus?: string | string[]; filter?: string | string[] }>();
-  const { userId, resetSession } = useSession();
+  const params = useLocalSearchParams<{
+    goalId?: string | string[];
+    tab?: string | string[];
+    focus?: string | string[];
+    filter?: string | string[];
+    notice?: string | string[];
+  }>();
+  const { userId } = useSession();
   const [goalsPage, setGoalsPage] = useState<GoalsPageResponse | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<GoalCard | null>(null);
   const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
@@ -82,6 +88,7 @@ export default function GoalsScreen() {
   const routeTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const routeFocus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
   const routeFilter = Array.isArray(params.filter) ? params.filter[0] : params.filter;
+  const routeNotice = Array.isArray(params.notice) ? params.notice[0] : params.notice;
 
   const loadGoals = useCallback(async () => {
     if (!userId) {
@@ -143,7 +150,7 @@ export default function GoalsScreen() {
     setSelectedGoal(null);
     setExpandedMilestoneId(null);
 
-    if (routeGoalId || routeTab || routeFilter) {
+    if (routeGoalId || routeTab || routeFilter || routeNotice) {
       router.replace({
         pathname: '/(tabs)/goals',
         params: {
@@ -152,7 +159,21 @@ export default function GoalsScreen() {
         },
       });
     }
-  }, [routeFilter, routeGoalId, routeTab, router]);
+  }, [routeFilter, routeGoalId, routeNotice, routeTab, router]);
+
+  const dismissAddedGoalNotice = useCallback(() => {
+    if (!routeNotice) {
+      return;
+    }
+
+    router.replace({
+      pathname: '/(tabs)/goals',
+      params: {
+        ...(routeTab === 'completed' ? { tab: 'completed' } : {}),
+        ...(routeFilter === 'latest' ? { filter: 'latest' } : {}),
+      },
+    });
+  }, [routeFilter, routeNotice, routeTab, router]);
 
   const updateGoalState = useCallback((page: GoalsPageResponse, currentGoalId: string | null) => {
     setGoalsPage(page);
@@ -347,6 +368,21 @@ export default function GoalsScreen() {
           </Pressable>
         </View>
 
+        {routeNotice === 'goal-added' ? (
+          <View style={styles.noticeCard}>
+            <View style={styles.noticeCopy}>
+              <Ionicons name="checkmark-circle" size={20} color="#8FE69C" />
+              <View style={styles.noticeTextWrap}>
+                <Text style={styles.noticeTitle}>Lagt till mål</Text>
+                <Text style={styles.noticeText}>Målet ligger nu i din lista under Senaste.</Text>
+              </View>
+            </View>
+            <Pressable onPress={dismissAddedGoalNotice} hitSlop={8}>
+              <Ionicons name="close" size={18} color="#C8D0DB" />
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.tabRow}>
           <Pressable style={styles.tabButton} onPress={() => setSelectedTab('active')}>
             <Text style={[styles.tabText, selectedTab === 'active' ? styles.tabTextActive : null]}>Aktiva</Text>
@@ -410,8 +446,8 @@ export default function GoalsScreen() {
                 : 'Fortsätt jaga dina goals. När du slutför dem hamnar de här som troféer över vad du faktiskt byggt upp.'}
             </Text>
             {selectedTab === 'active' ? (
-              <Pressable onPress={resetSession} style={styles.emptyGoalsButton}>
-                <Text style={styles.emptyGoalsButtonText}>Byt läge</Text>
+              <Pressable onPress={() => router.push('/(tabs)/create-goal')} style={styles.emptyGoalsButton}>
+                <Text style={styles.emptyGoalsButtonText}>Lägg till ett nytt mål</Text>
               </Pressable>
             ) : null}
           </View>
