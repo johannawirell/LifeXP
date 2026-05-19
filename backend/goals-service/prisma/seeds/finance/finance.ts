@@ -87,6 +87,32 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     ],
     quests: EverydaySavingSharedQuests,
   },
+  // { title: 'Spara 1000 kr',
+  //   icon: 'cash-outline',
+  //   subtitle: ['finance'],
+  //   summaryDescription: 'Börja bygga upp ditt sparkapital.',
+  //   detailDescription:
+  //     '',
+  //   category: 'FINANCE',
+  //   difficulty: 'EASY',
+  //   goalXpReward: 100,
+  //   totalXpReward: 100,
+  //   color: '#56D2C5',
+  //   isPopular: false,
+  //   details: [
+  //     { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
+  //     { label: 'Upplägg', value: 'engångsmål', visibility: 'SUMMARY' },
+  //   ],
+  //   milestones: [
+  //     {
+  //       title: '',
+  //       description: '',
+  //       xpReward: 100,
+  //       subtasks: [{}],
+  //       tips: []},
+  //     },
+  //   ],
+  // },
   // MEDIUM
   {
     title: 'Bli en cykelpendlare',
