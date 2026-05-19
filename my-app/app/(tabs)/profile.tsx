@@ -11,7 +11,7 @@ import { profileStyles as styles } from '@/components/profile/styles';
 import type { ProfileResponse } from '@/components/profile/types';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
-import { deleteJson, fetchJson, postJson } from '@/lib/api';
+import { ApiError, deleteJson, fetchJson, postJson } from '@/lib/api';
 
 const fallbackFocusAreas: ProfileResponse['focusAreas'] = [
   { id: 'training', key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', level: 1, currentXp: 0, maxXp: 100, color: '#73D86A' },
@@ -134,9 +134,7 @@ export default function ProfileScreen() {
       previousProfileRef.current = data;
       setProfile(data);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Unknown error';
-
-      if (message.includes('status 404')) {
+      if (loadError instanceof ApiError && loadError.status === 404) {
         resetSession();
         router.replace('/');
         return;

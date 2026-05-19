@@ -28,7 +28,6 @@ export type GoalCard = {
   leftMeta: string;
   rightMeta: string;
   totalXpReward: number;
-  goalXpReward: number;
   quests: QuestCard[];
   milestones: {
     id: string;

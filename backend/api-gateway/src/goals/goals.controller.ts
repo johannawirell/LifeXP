@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import axios from 'axios';
 
 import { LiveUpdatesGateway } from '../live-updates/live-updates.gateway';
@@ -6,6 +17,24 @@ import { LiveUpdatesGateway } from '../live-updates/live-updates.gateway';
 @Controller('goals')
 export class GoalsController {
   constructor(private readonly liveUpdatesGateway: LiveUpdatesGateway) {}
+
+  private mapGoalsServiceError(error: unknown): never {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new BadGatewayException(
+        error.response.data?.message ?? 'Goals service returned an unexpected response.'
+      );
+    }
+
+    if (axios.isAxiosError(error) && error.code === 'ECONNRESET') {
+      throw new ServiceUnavailableException('Goals service connection was reset.');
+    }
+
+    if (axios.isAxiosError(error) && error.code === 'ECONNREFUSED') {
+      throw new ServiceUnavailableException('Goals service is not running.');
+    }
+
+    throw error;
+  }
 
   private emitUserUpdate(payload: {
     userId: string;
@@ -25,14 +54,18 @@ export class GoalsController {
   @Get('templates/list')
   async getGoalTemplates(@Query('userId') userId?: string, @Query('category') category?: string) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
-    const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`, {
-      params: {
-        ...(category ? { category } : {}),
-        ...(userId ? { userId } : {}),
-      },
-    });
+    try {
+      const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`, {
+        params: {
+          ...(category ? { category } : {}),
+          ...(userId ? { userId } : {}),
+        },
+      });
 
-    return response.data;
+      return response.data;
+    } catch (error) {
+      this.mapGoalsServiceError(error);
+    }
   }
 
   @Get('templates/:templateId')

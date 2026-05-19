@@ -2,12 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { Redirect, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
-import { AUTH_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, ApiError, AUTH_BASE_URL } from '@/lib/api';
 
 type AuthMode = 'login' | 'register';
 type ProviderId = 'google' | 'apple' | 'android';
@@ -26,12 +26,51 @@ const providerButtons: {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen() {
-  const { mode, isHydrating, startAuthenticatedSession } = useSession();
+  const { mode, isHydrating, startAuthenticatedSession, resetSession, userId } = useSession();
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [pendingProvider, setPendingProvider] = useState<ProviderId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingStoredSession, setIsCheckingStoredSession] = useState(false);
 
-  if (isHydrating) {
+  useEffect(() => {
+    if (isHydrating || mode !== 'authenticated' || !userId) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const validateStoredSession = async () => {
+      try {
+        setIsCheckingStoredSession(true);
+        const response = await fetch(`${API_BASE_URL}/profile/${userId}`);
+
+        if (!response.ok) {
+          throw new ApiError(response.status, `${API_BASE_URL}/profile/${userId}`);
+        }
+      } catch (validationError) {
+        if (isCancelled) {
+          return;
+        }
+
+        if (validationError instanceof ApiError && validationError.status === 404) {
+          resetSession();
+          return;
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingStoredSession(false);
+        }
+      }
+    };
+
+    void validateStoredSession();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isHydrating, mode, resetSession, userId]);
+
+  if (isHydrating || isCheckingStoredSession) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingState}>

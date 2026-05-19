@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Tabs } from 'expo-router';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useSession } from '@/context/session-context';
+import { API_BASE_URL, ApiError } from '@/lib/api';
 
 function PlusTabButton({ onPress }: BottomTabBarButtonProps) {
   return (
@@ -16,9 +18,47 @@ function PlusTabButton({ onPress }: BottomTabBarButtonProps) {
 }
 
 export default function TabLayout() {
-  const { mode, isHydrating } = useSession();
+  const { mode, isHydrating, resetSession, userId } = useSession();
+  const [isValidatingSession, setIsValidatingSession] = useState(false);
 
-  if (isHydrating) {
+  useEffect(() => {
+    if (isHydrating || mode !== 'authenticated' || !userId) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const validateSession = async () => {
+      try {
+        setIsValidatingSession(true);
+        const response = await fetch(`${API_BASE_URL}/profile/${userId}`);
+
+        if (!response.ok) {
+          throw new ApiError(response.status, `${API_BASE_URL}/profile/${userId}`);
+        }
+      } catch (validationError) {
+        if (isCancelled) {
+          return;
+        }
+
+        if (validationError instanceof ApiError && validationError.status === 404) {
+          resetSession();
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsValidatingSession(false);
+        }
+      }
+    };
+
+    void validateSession();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isHydrating, mode, resetSession, userId]);
+
+  if (isHydrating || isValidatingSession) {
     return null;
   }
 

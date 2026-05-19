@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   GoalDifficulty,
   GoalTemplateCategory,
-  GoalTemplateDetailVisibility,
+  GoalStructureType,
   Prisma,
   PrismaClient,
   QuestCategory,
@@ -48,7 +48,6 @@ type GoalCard = {
   leftMeta: string;
   rightMeta: string;
   totalXpReward: number;
-  goalXpReward: number;
   quests: QuestCard[];
   milestones: {
     id: string;
@@ -97,12 +96,12 @@ type GoalTemplateCard = {
   category: string;
   difficulty: GoalDifficulty;
   totalXpReward: number;
-  goalXpReward: number;
   color: string;
-  summaryDetails: {
+  overviewItems: {
     id: string;
     label: string;
     value: string;
+    icon?: string;
   }[];
   milestones: {
     id: string;
@@ -139,21 +138,15 @@ type GoalTemplateDetailResponse = {
   icon: string;
   subtitle: string[];
   summaryDescription: string;
-  detailDescription: string;
   category: string;
   difficulty: GoalDifficulty;
   totalXpReward: number;
-  goalXpReward: number;
   color: string;
-  summaryDetails: {
+  overviewItems: {
     id: string;
     label: string;
     value: string;
-  }[];
-  detailDetails: {
-    id: string;
-    label: string;
-    value: string;
+    icon?: string;
   }[];
   milestones: {
     id: string;
@@ -196,7 +189,6 @@ type CreateCustomGoalInput = {
   difficulty?: GoalDifficulty;
   color?: string;
   icon?: string;
-  goalXpReward?: number;
   totalXpReward?: number;
   milestones?: {
     title: string;
@@ -421,7 +413,6 @@ export class GoalsQueryService {
     }
 
     let milestoneXpRewardToGrant = 0;
-    let goalBonusXpToGrant = 0;
     let completedMilestoneTitle = '';
     let completedGoalTitle = '';
     let categoryLabel =
@@ -487,7 +478,6 @@ export class GoalsQueryService {
       }
 
       if (goalJustCompleted && !subtask.milestone.goal.completedXpGrantedAt) {
-        goalBonusXpToGrant = subtask.milestone.goal.goalXpReward;
         completedGoalTitle = subtask.milestone.goal.title;
       }
     });
@@ -504,26 +494,13 @@ export class GoalsQueryService {
       });
     }
 
-    if (goalBonusXpToGrant > 0) {
-      await this.awardXp({
-        userId,
-        amount: goalBonusXpToGrant,
-        sourceType: 'GOAL_COMPLETED',
-        sourceId: subtask.milestone.goalId,
-        title: completedGoalTitle,
-        description: `Bonus-XP för att du slutförde hela målet.`,
-        category: this.mapCategoryLabelToSkillCategory(categoryLabel),
-      });
-    }
-
     return {
       page: await this.getGoalsPage(userId),
       reward:
-        milestoneXpRewardToGrant > 0 || goalBonusXpToGrant > 0
+        milestoneXpRewardToGrant > 0
           ? {
               milestoneXp: milestoneXpRewardToGrant,
-              goalBonusXp: goalBonusXpToGrant,
-              totalXp: milestoneXpRewardToGrant + goalBonusXpToGrant,
+              totalXp: milestoneXpRewardToGrant,
               title: completedGoalTitle || completedMilestoneTitle,
             }
           : null,
@@ -650,7 +627,6 @@ export class GoalsQueryService {
 
     const milestones = (input?.milestones ?? []).filter((milestone) => milestone.title.trim().length > 0);
     const totalMilestoneXp = milestones.reduce((sum, milestone) => sum + (milestone.xpReward ?? 0), 0);
-    const goalXpReward = Math.max(0, input?.goalXpReward ?? 0);
     const subtitleKeys = this.normalizeSubtitleArray(input?.subtitle, input?.category);
 
     const createdGoal = await this.prisma.$transaction(async (tx) => {
@@ -663,8 +639,7 @@ export class GoalsQueryService {
           category: this.mapCategoryKeyToLabel((input?.category ?? 'productivity').toLowerCase()),
           icon: input?.icon?.trim() || 'flag-outline',
           difficulty: input?.difficulty ?? 'MEDIUM',
-          goalXpReward,
-          totalXpReward: Math.max(goalXpReward + totalMilestoneXp, input?.totalXpReward ?? goalXpReward + totalMilestoneXp),
+          totalXpReward: Math.max(totalMilestoneXp, input?.totalXpReward ?? totalMilestoneXp),
           status: 'ACTIVE',
           targetValue: milestones.length,
           currentValue: 0,
@@ -774,9 +749,6 @@ export class GoalsQueryService {
                 ],
               },
         include: {
-          details: {
-            orderBy: { position: 'asc' },
-          },
           milestones: {
             include: {
               subtasks: {
@@ -874,20 +846,31 @@ export class GoalsQueryService {
         category: this.mapCategoryEnumToLabel(template.category),
         difficulty: template.difficulty,
         totalXpReward: template.totalXpReward,
-        goalXpReward: template.goalXpReward,
         color: template.color,
-        summaryDetails: [
-          ...template.details
-            .filter((detail) => this.isVisibleInSummary(detail.visibility))
-            .map((detail) => ({
-              id: detail.id,
-              label: detail.label,
-              value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-            })),
+        overviewItems: [
           {
-            id: `${template.id}-xp`,
-            label: 'XP',
+            id: `${template.id}-category`,
+            label: 'Kategori',
+            value: this.mapCategoryEnumToLabel(template.category),
+            icon: 'pricetag-outline',
+          },
+          {
+            id: `${template.id}-setup`,
+            label: 'Upplägg',
+            value: this.getStructureTypeLabel(template.structureType, template.milestones.length),
+            icon: 'stats-chart-outline',
+          },
+          {
+            id: `${template.id}-focus`,
+            label: 'Fokus',
+            value: this.getTemplateFocusLabel(template),
+            icon: 'locate-outline',
+          },
+          {
+            id: `${template.id}-reward`,
+            label: 'Belöning',
             value: `${template.totalXpReward} XP`,
+            icon: 'sparkles-outline',
           },
         ],
         milestones: template.milestones.map((milestone) => ({
@@ -918,9 +901,6 @@ export class GoalsQueryService {
     const template = await this.prisma.goalTemplate.findUnique({
       where: { id: templateId },
       include: {
-        details: {
-          orderBy: { position: 'asc' },
-        },
         milestones: {
           include: {
             subtasks: {
@@ -948,43 +928,34 @@ export class GoalsQueryService {
       icon: template.icon,
       subtitle: template.subtitle,
       summaryDescription: template.summaryDescription,
-      detailDescription: template.detailDescription,
       category: this.mapCategoryEnumToLabel(template.category),
       difficulty: template.difficulty,
       totalXpReward: template.totalXpReward,
-      goalXpReward: template.goalXpReward,
       color: template.color,
-      summaryDetails: [
-        ...template.details
-          .filter((detail) => this.isVisibleInSummary(detail.visibility))
-          .map((detail) => ({
-            id: detail.id,
-            label: detail.label,
-            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-          })),
+      overviewItems: [
         {
-          id: `${template.id}-xp-summary`,
-          label: 'Total XP',
+          id: `${template.id}-category`,
+          label: 'Kategori',
+          value: this.mapCategoryEnumToLabel(template.category),
+          icon: 'pricetag-outline',
+        },
+        {
+          id: `${template.id}-setup`,
+          label: 'Upplägg',
+          value: this.getStructureTypeLabel(template.structureType, template.milestones.length),
+          icon: 'stats-chart-outline',
+        },
+        {
+          id: `${template.id}-focus`,
+          label: 'Fokus',
+          value: this.getTemplateFocusLabel(template),
+          icon: 'locate-outline',
+        },
+        {
+          id: `${template.id}-reward`,
+          label: 'Belöning',
           value: `${template.totalXpReward} XP`,
-        },
-      ],
-      detailDetails: [
-        ...template.details
-          .filter((detail) => this.isVisibleInDetail(detail.visibility))
-          .map((detail) => ({
-            id: detail.id,
-            label: detail.label,
-            value: this.mapDetailValue(detail.label, detail.value, template.milestones.length),
-          })),
-        {
-          id: `${template.id}-difficulty`,
-          label: 'Svårighet',
-          value: template.difficulty,
-        },
-        {
-          id: `${template.id}-goal-bonus`,
-          label: 'Goal-bonus',
-          value: `${template.goalXpReward} XP`,
+          icon: 'sparkles-outline',
         },
       ],
       milestones: template.milestones.map((milestone) => ({
@@ -1068,11 +1039,10 @@ export class GoalsQueryService {
           sourceTemplateId: template.id,
           title: input?.title?.trim() || template.title,
           subtitle: template.subtitle,
-          description: template.detailDescription,
+          description: template.summaryDescription,
           category: this.mapCategoryEnumToLabel(template.category),
           icon: template.icon,
           difficulty: template.difficulty,
-          goalXpReward: template.goalXpReward,
           totalXpReward: template.totalXpReward,
           status: 'ACTIVE',
           targetValue: sourceMilestones.length,
@@ -1118,20 +1088,16 @@ export class GoalsQueryService {
       }
 
       if (template.quests.length > 0) {
-        const existingSharedKeys = new Set(
+        const existingQuestSignatures = new Set(
           (
             await tx.quest.findMany({
               where: {
                 userId,
-                sharedKey: {
-                  not: null,
-                },
               },
-              select: { sharedKey: true },
+              select: { title: true, type: true, category: true },
             })
           )
-            .map((quest) => quest.sharedKey)
-            .filter((sharedKey): sharedKey is string => Boolean(sharedKey))
+            .map((quest) => `${quest.type}:${quest.category}:${quest.title.trim().toLowerCase()}`)
         );
         const dailyQuestCount = await tx.quest.count({
           where: { userId, type: 'DAILY' },
@@ -1144,14 +1110,16 @@ export class GoalsQueryService {
 
         await tx.quest.createMany({
           data: template.quests
-            .filter((quest) => !quest.sharedKey || !existingSharedKeys.has(quest.sharedKey))
+            .filter((quest) => {
+              const signature = `${quest.type}:${this.mapGoalTemplateCategoryToQuestCategory(template.category)}:${quest.title.trim().toLowerCase()}`;
+              return !existingQuestSignatures.has(signature);
+            })
             .map((quest) => {
             const position = quest.type === 'DAILY' ? nextDailyPosition++ : nextWeeklyPosition++;
 
             return {
               userId,
               goalId: goal.id,
-              sharedKey: quest.sharedKey,
               title: quest.title,
               description: quest.description,
               type: quest.type,
@@ -1499,26 +1467,20 @@ export class GoalsQueryService {
     return 'PRODUCTIVITY';
   }
 
-  private isVisibleInSummary(visibility: GoalTemplateDetailVisibility) {
-    return visibility === 'SUMMARY' || visibility === 'BOTH';
+  private getTemplateFocusLabel(
+    template: Prisma.GoalTemplateGetPayload<{
+      include: Record<string, never>;
+    }>
+  ) {
+    return template.focusLabel || this.mapCategoryEnumToLabel(template.category);
   }
 
-  private isVisibleInDetail(visibility: GoalTemplateDetailVisibility) {
-    return visibility === 'DETAIL' || visibility === 'BOTH';
-  }
-
-  private mapDetailValue(label: string, value: string, milestoneCount: number) {
-    if (label !== 'Upplägg') {
-      return value;
+  private getStructureTypeLabel(structureType: GoalStructureType, milestoneCount: number) {
+    if (structureType === 'SINGLE' || milestoneCount <= 1) {
+      return 'Engångsmål';
     }
 
-    const match = value.match(/^\d+\s+(.+)$/);
-
-    if (match) {
-      return `${milestoneCount} ${match[1]}`;
-    }
-
-    return `${milestoneCount} ${value}`;
+    return `${milestoneCount} steg`;
   }
 
   private toQuestCard(quest: Prisma.QuestGetPayload<Record<string, never>>): QuestCard {
@@ -1563,7 +1525,6 @@ export class GoalsQueryService {
       leftMeta: totalMilestones > 0 ? `Steg ${completedMilestones} av ${totalMilestones}` : '',
       rightMeta: `${earnedXp} / ${goal.totalXpReward} XP`,
       totalXpReward: goal.totalXpReward,
-      goalXpReward: goal.goalXpReward,
       quests: goal.quests.map((quest) => this.toQuestCard(quest)),
       milestones: goal.milestones.map((milestone) => ({
         id: milestone.id,

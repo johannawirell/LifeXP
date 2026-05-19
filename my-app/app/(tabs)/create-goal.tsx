@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session-context';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { fetchJson, postJson } from '@/lib/api';
 
 type GoalTemplateSummary = {
@@ -28,10 +30,11 @@ type GoalTemplateSummary = {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   color: string;
   totalXpReward: number;
-  summaryDetails: {
+  overviewItems: {
     id: string;
     label: string;
     value: string;
+    icon?: keyof typeof Ionicons.glyphMap;
   }[];
   milestones: {
     id: string;
@@ -61,13 +64,10 @@ type GoalTemplateDetailResponse = {
   icon: keyof typeof Ionicons.glyphMap;
   subtitle: string[];
   summaryDescription: string;
-  detailDescription: string;
   category: string;
   color: string;
-  summaryDetails: { id: string; label: string; value: string }[];
-  detailDetails: { id: string; label: string; value: string }[];
+  overviewItems: { id: string; label: string; value: string; icon?: keyof typeof Ionicons.glyphMap }[];
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
-  goalXpReward: number;
   totalXpReward: number;
   milestones: {
     id: string;
@@ -94,7 +94,6 @@ type EditableTemplateDraft = {
   color: string;
   icon: keyof typeof Ionicons.glyphMap;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
-  goalXpReward: number;
   totalXpReward: number;
   milestones: {
     id: string;
@@ -137,7 +136,7 @@ export default function CreateGoalScreen() {
   const selectedMilestone =
     draft?.milestones.find((milestone) => milestone.id === expandedMilestoneId) ?? null;
   const computedTotalXpReward = draft
-    ? draft.goalXpReward + draft.milestones.reduce((sum, milestone) => sum + milestone.xpReward, 0)
+    ? draft.milestones.reduce((sum, milestone) => sum + milestone.xpReward, 0)
     : 0;
 
   const parseSubtitleTokens = (subtitle: string | string[]) =>
@@ -198,8 +197,7 @@ export default function CreateGoalScreen() {
     color: '#A866FF',
     icon: 'flag-outline',
     difficulty: 'MEDIUM',
-    goalXpReward: 100,
-    totalXpReward: 100,
+    totalXpReward: 50,
     milestones: [
       {
         id: `custom-milestone-${Date.now()}`,
@@ -255,7 +253,7 @@ export default function CreateGoalScreen() {
       template.category,
       template.difficulty,
       ...template.subtitle,
-      ...template.summaryDetails.flatMap((detail) => [detail.label, detail.value]),
+      ...template.overviewItems.flatMap((detail) => [detail.label, detail.value]),
     ];
 
     return searchableParts.some((part) => part.toLowerCase().includes(query));
@@ -293,7 +291,6 @@ export default function CreateGoalScreen() {
         color: data.color,
         icon: data.icon,
         difficulty: data.difficulty,
-        goalXpReward: data.goalXpReward,
         totalXpReward: data.totalXpReward,
         milestones: data.milestones.map((milestone) => ({
           id: milestone.id,
@@ -503,7 +500,6 @@ export default function CreateGoalScreen() {
         color: draft.color,
         icon: draft.icon,
         difficulty: draft.difficulty,
-        goalXpReward: draft.goalXpReward,
         totalXpReward: computedTotalXpReward,
         milestones: draft.milestones.map((milestone) => ({
           title: milestone.title,
@@ -541,6 +537,36 @@ export default function CreateGoalScreen() {
   useEffect(() => {
     void loadTemplates(selectedCategory);
   }, [loadTemplates, selectedCategory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadTemplates(selectedCategory);
+    }, [loadTemplates, selectedCategory])
+  );
+
+  useLiveUpdates(
+    userId,
+    useCallback(
+      async (event) => {
+        if ((!event.resources.includes('goals') && !event.resources.includes('goal-templates')) || !userId) {
+          return;
+        }
+
+        try {
+          const query = new URLSearchParams({
+            category: selectedCategory,
+            ...(userId ? { userId } : {}),
+          });
+          const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?${query.toString()}`);
+          setPage(data);
+        } catch {
+          // Keep current state if a live refresh fails.
+        }
+      },
+      [selectedCategory, userId]
+    ),
+    { enabled: Boolean(userId) }
+  );
 
   useEffect(() => {
     if (routeCategory && routeCategory !== selectedCategory) {
@@ -753,36 +779,43 @@ export default function CreateGoalScreen() {
             ) : null}
             <View style={styles.detailCard}>
               <View style={styles.detailHeroRow}>
+                <View style={[styles.detailHeroIconWrap, { backgroundColor: `${draft.color}22` }]}>
+                  <Ionicons name={draft.icon} size={34} color="#F7F3FF" />
+                </View>
                 <View style={styles.detailHeroCopy}>
-                  <Text style={styles.detailCardTitle}>Måltitel</Text>
-                  <Text style={styles.detailDifficultyText}>{draft.difficulty}</Text>
+                  <TextInput
+                    value={draft.title}
+                    onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
+                    style={styles.heroTitleInput}
+                    placeholder="Måltitel"
+                    placeholderTextColor="#6F7887"
+                  />
+                  <View style={styles.detailMetaPills}>
+                    <View style={styles.heroDifficultyPill}>
+                      <Text style={styles.heroDifficultyPillText}>{draft.difficulty}</Text>
+                    </View>
+                  </View>
                 </View>
                 <View style={styles.detailXpBadge}>
-                  <Text style={styles.detailXpBadgeValue}>{computedTotalXpReward}</Text>
-                  <Text style={styles.detailXpBadgeLabel}>XP</Text>
+                  <Ionicons name="trophy-outline" size={20} color="#F5C13C" />
+                  <Text style={styles.detailXpBadgeValue}>{computedTotalXpReward} XP</Text>
+                  <Text style={styles.detailXpBadgeLabel}>total belöning</Text>
                 </View>
               </View>
-              <TextInput
-                value={draft.title}
-                onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
-                style={styles.input}
-                placeholder="Måltitel"
-                placeholderTextColor="#6F7887"
-              />
               {isCustomGoal ? (
                 <TextInput
                   value={draft.subtitle}
                   onChangeText={(text) => setDraft((current) => (current ? { ...current, subtitle: text } : current))}
-                  style={[styles.input, styles.secondaryInput]}
+                  style={[styles.input, styles.secondaryInput, styles.heroSecondaryInput]}
                   placeholder="Kategori eller undertitel"
                   placeholderTextColor="#6F7887"
                 />
               ) : null}
-              <View style={styles.subtitleBadgeRow}>
+              <View style={styles.heroCategoryRow}>
                 {parseSubtitleTokens(draft.subtitle).map((subtitle) => (
-                  <View key={`draft-${subtitle}`} style={styles.subtitleBadge}>
-                    {renderSubtitleIcon(subtitle, '#C9A9FF')}
-                    <Text style={styles.subtitleBadgeText}>{mapSubtitleLabel(subtitle)}</Text>
+                  <View key={`draft-${subtitle}`} style={styles.heroCategoryBadge}>
+                    <View style={styles.heroCategoryDot} />
+                    <Text style={styles.heroCategoryText}>{mapSubtitleLabel(subtitle)}</Text>
                   </View>
                 ))}
               </View>
@@ -790,29 +823,59 @@ export default function CreateGoalScreen() {
 
             <View style={styles.detailCard}>
               <Text style={styles.detailCardTitle}>Översikt</Text>
-              {(selectedTemplate?.summaryDetails ?? [
-                { id: 'custom-category', label: 'Kategori', value: draft.subtitle },
-                { id: 'custom-setup', label: 'Upplägg', value: 'utvecklingssteg' },
-                { id: 'custom-xp', label: 'XP', value: `${computedTotalXpReward} XP` },
-              ]).map((detail) => (
-                <View key={detail.id} style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{detail.label}</Text>
-                  <Text style={styles.detailValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
-                </View>
-              ))}
+              <View style={styles.overviewGrid}>
+                {(selectedTemplate?.overviewItems ?? [
+                  { id: 'custom-category', label: 'Kategori', value: draft.subtitle, icon: 'pricetag-outline' },
+                  { id: 'custom-setup', label: 'Upplägg', value: 'utvecklingssteg', icon: 'stats-chart-outline' },
+                  { id: 'custom-focus', label: 'Fokus', value: draft.subtitle, icon: 'locate-outline' },
+                  { id: 'custom-xp', label: 'Belöning', value: `${computedTotalXpReward} XP`, icon: 'sparkles-outline' },
+                ]).slice(0, 4).map((detail, index, array) => (
+                  <View
+                    key={detail.id}
+                    style={[styles.overviewGridItem, index < array.length - 1 ? styles.overviewGridDivider : null]}>
+                    {detail.icon ? (
+                      <View style={styles.detailRowIconWrap}>
+                        <Ionicons name={detail.icon} size={18} color="#C9A9FF" />
+                      </View>
+                    ) : null}
+                    <Text style={styles.detailLabel}>{detail.label}</Text>
+                    <Text style={styles.overviewGridValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Detaljläge</Text>
-              <Text style={styles.detailDescription}>
-                {selectedTemplate?.detailDescription ?? 'Bygg upp målet steg för steg med egna milestones, delmål och tips.'}
-              </Text>
-              {(selectedTemplate?.detailDetails ?? []).map((detail) => (
-                <View key={detail.id} style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{detail.label}</Text>
-                  <Text style={styles.detailValue}>{detail.value}</Text>
-                </View>
-              ))}
+              <View style={styles.milestonesHeaderRow}>
+                <Text style={styles.detailCardTitle}>Milestones</Text>
+                <Pressable style={styles.addIconButton} onPress={addMilestone}>
+                  <Ionicons name="add" size={18} color="#F7F3FF" />
+                  <Text style={styles.addIconButtonText}>Lägg till</Text>
+                </Pressable>
+              </View>
+              <View style={styles.timelineList}>
+                {draft.milestones.map((milestone, index) => (
+                  <View key={milestone.id} style={styles.milestoneEditorCard}>
+                    {index < draft.milestones.length - 1 ? <View style={styles.timelineLine} /> : null}
+                  <View style={styles.milestoneEditorRow}>
+                    <Pressable
+                      style={styles.milestoneEditorHeader}
+                      onPress={() =>
+                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
+                      }>
+                      <View style={styles.milestoneIndexWrap}>
+                        <Text style={styles.milestoneIndexText}>{index + 1}</Text>
+                      </View>
+                      <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
+                      <Text style={styles.milestoneXpValue}>+{milestone.xpReward} XP</Text>
+                    </Pressable>
+                    <Pressable style={styles.trashButton} onPress={() => removeMilestone(milestone.id)} hitSlop={8}>
+                      <Ionicons name="trash-outline" size={18} color="#D8DEE7" />
+                    </Pressable>
+                  </View>
+                  </View>
+                ))}
+              </View>
               {selectedTemplate?.quests?.length ? (
                 <>
                   <Pressable style={styles.questCollapseButton} onPress={() => setShowTemplateQuests((current) => !current)}>
@@ -845,54 +908,17 @@ export default function CreateGoalScreen() {
                 </>
               ) : null}
             </View>
-
-            <View style={styles.detailCard}>
-              <View style={styles.milestonesHeaderRow}>
-                <Text style={styles.detailCardTitle}>Milestones</Text>
-                <Pressable style={styles.addIconButton} onPress={addMilestone}>
-                  <Ionicons name="add" size={18} color="#F7F3FF" />
-                </Pressable>
-              </View>
-              <Text style={styles.milestoneXpSummary}>
-                {draft.milestones.length} milestones • {computedTotalXpReward} XP totalt
-              </Text>
-              {draft.milestones.map((milestone) => (
-                <View key={milestone.id} style={styles.milestoneEditorCard}>
-                  <View style={styles.milestoneEditorRow}>
-                    <Pressable
-                      style={styles.milestoneEditorHeader}
-                      onPress={() =>
-                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
-                      }>
-                      <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
-                      <Ionicons
-                        name={expandedMilestoneId === milestone.id ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color="#D8DEE7"
-                      />
-                    </Pressable>
-                    <Pressable style={styles.trashButton} onPress={() => removeMilestone(milestone.id)} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={18} color="#A866FF" />
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-            </View>
           </>
         )}
       </ScrollView>
       {isDetailView && draft ? (
         <View style={styles.stickyFooter}>
-          <View style={styles.stickyFooterSummary}>
-            <Text style={styles.stickyFooterSummaryLabel}>Belöning när målet klaras</Text>
-            <Text style={styles.stickyFooterSummaryValue}>{computedTotalXpReward} XP</Text>
-          </View>
           <Pressable
             onPress={() => void handleCreateGoal()}
             style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
             disabled={isCreatingGoal}>
             <Text style={styles.addGoalButtonText}>
-              {isCreatingGoal ? 'Lägger till...' : `Lägg till mål • ${computedTotalXpReward} XP`}
+              {isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}
             </Text>
           </Pressable>
         </View>
@@ -1201,8 +1227,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: 20,
     marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   emptyTemplateCard: {
     alignItems: 'center',
@@ -1242,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   templateTitle: {
     color: '#F5F7FB',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
   templateHeaderRow: {
@@ -1331,9 +1357,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     marginHorizontal: 20,
-    marginTop: 18,
+    marginTop: 14,
     paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingVertical: 16,
   },
   inlineErrorCard: {
     alignItems: 'center',
@@ -1361,35 +1387,89 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
+  detailHeroIconWrap: {
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 70,
+    justifyContent: 'center',
+    width: 70,
+  },
   detailHeroCopy: {
     flex: 1,
   },
-  detailDifficultyText: {
-    color: '#C9A9FF',
+  heroTitleInput: {
+    color: '#F5F7FB',
+    fontSize: 26,
+    fontWeight: '800',
+    marginTop: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  detailMetaPills: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  heroDifficultyPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#4A2D76',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  heroDifficultyPillText: {
+    color: '#E9D8FF',
     fontSize: 12,
-    fontWeight: '700',
-    marginTop: 4,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   detailXpBadge: {
     alignItems: 'center',
-    backgroundColor: '#241539',
-    borderColor: '#8B4EF4',
-    borderRadius: 18,
+    backgroundColor: '#121A26',
+    borderColor: '#304156',
+    borderRadius: 20,
     borderWidth: 1,
-    minWidth: 86,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 6,
+    minWidth: 150,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
   },
   detailXpBadgeValue: {
     color: '#F7F3FF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
   },
   detailXpBadgeLabel: {
-    color: '#C9A9FF',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
+    color: '#D7E0EA',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  heroSecondaryInput: {
+    marginTop: 14,
+  },
+  heroCategoryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 16,
+  },
+  heroCategoryBadge: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroCategoryDot: {
+    backgroundColor: '#A866FF',
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  heroCategoryText: {
+    color: '#D8DEE7',
+    fontSize: 14,
+    fontWeight: '600',
   },
   milestonesHeaderRow: {
     alignItems: 'center',
@@ -1399,33 +1479,71 @@ const styles = StyleSheet.create({
   },
   addIconButton: {
     alignItems: 'center',
-    backgroundColor: '#8B4EF4',
+    backgroundColor: '#241539',
+    borderColor: '#8B4EF4',
     borderRadius: 999,
-    height: 30,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
     justifyContent: 'center',
-    width: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  addIconButtonText: {
+    color: '#D7C2FF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   detailCardTitle: {
     color: '#F5F7FB',
     fontSize: 18,
     fontWeight: '700',
   },
-  detailDescription: {
-    color: '#CBD2DD',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 12,
+  overviewGrid: {
+    flexDirection: 'row',
+    marginTop: 18,
+  },
+  overviewGridItem: {
+    alignItems: 'flex-start',
+    flex: 1,
+    minHeight: 112,
+    paddingHorizontal: 14,
+  },
+  overviewGridDivider: {
+    borderRightColor: '#252B38',
+    borderRightWidth: 1,
+  },
+  overviewGridValue: {
+    color: '#F5F7FB',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 22,
+    marginTop: 10,
   },
   detailRow: {
+    alignItems: 'center',
     borderTopColor: '#252B38',
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
   },
+  detailRowLabelWrap: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  detailRowIconWrap: {
+    alignItems: 'center',
+    backgroundColor: '#241539',
+    borderRadius: 999,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
   detailLabel: {
     color: '#9AA3B2',
-    flex: 1,
     fontSize: 12,
   },
   detailValue: {
@@ -1522,13 +1640,9 @@ const styles = StyleSheet.create({
   milestoneEditorCard: {
     borderTopColor: '#252B38',
     borderTopWidth: 1,
-    paddingTop: 12,
-  },
-  milestoneXpSummary: {
-    color: '#C9A9FF',
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
+    paddingLeft: 2,
+    paddingTop: 18,
+    position: 'relative',
   },
   milestoneEditorRow: {
     alignItems: 'center',
@@ -1539,7 +1653,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     flex: 1,
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  milestoneIndexWrap: {
+    alignItems: 'center',
+    backgroundColor: '#241539',
+    borderColor: '#8B4EF4',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  milestoneIndexText: {
+    color: '#F7F3FF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   milestoneEditorHeaderText: {
     color: '#F5F7FB',
@@ -1547,9 +1676,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  milestoneXpValue: {
+    color: '#D7BCFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  timelineList: {
+    marginTop: 6,
+  },
+  timelineLine: {
+    backgroundColor: '#5B3D88',
+    left: 18,
+    position: 'absolute',
+    top: 46,
+    width: 1,
+    bottom: -18,
+  },
   trashButton: {
     alignItems: 'center',
-    backgroundColor: '#251A38',
+    backgroundColor: 'transparent',
     borderRadius: 999,
     height: 30,
     justifyContent: 'center',
@@ -1627,21 +1772,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 14,
-  },
-  stickyFooterSummary: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  stickyFooterSummaryLabel: {
-    color: '#9AA3B2',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  stickyFooterSummaryValue: {
-    color: '#F5F7FB',
-    fontSize: 17,
-    fontWeight: '800',
   },
 });

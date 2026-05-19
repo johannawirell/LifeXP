@@ -106,7 +106,6 @@ const weeklyQuests = [
 async function main() {
   await prisma.goalTemplateMilestoneSubtask.deleteMany();
   await prisma.goalTemplateMilestoneTip.deleteMany();
-  await prisma.goalTemplateDetail.deleteMany();
   await prisma.goalTemplateQuest.deleteMany();
   await prisma.goalTemplateMilestone.deleteMany();
   await prisma.goalTemplate.deleteMany();
@@ -149,7 +148,6 @@ async function main() {
       icon: 'walk-outline',
       cardColor: '#73D86A',
       difficulty: 'MEDIUM' as GoalDifficulty,
-      goalXpReward: 100,
       totalXpReward: 450,
       milestones: [
         { title: 'Spring 1 km utan paus', xpReward: 50, completedAt: new Date('2026-05-12') },
@@ -212,9 +210,7 @@ async function main() {
     const currentValue = goalSeed.milestones.filter((milestone) => milestone.completedAt).length;
     const targetValue = goalSeed.milestones.length;
     const milestoneXpRewards = goalSeed.milestones.map((milestone) => milestone.xpReward);
-    const goalXpReward = goalSeed.goalXpReward ?? 0;
-    const totalXpReward =
-      goalSeed.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0) + goalXpReward;
+    const totalXpReward = goalSeed.totalXpReward ?? milestoneXpRewards.reduce((sum, value) => sum + value, 0);
     const goal = await prisma.goal.create({
       data: {
         userId: demoUserId,
@@ -222,7 +218,6 @@ async function main() {
         subtitle: goalSeed.subtitle,
         icon: goalSeed.icon,
         difficulty: goalSeed.difficulty,
-        goalXpReward,
         totalXpReward,
         status: goalSeed.completed ? 'COMPLETED' : 'ACTIVE',
         targetValue,
@@ -314,10 +309,16 @@ async function main() {
       icon: template.icon,
       subtitle: template.subtitle,
       summaryDescription: template.summaryDescription,
-      detailDescription: template.detailDescription,
       category: template.category,
       difficulty: template.difficulty,
-      goalXpReward: template.goalXpReward,
+      focusLabel:
+        template.focusLabel ??
+        template.details?.find((detail) => detail.label.toLowerCase() === 'fokus')?.value ??
+        template.subtitle[0] ??
+        template.category.toLowerCase(),
+      structureType:
+        template.structureType ??
+        (template.milestones.length <= 1 ? 'SINGLE' : 'MILESTONE_PATH'),
       totalXpReward: template.totalXpReward,
       color: template.color,
       isPopular: template.isPopular,
@@ -335,18 +336,6 @@ async function main() {
         title: milestone.title,
         description: milestone.description,
         xpReward: milestone.xpReward ?? 0,
-        position: index,
-      }))
-    ),
-  });
-
-  await prisma.goalTemplateDetail.createMany({
-    data: goalTemplateSeeds.flatMap((template) =>
-      template.details.map((detail, index) => ({
-        goalTemplateId: byTitle[template.title],
-        label: detail.label,
-        value: detail.value,
-        visibility: detail.visibility,
         position: index,
       }))
     ),
@@ -395,7 +384,6 @@ async function main() {
     data: goalTemplateSeeds.flatMap((template) =>
       (template.quests ?? []).map((quest, index) => ({
         goalTemplateId: byTitle[template.title],
-        sharedKey: quest.sharedKey,
         title: quest.title,
         description: quest.description,
         xpReward: quest.xpReward ?? 0,

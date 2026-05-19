@@ -88,7 +88,7 @@ export function GoalDetailModal({
                 </View>
                 <View style={styles.statsRow}>
                   <Text style={styles.stat}>{goal.totalXpReward} XP totalt</Text>
-                  <Text style={styles.stat}>Bonus: {goal.goalXpReward} XP</Text>
+                  <Text style={styles.stat}>{goal.milestones.length} milestones</Text>
                 </View>
                 {goal.quests.length > 0 ? (
                   <Pressable onPress={() => setShowQuests((current) => !current)} style={styles.questToggleButton}>

@@ -15,26 +15,28 @@ export type GoalTemplateQuestSeed = {
   xpReward?: number;
   frequency: 'DAILY' | 'WEEKLY';
 };
-
-export type GoalTemplateDetailSeed = {
-  label: string;
-  value: string;
-  visibility: 'SUMMARY' | 'DETAIL' | 'BOTH';
-};
+export type GoalStructureTypeSeed = 'SINGLE' | 'MILESTONE_PATH';
 
 export type GoalTemplateSeed = {
   title: string;
   icon: string;
   subtitle: string[];
   summaryDescription: string;
-  detailDescription: string;
   category: GoalTemplateCategory;
   difficulty: GoalDifficulty;
-  goalXpReward: number;
+  focusLabel?: string;
+  structureType?: GoalStructureTypeSeed;
   totalXpReward: number;
   color: string;
   isPopular: boolean;
-  details: GoalTemplateDetailSeed[];
   milestones: GoalTemplateMilestoneSeed[];
   quests?: GoalTemplateQuestSeed[];
+  // Deprecated legacy seed fields kept temporarily so older seed objects still compile during migration.
+  detailDescription?: string;
+  goalXpReward?: number;
+  details?: {
+    label: string;
+    value: string;
+    visibility: 'SUMMARY' | 'DETAIL' | 'BOTH';
+  }[];
 };

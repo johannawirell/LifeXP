@@ -1,5 +1,17 @@
 import { NativeModules, Platform } from 'react-native';
 
+export class ApiError extends Error {
+  status: number;
+  url: string;
+
+  constructor(status: number, url: string) {
+    super(`Request failed with status ${status} for ${url}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.url = url;
+  }
+}
+
 function resolveApiHost() {
   if (Platform.OS === 'web') {
     return 'localhost';
@@ -28,17 +40,19 @@ export const API_BASE_URL = `http://${resolveApiHost()}:3000/api`;
 export const AUTH_BASE_URL = `http://${resolveApiHost()}:3000/api/auth`;
 
 export async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+    throw new ApiError(response.status, url);
   }
 
   return response.json() as Promise<T>;
 }
 
 export async function postJson<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -47,14 +61,15 @@ export async function postJson<T>(path: string, body?: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+    throw new ApiError(response.status, url);
   }
 
   return response.json() as Promise<T>;
 }
 
 export async function patchJson<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -63,19 +78,20 @@ export async function patchJson<T>(path: string, body?: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+    throw new ApiError(response.status, url);
   }
 
   return response.json() as Promise<T>;
 }
 
 export async function deleteJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url, {
     method: 'DELETE',
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status} for ${API_BASE_URL}${path}`);
+    throw new ApiError(response.status, url);
   }
 
   return response.json() as Promise<T>;
