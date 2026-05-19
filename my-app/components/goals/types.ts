@@ -16,6 +16,7 @@ export type QuestCard = {
 
 export type GoalCard = {
   id: string;
+  createdAt: string;
   icon: string;
   title: string;
   subtitle: string;

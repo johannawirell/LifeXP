@@ -37,7 +37,9 @@ const overviewItems = [
 
 function filterGoals(goals: GoalCard[], filter: GoalCategoryFilter) {
   if (filter === 'latest') {
-    return goals.slice(0, 5);
+    return [...goals]
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .slice(0, 5);
   }
 
   return goals.filter((goal) => {
@@ -313,6 +315,12 @@ export default function GoalsScreen() {
   }, [routeFilter]);
 
   useEffect(() => {
+    if (routeNotice === 'goal-added') {
+      void loadGoals();
+    }
+  }, [loadGoals, routeNotice]);
+
+  useEffect(() => {
     if (
       !goalsPage ||
       !routeGoalId ||
@@ -442,7 +450,7 @@ export default function GoalsScreen() {
             </Text>
             <Text style={styles.emptyGoalsText}>
               {selectedTab === 'active'
-                ? 'Din karaktär har inte fått sina första main quests än. Skapa ett mål och börja samla XP.'
+                ? 'Börja din resa mot en roligare vardag genom att skapa ett mål och börja samla XP.'
                 : 'Fortsätt jaga dina goals. När du slutför dem hamnar de här som troféer över vad du faktiskt byggt upp.'}
             </Text>
             {selectedTab === 'active' ? (

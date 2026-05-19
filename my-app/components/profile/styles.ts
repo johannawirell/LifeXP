@@ -341,6 +341,20 @@ export const profileStyles = StyleSheet.create({
   categoryHistoryTitle: { color: '#F5F7FB', fontSize: 16, fontWeight: '800' },
   categoryHistoryLevel: { fontSize: 13, fontWeight: '800', marginTop: 4 },
   categoryHistoryXp: { color: '#C9D1DA', fontSize: 12, fontWeight: '700' },
+  categoryHistoryPrimaryButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#8B4EF4',
+    borderRadius: 12,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  categoryHistoryPrimaryButtonText: {
+    color: '#F7F3FF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   categoryHistoryList: { marginTop: 12 },
   categoryHistoryEntry: {
     alignItems: 'center',

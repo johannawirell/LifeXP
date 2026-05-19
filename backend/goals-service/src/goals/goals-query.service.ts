@@ -36,6 +36,7 @@ type QuestCard = {
 
 type GoalCard = {
   id: string;
+  createdAt: string;
   icon: string;
   title: string;
   subtitle: string;
@@ -1550,6 +1551,7 @@ export class GoalsQueryService {
 
     return {
       id: goal.id,
+      createdAt: goal.createdAt.toISOString(),
       icon: goal.icon ?? 'flag-outline',
       title: goal.title,
       subtitle: this.mapSubtitleKeysToLabels(goal.subtitle).join(' • ') || goal.category || '',

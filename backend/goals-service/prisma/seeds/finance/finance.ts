@@ -9,7 +9,7 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     detailDescription:
       'Det här målet hjälper dig att skapa ett stabilare ekonomiskt läge genom att bygga upp en buffert med tydliga sparsteg.',
     category: 'FINANCE',
-    difficulty: 'MEDIUM',
+    difficulty: 'EASY',
     goalXpReward: 180,
     totalXpReward: 760,
     color: '#56D2C5',

@@ -30,6 +30,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCategoryHistoryOpen, setIsCategoryHistoryOpen] = useState(false);
+  const [selectedCategoryHistoryKey, setSelectedCategoryHistoryKey] = useState<string | null>(null);
   const [isDeleteAccountConfirmVisible, setIsDeleteAccountConfirmVisible] = useState(false);
   const [selectedFocusKeys, setSelectedFocusKeys] = useState<string[]>([]);
   const [isSavingFocusAreas, setIsSavingFocusAreas] = useState(false);
@@ -313,7 +314,45 @@ export default function ProfileScreen() {
     });
   };
 
+  const mapFocusAreaKeyToCreateGoalCategory = (key: string) => {
+    switch (key) {
+      case 'TRAINING':
+        return 'training';
+      case 'HEALTH':
+        return 'health';
+      case 'CAREER':
+        return 'job';
+      case 'PRODUCTIVITY':
+        return 'learning';
+      case 'SOCIAL':
+        return 'social';
+      case 'FINANCE':
+        return 'finance';
+      default:
+        return 'popular';
+    }
+  };
+
+  const openCategoryHistory = (categoryKey?: string) => {
+    setSelectedCategoryHistoryKey(categoryKey ?? null);
+    setIsCategoryHistoryOpen(true);
+  };
+
+  const openCreateGoalForCategory = (categoryKey: string) => {
+    setIsCategoryHistoryOpen(false);
+    setSelectedCategoryHistoryKey(null);
+    router.push({
+      pathname: '/(tabs)/create-goal',
+      params: {
+        category: mapFocusAreaKeyToCreateGoalCategory(categoryKey),
+      },
+    });
+  };
+
   const focusAreas = profile.focusAreas.length > 0 ? profile.focusAreas : fallbackFocusAreas;
+  const visibleCategoryHistoryAreas = selectedCategoryHistoryKey
+    ? focusAreas.filter((item) => item.key === selectedCategoryHistoryKey)
+    : focusAreas;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -417,10 +456,10 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionCard}>
-          <SectionHeader title="Dina kategoriers level" action="Visa alla" onPress={() => setIsCategoryHistoryOpen(true)} />
+          <SectionHeader title="Dina kategoriers level" action="Visa alla" onPress={() => openCategoryHistory()} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryLevelRow}>
             {focusAreas.map((item) => (
-              <View key={item.id} style={styles.categoryLevelCard}>
+              <Pressable key={item.id} style={styles.categoryLevelCard} onPress={() => openCategoryHistory(item.key)}>
                 <View style={styles.statHeaderRow}>
                   <View style={[styles.statIconWrap, { backgroundColor: `${item.color}20` }]}>
                     <Ionicons name={item.icon} size={20} color={item.color} />
@@ -440,9 +479,9 @@ export default function ProfileScreen() {
                   />
                 </View>
                 <Text style={styles.statProgress}>
-                  {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')} XP
+                  {Math.max(item.maxXp - item.currentXp, 0).toLocaleString('sv-SE')} XP till nästa level
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </ScrollView>
         </View>
@@ -669,7 +708,7 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {focusAreas.map((item) => {
+              {visibleCategoryHistoryAreas.map((item) => {
                 const categoryHistory = profile.recentXp.filter((entry) => entry.category === item.key);
 
                 return (
@@ -682,9 +721,7 @@ export default function ProfileScreen() {
                         <Text style={styles.categoryHistoryTitle}>{item.title}</Text>
                         <Text style={[styles.categoryHistoryLevel, { color: item.color }]}>Level {item.level}</Text>
                       </View>
-                      <Text style={styles.categoryHistoryXp}>
-                        {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')} XP
-                      </Text>
+                      <Text style={styles.categoryHistoryXp}>{Math.max(item.maxXp - item.currentXp, 0).toLocaleString('sv-SE')} XP kvar</Text>
                     </View>
                     <View style={styles.smallProgressTrack}>
                       <View
@@ -697,6 +734,11 @@ export default function ProfileScreen() {
                         ]}
                       />
                     </View>
+                    <Pressable
+                      onPress={() => openCreateGoalForCategory(item.key)}
+                      style={styles.categoryHistoryPrimaryButton}>
+                      <Text style={styles.categoryHistoryPrimaryButtonText}>Lägg till mål i {item.title}</Text>
+                    </Pressable>
                     {categoryHistory.length > 0 ? (
                       <View style={styles.categoryHistoryList}>
                         {categoryHistory.map((entry) => (

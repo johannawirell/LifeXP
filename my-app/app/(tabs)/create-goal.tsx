@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -116,9 +116,11 @@ type CreateGoalResponse = {
 type DifficultyFilter = 'ALL' | 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
 
 export default function CreateGoalScreen() {
+  const params = useLocalSearchParams<{ category?: string | string[] }>();
   const { mode, userId } = useSession();
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('popular');
+  const routeCategory = Array.isArray(params.category) ? params.category[0] : params.category;
+  const [selectedCategory, setSelectedCategory] = useState(routeCategory ?? 'popular');
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplateDetailResponse | null>(null);
   const [draft, setDraft] = useState<EditableTemplateDraft | null>(null);
   const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
@@ -539,6 +541,12 @@ export default function CreateGoalScreen() {
   useEffect(() => {
     void loadTemplates(selectedCategory);
   }, [loadTemplates, selectedCategory]);
+
+  useEffect(() => {
+    if (routeCategory && routeCategory !== selectedCategory) {
+      setSelectedCategory(routeCategory);
+    }
+  }, [routeCategory, selectedCategory]);
 
   if (isLoading) {
     return (
