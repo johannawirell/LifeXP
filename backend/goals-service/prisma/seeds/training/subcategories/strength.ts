@@ -74,7 +74,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
     focusLabel: 'Gymvana och självförtroende',
     totalXpReward: 420,
     color: CATEGORY_COLORS.training,
-    isPopular: true,
+    isPopular: false,
     milestones: [
       {
         title: 'Utforska gymmet',
@@ -133,7 +133,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
     focusLabel: 'Överkropp och core',
     totalXpReward: 420,
     color: CATEGORY_COLORS.training,
-    isPopular: true,
+    isPopular: false,
     milestones: [
       {
         title: 'Bygg startstyrka',

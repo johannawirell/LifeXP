@@ -6,7 +6,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,103 +15,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GoalEditView } from '@/components/create-goal/goal-edit-view';
+import { MilestoneEditorModal } from '@/components/create-goal/milestone-editor-modal';
+import type {
+  CreateGoalResponse,
+  DifficultyFilter,
+  EditableTemplateDraft,
+  GoalTemplateDetailResponse,
+  GoalTemplatePageResponse,
+} from '@/components/create-goal/types';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { fetchJson, postJson } from '@/lib/api';
-
-type GoalTemplateSummary = {
-  id: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  subtitle: string[];
-  summaryDescription: string;
-  category: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
-  color: string;
-  totalXpReward: number;
-  overviewItems: {
-    id: string;
-    label: string;
-    value: string;
-    icon?: keyof typeof Ionicons.glyphMap;
-  }[];
-  milestones: {
-    id: string;
-    title: string;
-    subtasks: { id: string; title: string }[];
-    tips: { id: string; text: string }[];
-  }[];
-  quests: {
-    id: string;
-    title: string;
-    description?: string;
-    frequency: 'DAILY' | 'WEEKLY';
-    xpReward: number;
-  }[];
-};
-
-type GoalTemplatePageResponse = {
-  steps: { id: number; label: string; complete: boolean }[];
-  categories: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; active: boolean }[];
-  selectedCategory: string;
-  templates: GoalTemplateSummary[];
-};
-
-type GoalTemplateDetailResponse = {
-  id: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  subtitle: string[];
-  summaryDescription: string;
-  category: string;
-  color: string;
-  overviewItems: { id: string; label: string; value: string; icon?: keyof typeof Ionicons.glyphMap }[];
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
-  totalXpReward: number;
-  milestones: {
-    id: string;
-    title: string;
-    description?: string;
-    xpReward: number;
-    subtasks: { id: string; title: string }[];
-    tips: { id: string; text: string }[];
-  }[];
-  quests: {
-    id: string;
-    title: string;
-    description?: string;
-    frequency: 'DAILY' | 'WEEKLY';
-    xpReward: number;
-  }[];
-};
-
-type EditableTemplateDraft = {
-  id?: string;
-  title: string;
-  subtitle: string;
-  category: string;
-  color: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
-  totalXpReward: number;
-  milestones: {
-    id: string;
-    title: string;
-    description?: string;
-    xpReward: number;
-    subtasks: { id: string; title: string }[];
-    tips: { id: string; text: string }[];
-  }[];
-};
-
-type CreateGoalResponse = {
-  goalId: string;
-  userId: string;
-  templateId: string;
-  message: string;
-};
-
-type DifficultyFilter = 'ALL' | 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
 
 export default function CreateGoalScreen() {
   const params = useLocalSearchParams<{ category?: string | string[] }>();
@@ -770,232 +684,38 @@ export default function CreateGoalScreen() {
             <Text style={styles.feedbackText}>Hämtar måldetaljer...</Text>
           </View>
         ) : (
-          <>
-            {error ? (
-              <View style={styles.inlineErrorCard}>
-                <Ionicons name="alert-circle-outline" size={18} color="#F5C13C" />
-                <Text style={styles.inlineErrorText}>{error}</Text>
-              </View>
-            ) : null}
-            <View style={styles.detailCard}>
-              <View style={styles.detailHeroRow}>
-                <View style={[styles.detailHeroIconWrap, { backgroundColor: `${draft.color}22` }]}>
-                  <Ionicons name={draft.icon} size={34} color="#F7F3FF" />
-                </View>
-                <View style={styles.detailHeroCopy}>
-                  <TextInput
-                    value={draft.title}
-                    onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
-                    style={styles.heroTitleInput}
-                    placeholder="Måltitel"
-                    placeholderTextColor="#6F7887"
-                  />
-                  <View style={styles.detailMetaPills}>
-                    <View style={styles.heroDifficultyPill}>
-                      <Text style={styles.heroDifficultyPillText}>{draft.difficulty}</Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.detailXpBadge}>
-                  <Ionicons name="trophy-outline" size={20} color="#F5C13C" />
-                  <Text style={styles.detailXpBadgeValue}>{computedTotalXpReward} XP</Text>
-                  <Text style={styles.detailXpBadgeLabel}>total belöning</Text>
-                </View>
-              </View>
-              {isCustomGoal ? (
-                <TextInput
-                  value={draft.subtitle}
-                  onChangeText={(text) => setDraft((current) => (current ? { ...current, subtitle: text } : current))}
-                  style={[styles.input, styles.secondaryInput, styles.heroSecondaryInput]}
-                  placeholder="Kategori eller undertitel"
-                  placeholderTextColor="#6F7887"
-                />
-              ) : null}
-              <View style={styles.heroCategoryRow}>
-                {parseSubtitleTokens(draft.subtitle).map((subtitle) => (
-                  <View key={`draft-${subtitle}`} style={styles.heroCategoryBadge}>
-                    <View style={styles.heroCategoryDot} />
-                    <Text style={styles.heroCategoryText}>{mapSubtitleLabel(subtitle)}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Översikt</Text>
-              <View style={styles.overviewGrid}>
-                {(selectedTemplate?.overviewItems ?? [
-                  { id: 'custom-category', label: 'Kategori', value: draft.subtitle, icon: 'pricetag-outline' },
-                  { id: 'custom-setup', label: 'Upplägg', value: 'utvecklingssteg', icon: 'stats-chart-outline' },
-                  { id: 'custom-focus', label: 'Fokus', value: draft.subtitle, icon: 'locate-outline' },
-                  { id: 'custom-xp', label: 'Belöning', value: `${computedTotalXpReward} XP`, icon: 'sparkles-outline' },
-                ]).slice(0, 4).map((detail, index, array) => (
-                  <View
-                    key={detail.id}
-                    style={[styles.overviewGridItem, index < array.length - 1 ? styles.overviewGridDivider : null]}>
-                    {detail.icon ? (
-                      <View style={styles.detailRowIconWrap}>
-                        <Ionicons name={detail.icon} size={18} color="#C9A9FF" />
-                      </View>
-                    ) : null}
-                    <Text style={styles.detailLabel}>{detail.label}</Text>
-                    <Text style={styles.overviewGridValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.detailCard}>
-              <View style={styles.milestonesHeaderRow}>
-                <Text style={styles.detailCardTitle}>Milestones</Text>
-                <Pressable style={styles.addIconButton} onPress={addMilestone}>
-                  <Ionicons name="add" size={18} color="#F7F3FF" />
-                  <Text style={styles.addIconButtonText}>Lägg till</Text>
-                </Pressable>
-              </View>
-              <View style={styles.timelineList}>
-                {draft.milestones.map((milestone, index) => (
-                  <View key={milestone.id} style={styles.milestoneEditorCard}>
-                    {index < draft.milestones.length - 1 ? <View style={styles.timelineLine} /> : null}
-                  <View style={styles.milestoneEditorRow}>
-                    <Pressable
-                      style={styles.milestoneEditorHeader}
-                      onPress={() =>
-                        setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))
-                      }>
-                      <View style={styles.milestoneIndexWrap}>
-                        <Text style={styles.milestoneIndexText}>{index + 1}</Text>
-                      </View>
-                      <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
-                      <Text style={styles.milestoneXpValue}>+{milestone.xpReward} XP</Text>
-                    </Pressable>
-                    <Pressable style={styles.trashButton} onPress={() => removeMilestone(milestone.id)} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={18} color="#D8DEE7" />
-                    </Pressable>
-                  </View>
-                  </View>
-                ))}
-              </View>
-              {selectedTemplate?.quests?.length ? (
-                <>
-                  <Pressable style={styles.questCollapseButton} onPress={() => setShowTemplateQuests((current) => !current)}>
-                    <View style={styles.questCollapseLabelRow}>
-                      <Ionicons name="sparkles-outline" size={16} color="#C9A9FF" />
-                      <Text style={styles.questCollapseButtonText}>
-                        {showTemplateQuests
-                          ? 'Dölj quests som skapas med målet'
-                          : `Visa quests som skapas med målet (${selectedTemplate.quests.length})`}
-                      </Text>
-                    </View>
-                    <Ionicons name={showTemplateQuests ? 'chevron-up' : 'chevron-down'} size={18} color="#D8DEE7" />
-                  </Pressable>
-                  {showTemplateQuests ? (
-                    <View style={styles.questPreviewBox}>
-                      {selectedTemplate.quests.map((quest) => (
-                        <View key={quest.id} style={styles.questPreviewRow}>
-                          <View style={styles.questPreviewInfo}>
-                            <Text style={styles.questPreviewTitle}>{quest.title}</Text>
-                            {quest.description ? <Text style={styles.questPreviewText}>{quest.description}</Text> : null}
-                          </View>
-                          <View style={styles.questPreviewMeta}>
-                            <Text style={styles.questPreviewFrequency}>{quest.frequency}</Text>
-                            <Text style={styles.questPreviewXp}>+{quest.xpReward} XP</Text>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                </>
-              ) : null}
-            </View>
-          </>
+          <GoalEditView
+            error={error}
+            draft={draft}
+            selectedTemplate={selectedTemplate}
+            computedTotalXpReward={computedTotalXpReward}
+            parseSubtitleTokens={parseSubtitleTokens}
+            mapSubtitleLabel={mapSubtitleLabel}
+            getDynamicDetailValue={getDynamicDetailValue}
+            setDraft={setDraft}
+            expandedMilestoneId={expandedMilestoneId}
+            setExpandedMilestoneId={setExpandedMilestoneId}
+            addMilestone={addMilestone}
+            removeMilestone={removeMilestone}
+            setShowTemplateQuests={setShowTemplateQuests}
+            showTemplateQuests={showTemplateQuests}
+            isCreatingGoal={isCreatingGoal}
+            onCreateGoal={() => void handleCreateGoal()}
+          />
         )}
       </ScrollView>
-      {isDetailView && draft ? (
-        <View style={styles.stickyFooter}>
-          <Pressable
-            onPress={() => void handleCreateGoal()}
-            style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
-            disabled={isCreatingGoal}>
-            <Text style={styles.addGoalButtonText}>
-              {isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-      <Modal visible={Boolean(selectedMilestone)} animationType="slide" transparent onRequestClose={() => setExpandedMilestoneId(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Redigera milestone</Text>
-              <Pressable onPress={() => setExpandedMilestoneId(null)}>
-                <Ionicons name="close" size={22} color="#F5F7FB" />
-              </Pressable>
-            </View>
-            {selectedMilestone ? (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <TextInput
-                  value={selectedMilestone.title}
-                  onChangeText={(text) => updateMilestoneTitle(selectedMilestone.id, text)}
-                  style={styles.input}
-                  placeholder="Milestone"
-                  placeholderTextColor="#6F7887"
-                />
-                <TextInput
-                  value={String(selectedMilestone.xpReward)}
-                  onChangeText={(text) => updateMilestoneXp(selectedMilestone.id, Number(text.replace(/[^0-9]/g, '')) || 0)}
-                  style={[styles.input, styles.secondaryInput]}
-                  keyboardType="number-pad"
-                  placeholder="XP"
-                  placeholderTextColor="#6F7887"
-                />
-
-                <View style={styles.modalSectionHeader}>
-                  <Text style={styles.editorSectionTitle}>Delmål</Text>
-                  <Pressable onPress={() => addSubtask(selectedMilestone.id)}>
-                    <Text style={styles.inlineActionText}>Lägg till</Text>
-                  </Pressable>
-                </View>
-                {selectedMilestone.subtasks.map((subtask) => (
-                  <View key={subtask.id} style={styles.inlineEditorRow}>
-                    <TextInput
-                      value={subtask.title}
-                      onChangeText={(text) => updateSubtaskTitle(selectedMilestone.id, subtask.id, text)}
-                      style={[styles.input, styles.inlineInput]}
-                      placeholder="Delmål"
-                      placeholderTextColor="#6F7887"
-                    />
-                    <Pressable onPress={() => removeSubtask(selectedMilestone.id, subtask.id)} hitSlop={8}>
-                      <Ionicons name="remove-circle-outline" size={20} color="#F08A45" />
-                    </Pressable>
-                  </View>
-                ))}
-
-                <View style={styles.modalSectionHeader}>
-                  <Text style={styles.editorSectionTitle}>Tips</Text>
-                  <Pressable onPress={() => addTip(selectedMilestone.id)}>
-                    <Text style={styles.inlineActionText}>Lägg till</Text>
-                  </Pressable>
-                </View>
-                {selectedMilestone.tips.map((tip) => (
-                  <View key={tip.id} style={styles.inlineEditorRow}>
-                    <TextInput
-                      value={tip.text}
-                      onChangeText={(text) => updateTipText(selectedMilestone.id, tip.id, text)}
-                      style={[styles.input, styles.inlineInput]}
-                      placeholder="Tips"
-                      placeholderTextColor="#6F7887"
-                    />
-                    <Pressable onPress={() => removeTip(selectedMilestone.id, tip.id)} hitSlop={8}>
-                      <Ionicons name="remove-circle-outline" size={20} color="#F08A45" />
-                    </Pressable>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+      <MilestoneEditorModal
+        milestone={selectedMilestone}
+        onClose={() => setExpandedMilestoneId(null)}
+        onUpdateTitle={updateMilestoneTitle}
+        onUpdateXp={updateMilestoneXp}
+        onAddSubtask={addSubtask}
+        onRemoveSubtask={removeSubtask}
+        onUpdateSubtaskTitle={updateSubtaskTitle}
+        onAddTip={addTip}
+        onRemoveTip={removeTip}
+        onUpdateTipText={updateTipText}
+      />
     </SafeAreaView>
   );
 }
