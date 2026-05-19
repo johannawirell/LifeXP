@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query, Res } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 
@@ -76,5 +76,10 @@ export class AuthController {
   @Post('logout')
   logout(@Body() body: { refreshToken?: string }) {
     return authService.logout(body.refreshToken ?? '');
+  }
+
+  @Delete('users/:userId')
+  deleteAccount(@Param('userId') userId: string) {
+    return authService.deleteAccount(userId);
   }
 }

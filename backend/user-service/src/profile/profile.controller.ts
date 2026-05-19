@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { PrismaClient } from '../../generated/client';
 
 const prisma = new PrismaClient();
@@ -77,5 +77,16 @@ export class ProfileController {
       headline: profile.headline,
       settings: profile.settings,
     };
+  }
+
+  @Delete(':userId')
+  async deleteProfile(@Param('userId') userId: string) {
+    await prisma.userProfile.deleteMany({
+      where: {
+        authUserId: userId,
+      },
+    });
+
+    return { success: true };
   }
 }

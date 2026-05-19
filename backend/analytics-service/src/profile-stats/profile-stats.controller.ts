@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import axios from 'axios';
 import { PrismaClient } from '../../generated/client';
 
@@ -296,5 +296,20 @@ export class ProfileStatsController {
         currentStreak: gamification.currentStreak,
       },
     };
+  }
+
+  @Delete(':userId')
+  async deleteStats(@Param('userId') userId: string) {
+    await prisma.$transaction([
+      prisma.weeklyStatCard.deleteMany({ where: { userId } }),
+      prisma.statisticsPeriodSnapshot.deleteMany({ where: { userId } }),
+      prisma.activityPoint.deleteMany({ where: { userId } }),
+      prisma.categoryProgressSnapshot.deleteMany({ where: { userId } }),
+      prisma.userMetricSnapshot.deleteMany({ where: { userId } }),
+      prisma.goalTrend.deleteMany({ where: { userId } }),
+      prisma.weeklyReport.deleteMany({ where: { userId } }),
+    ]);
+
+    return { success: true };
   }
 }

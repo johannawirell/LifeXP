@@ -70,6 +70,11 @@ export class GoalsController {
     return goalsQueryService.deleteGoal(userId, goalId);
   }
 
+  @Delete('user-data/:userId')
+  deleteUserData(@Param('userId') userId: string) {
+    return goalsQueryService.deleteUserData(userId);
+  }
+
   @Get(':userId')
   getGoalsPage(@Param('userId') userId: string) {
     return goalsQueryService.getGoalsPage(userId);

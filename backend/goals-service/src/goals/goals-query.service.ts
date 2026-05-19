@@ -741,6 +741,23 @@ export class GoalsQueryService {
     return this.getGoalsPage(userId);
   }
 
+  async deleteUserData(userId: string) {
+    await this.prisma.$transaction([
+      this.prisma.quest.deleteMany({
+        where: {
+          userId,
+        },
+      }),
+      this.prisma.goal.deleteMany({
+        where: {
+          userId,
+        },
+      }),
+    ]);
+
+    return { success: true };
+  }
+
   async getGoalTemplatePage(userId: string | undefined, category = 'popular'): Promise<GoalTemplatePageResponse> {
     const normalizedCategory = category.toLowerCase();
     const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';

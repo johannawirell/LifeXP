@@ -53,6 +53,7 @@ export type ProfileResponse = {
     amount: number;
     title: string;
     description: string;
+    category?: string | null;
     multiplier: number;
   }[];
   achievements: {

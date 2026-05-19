@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { PrismaClient, SkillCategory, XpSourceType } from '../../generated/client';
 
 const prisma = new PrismaClient();
@@ -97,7 +97,7 @@ export class ProfileGamificationController {
 
   @Get(':userId')
   async getGamification(@Param('userId') userId: string) {
-    const record = await prisma.userGamification.findUnique({
+    let record = await prisma.userGamification.findUnique({
       where: { userId },
       include: {
         focusAreas: {
@@ -115,6 +115,32 @@ export class ProfileGamificationController {
         },
       },
     });
+
+    if (!record) {
+      throw new NotFoundException('No gamification profile found');
+    }
+
+    if (record.focusAreas.length < defaultFocusAreas.length) {
+      await this.backfillDefaultFocusAreas(record.id, record.focusAreas);
+      record = await prisma.userGamification.findUnique({
+        where: { userId },
+        include: {
+          focusAreas: {
+            orderBy: { position: 'asc' },
+          },
+          achievements: {
+            orderBy: { position: 'asc' },
+            include: {
+              achievementDefinition: true,
+            },
+          },
+          xpEntries: {
+            orderBy: { createdAt: 'desc' },
+            take: 6,
+          },
+        },
+      });
+    }
 
     if (!record) {
       throw new NotFoundException('No gamification profile found');
@@ -164,6 +190,17 @@ export class ProfileGamificationController {
     };
   }
 
+  @Delete(':userId')
+  async deleteGamification(@Param('userId') userId: string) {
+    await prisma.userGamification.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    return { success: true };
+  }
+
   private async ensureProfile(userId: string) {
     const existing = await prisma.userGamification.findUnique({
       where: {
@@ -195,6 +232,32 @@ export class ProfileGamificationController {
           })),
         },
       },
+    });
+  }
+
+  private async backfillDefaultFocusAreas(
+    userGamificationId: string,
+    existingAreas: { key: SkillCategory }[]
+  ) {
+    const existingKeys = new Set(existingAreas.map((area) => area.key));
+    const missingAreas = defaultFocusAreas.filter((area) => !existingKeys.has(area.key));
+
+    if (missingAreas.length === 0) {
+      return;
+    }
+
+    await prisma.focusArea.createMany({
+      data: missingAreas.map((area, index) => ({
+        userGamificationId,
+        key: area.key,
+        icon: area.icon,
+        title: area.title,
+        level: 1,
+        currentXp: 0,
+        maxXp: 100,
+        color: area.color,
+        position: existingAreas.length + index,
+      })),
     });
   }
 

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LevelUpModal } from '@/components/profile/level-up-modal';
@@ -11,7 +11,15 @@ import { profileStyles as styles } from '@/components/profile/styles';
 import type { ProfileResponse } from '@/components/profile/types';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
-import { fetchJson } from '@/lib/api';
+import { deleteJson, fetchJson } from '@/lib/api';
+
+const fallbackFocusAreas: ProfileResponse['focusAreas'] = [
+  { id: 'training', key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', level: 1, currentXp: 0, maxXp: 100, color: '#73D86A' },
+  { id: 'productivity', key: 'PRODUCTIVITY', icon: 'school-outline', title: 'Lärande', level: 1, currentXp: 0, maxXp: 100, color: '#6DA6FF' },
+  { id: 'social', key: 'SOCIAL', icon: 'people-outline', title: 'Relationer', level: 1, currentXp: 0, maxXp: 100, color: '#FF7EA8' },
+  { id: 'health', key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', level: 1, currentXp: 0, maxXp: 100, color: '#F5C13C' },
+  { id: 'mindfulness', key: 'MINDFULNESS', icon: 'leaf-outline', title: 'Mindset', level: 1, currentXp: 0, maxXp: 100, color: '#B77BFF' },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -20,6 +28,8 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCategoryHistoryOpen, setIsCategoryHistoryOpen] = useState(false);
+  const [isDeleteAccountConfirmVisible, setIsDeleteAccountConfirmVisible] = useState(false);
   const [levelUpState, setLevelUpState] = useState<{ level: number } | null>(null);
   const [achievementState, setAchievementState] = useState<{ title: string; rarity: string } | null>(null);
   const previousProfileRef = useRef<ProfileResponse | null>(null);
@@ -156,6 +166,21 @@ export default function ProfileScreen() {
     { enabled: mode !== 'empty' && Boolean(userId) }
   );
 
+  const deleteAccount = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      await deleteJson(`/profile/${userId}`);
+      setIsDeleteAccountConfirmVisible(false);
+      resetSession();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unknown error');
+      setIsDeleteAccountConfirmVisible(false);
+    }
+  }, [resetSession, userId]);
+
   if (mode === 'empty') {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -235,6 +260,8 @@ export default function ProfileScreen() {
     });
   };
 
+  const focusAreas = profile.focusAreas.length > 0 ? profile.focusAreas : fallbackFocusAreas;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -276,6 +303,15 @@ export default function ProfileScreen() {
                   style={styles.settingsMenuItem}>
                   <Ionicons name="log-out-outline" size={18} color="#F7F3FF" />
                   <Text style={styles.settingsMenuText}>Logga ut</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setIsSettingsOpen(false);
+                    setIsDeleteAccountConfirmVisible(true);
+                  }}
+                  style={styles.settingsMenuItem}>
+                  <Ionicons name="trash-outline" size={18} color="#FF8C8C" />
+                  <Text style={styles.settingsMenuDangerText}>Ta bort konto</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -326,42 +362,51 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.statsGrid}>
-          {profile.focusAreas.map((item) => (
-            <View key={item.id} style={styles.statCard}>
-              <Ionicons name={item.icon} size={24} color={item.color} />
-              <Text style={styles.statTitle}>{item.title}</Text>
-              <Text style={styles.statLevel}>Level {item.level}</Text>
-              <View style={styles.smallProgressTrack}>
-                <View
-                  style={[
-                    styles.smallProgressFill,
-                    {
-                      backgroundColor: item.color,
-                      width: `${Math.min((item.currentXp / item.maxXp) * 100, 100)}%`,
-                    },
-                  ]}
-                />
+        <View style={styles.sectionCard}>
+          <SectionHeader title="Dina kategoriers level" action="Visa alla" onPress={() => setIsCategoryHistoryOpen(true)} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryLevelRow}>
+            {focusAreas.map((item) => (
+              <View key={item.id} style={styles.categoryLevelCard}>
+                <View style={styles.statHeaderRow}>
+                  <View style={[styles.statIconWrap, { backgroundColor: `${item.color}20` }]}>
+                    <Ionicons name={item.icon} size={20} color={item.color} />
+                  </View>
+                </View>
+                <Text style={styles.statTitle}>{item.title}</Text>
+                <Text style={[styles.categoryLevelValue, { color: item.color }]}>Level {item.level}</Text>
+                <View style={styles.smallProgressTrack}>
+                  <View
+                    style={[
+                      styles.smallProgressFill,
+                      {
+                        backgroundColor: item.color,
+                        width: `${Math.min((item.currentXp / item.maxXp) * 100, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.statProgress}>
+                  {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')} XP
+                </Text>
               </View>
-              <Text style={styles.statProgress}>
-                {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')}
-              </Text>
-            </View>
-          ))}
+            ))}
+          </ScrollView>
         </View>
 
-        <View style={styles.sectionCard}>
-          <SectionHeader title="Senaste XP" />
-          {profile.recentXp.map((entry, index) => (
-            <View key={entry.id} style={[styles.xpEntryRow, index < profile.recentXp.length - 1 ? styles.rowBorder : null]}>
-              <View style={styles.xpEntryText}>
-                <Text style={styles.xpEntryTitle}>{entry.title}</Text>
-                <Text style={styles.xpEntryDescription}>{entry.description}</Text>
+        {profile.recentXp.length > 0 ? (
+          <View style={styles.sectionCard}>
+            <SectionHeader title="Senaste XP" />
+            {profile.recentXp.map((entry, index) => (
+              <View key={entry.id} style={[styles.xpEntryRow, index < profile.recentXp.length - 1 ? styles.rowBorder : null]}>
+                <View style={styles.xpEntryText}>
+                  <Text style={styles.xpEntryTitle}>{entry.title}</Text>
+                  <Text style={styles.xpEntryDescription}>{entry.description}</Text>
+                </View>
+                <Text style={styles.xpEntryValue}>+{entry.amount} XP</Text>
               </View>
-              <Text style={styles.xpEntryValue}>+{entry.amount} XP</Text>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.sectionCard}>
           <SectionHeader title="Aktiva mål" action="Visa alla" onPress={openGoalsPage} />
@@ -477,6 +522,94 @@ export default function ProfileScreen() {
         scale={levelUpScale}
         onClose={() => setLevelUpState(null)}
       />
+      <Modal
+        visible={isDeleteAccountConfirmVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setIsDeleteAccountConfirmVisible(false)}>
+        <View style={styles.categoryModalBackdrop}>
+          <View style={styles.deleteAccountCard}>
+            <Text style={styles.deleteAccountTitle}>Ta bort konto?</Text>
+            <Text style={styles.deleteAccountText}>
+              Det här tar bort kontot och all data som hör till det: mål, levels, statistik, quests och prestationer.
+            </Text>
+            <View style={styles.deleteAccountActions}>
+              <Pressable
+                onPress={() => setIsDeleteAccountConfirmVisible(false)}
+                style={styles.deleteAccountSecondaryButton}>
+                <Text style={styles.deleteAccountSecondaryText}>Avbryt</Text>
+              </Pressable>
+              <Pressable onPress={() => void deleteAccount()} style={styles.deleteAccountPrimaryButton}>
+                <Text style={styles.deleteAccountPrimaryText}>Ta bort konto</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={isCategoryHistoryOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setIsCategoryHistoryOpen(false)}>
+        <View style={styles.categoryModalBackdrop}>
+          <View style={styles.categoryModalCard}>
+            <View style={styles.categoryModalHeader}>
+              <Text style={styles.categoryModalTitle}>Kategoriers level</Text>
+              <Pressable onPress={() => setIsCategoryHistoryOpen(false)} style={styles.categoryModalCloseButton}>
+                <Ionicons name="close" size={20} color="#F5F7FB" />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {focusAreas.map((item) => {
+                const categoryHistory = profile.recentXp.filter((entry) => entry.category === item.key);
+
+                return (
+                  <View key={item.id} style={styles.categoryHistoryCard}>
+                    <View style={styles.categoryHistoryHeader}>
+                      <View style={[styles.statIconWrap, { backgroundColor: `${item.color}20` }]}>
+                        <Ionicons name={item.icon} size={20} color={item.color} />
+                      </View>
+                      <View style={styles.categoryHistoryCopy}>
+                        <Text style={styles.categoryHistoryTitle}>{item.title}</Text>
+                        <Text style={[styles.categoryHistoryLevel, { color: item.color }]}>Level {item.level}</Text>
+                      </View>
+                      <Text style={styles.categoryHistoryXp}>
+                        {item.currentXp.toLocaleString('sv-SE')} / {item.maxXp.toLocaleString('sv-SE')} XP
+                      </Text>
+                    </View>
+                    <View style={styles.smallProgressTrack}>
+                      <View
+                        style={[
+                          styles.smallProgressFill,
+                          {
+                            backgroundColor: item.color,
+                            width: `${Math.min((item.currentXp / item.maxXp) * 100, 100)}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    {categoryHistory.length > 0 ? (
+                      <View style={styles.categoryHistoryList}>
+                        {categoryHistory.map((entry) => (
+                          <View key={entry.id} style={styles.categoryHistoryEntry}>
+                            <View style={styles.categoryHistoryEntryCopy}>
+                              <Text style={styles.categoryHistoryEntryTitle}>{entry.title}</Text>
+                              <Text style={styles.categoryHistoryEntryDescription}>{entry.description}</Text>
+                            </View>
+                            <Text style={styles.categoryHistoryEntryXp}>+{entry.amount} XP</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.categoryHistoryEmpty}>Ingen historik ännu i den här kategorin.</Text>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

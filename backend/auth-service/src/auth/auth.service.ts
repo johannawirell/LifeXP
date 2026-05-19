@@ -215,6 +215,16 @@ export class AuthService {
     return { success: true };
   }
 
+  async deleteAccount(userId: string) {
+    await this.prisma.authUser.deleteMany({
+      where: {
+        id: userId,
+      },
+    });
+
+    return { success: true };
+  }
+
   private async finishOAuthLogin(identity: OAuthIdentity, state: RedirectState) {
     const { authUser, isNewUser } = await this.upsertOAuthUser(identity);
 

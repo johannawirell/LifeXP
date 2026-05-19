@@ -612,6 +612,19 @@ export default function CreateGoalScreen() {
 
         {!isDetailView ? (
           <>
+            <View style={styles.selectionModeRow}>
+              <Pressable style={[styles.selectionModeButton, styles.selectionModeButtonActive]}>
+                <Text style={[styles.selectionModeText, styles.selectionModeTextActive]}>Välj mål</Text>
+              </Pressable>
+              <Pressable
+                style={styles.selectionModeButton}
+                onPress={() => {
+                  setSelectedTemplate(null);
+                  setDraft(buildCustomGoalDraft());
+                }}>
+                <Text style={styles.selectionModeText}>Skapa eget mål</Text>
+              </Pressable>
+            </View>
             <Text style={styles.sectionTitle}>Välj ett mål</Text>
             <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
 
@@ -626,6 +639,9 @@ export default function CreateGoalScreen() {
                     placeholder="Sök mål, t.ex. löpning eller 5 km"
                     placeholderTextColor="#6F7887"
                   />
+                  <Pressable onPress={() => setIsFilterPanelVisible(false)} style={styles.searchCloseButton}>
+                    <Ionicons name="close-outline" size={18} color="#C8D0DB" />
+                  </Pressable>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.difficultyFilterRow}>
                   {(['ALL', 'EASY', 'MEDIUM', 'HARD', 'EPIC', 'LEGENDARY'] as DifficultyFilter[]).map((filter) => (
@@ -648,18 +664,6 @@ export default function CreateGoalScreen() {
                 </ScrollView>
               </View>
             ) : null}
-
-            <Pressable
-              style={styles.customGoalButton}
-              onPress={() => {
-                setSelectedTemplate(null);
-                setDraft(buildCustomGoalDraft());
-              }}>
-              <Ionicons name="add" size={20} color="#C9A9FF" />
-              <View style={styles.customGoalTextWrap}>
-                <Text style={styles.customGoalTitle}>Skapa eget mål</Text>
-              </View>
-            </Pressable>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
               {page.categories.map((category) => (
@@ -1051,6 +1055,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  selectionModeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 18,
+  },
+  selectionModeButton: {
+    alignItems: 'center',
+    backgroundColor: '#121824',
+    borderColor: '#222B38',
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  selectionModeButtonActive: {
+    backgroundColor: '#241539',
+    borderColor: '#8B4EF4',
+  },
+  selectionModeText: {
+    color: '#AEB7C5',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  selectionModeTextActive: {
+    color: '#F7F3FF',
+  },
   discoveryPanel: {
     backgroundColor: '#121824',
     borderColor: '#1F2632',
@@ -1076,6 +1108,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     paddingVertical: 0,
+  },
+  searchCloseButton: {
+    alignItems: 'center',
+    backgroundColor: '#1A2230',
+    borderRadius: 999,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
   },
   difficultyFilterRow: {
     gap: 10,
@@ -1113,34 +1153,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 20,
     marginTop: 8,
-  },
-  customGoalButton: {
-    alignItems: 'center',
-    backgroundColor: '#151B24',
-    borderColor: '#7D43E8',
-    borderRadius: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  customGoalTextWrap: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  customGoalTitle: {
-    color: '#C9A9FF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  customGoalText: {
-    color: '#B6BECA',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 6,
   },
   categoryRow: {
     gap: 22,
