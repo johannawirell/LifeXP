@@ -5,12 +5,10 @@ const prisma = new PrismaClient();
 
 const defaultFocusAreas = [
   { key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', color: '#73D86A' },
-  { key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', color: '#F08A45' },
-  { key: 'PRODUCTIVITY', icon: 'flash-outline', title: 'Produktivitet', color: '#5E8BFF' },
-  { key: 'MINDFULNESS', icon: 'leaf-outline', title: 'Mindfulness', color: '#A866FF' },
-  { key: 'CAREER', icon: 'briefcase-outline', title: 'Karriär', color: '#6DA6FF' },
-  { key: 'CREATIVITY', icon: 'color-palette-outline', title: 'Kreativitet', color: '#FF77C8' },
-  { key: 'SOCIAL', icon: 'people-outline', title: 'Socialt', color: '#7A8CFF' },
+  { key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', color: '#F5C13C' },
+  { key: 'CAREER', icon: 'briefcase-outline', title: 'Jobb', color: '#6DA6FF' },
+  { key: 'PRODUCTIVITY', icon: 'school-outline', title: 'Lärande', color: '#67AFFF' },
+  { key: 'SOCIAL', icon: 'people-outline', title: 'Relationer', color: '#FF7EA8' },
   { key: 'FINANCE', icon: 'wallet-outline', title: 'Ekonomi', color: '#56D2C5' },
 ] as const;
 
@@ -95,6 +93,38 @@ export class ProfileGamificationController {
     return this.getGamification(body.userId);
   }
 
+  @Post(':userId/focus-areas')
+  async updateFocusAreas(
+    @Param('userId') userId: string,
+    @Body() body: { selectedKeys?: string[] }
+  ) {
+    const record = await this.ensureProfile(userId);
+    const selectedKeys = this.normalizeSelectedFocusKeys(body.selectedKeys);
+
+    await prisma.focusArea.updateMany({
+      where: {
+        userGamificationId: record.id,
+      },
+      data: {
+        isSelected: false,
+      },
+    });
+
+    await prisma.focusArea.updateMany({
+      where: {
+        userGamificationId: record.id,
+        key: {
+          in: selectedKeys,
+        },
+      },
+      data: {
+        isSelected: true,
+      },
+    });
+
+    return this.getGamification(userId);
+  }
+
   @Get(':userId')
   async getGamification(@Param('userId') userId: string) {
     let record = await prisma.userGamification.findUnique({
@@ -120,7 +150,8 @@ export class ProfileGamificationController {
       throw new NotFoundException('No gamification profile found');
     }
 
-    if (record.focusAreas.length < defaultFocusAreas.length) {
+    const managedKeys = new Set<SkillCategory>(defaultFocusAreas.map((area) => area.key));
+    if (record.focusAreas.filter((area) => managedKeys.has(area.key)).length < defaultFocusAreas.length) {
       await this.backfillDefaultFocusAreas(record.id, record.focusAreas);
       record = await prisma.userGamification.findUnique({
         where: { userId },
@@ -146,25 +177,45 @@ export class ProfileGamificationController {
       throw new NotFoundException('No gamification profile found');
     }
 
+    const managedFocusAreas = defaultFocusAreas
+      .map((definition) => record.focusAreas.find((area) => area.key === definition.key))
+      .filter(
+        (
+          area
+        ): area is (typeof record.focusAreas)[number] => Boolean(area)
+      );
+    const selectedFocusAreas = managedFocusAreas.filter((area) => area.isSelected);
+    const activeFocusAreas = selectedFocusAreas.length > 0 ? selectedFocusAreas : managedFocusAreas;
+    const derivedTotalXp = activeFocusAreas.reduce((sum, area) => sum + area.currentXp, 0);
+    const derivedLevel = this.getLevelForXp(derivedTotalXp);
+    const derivedNextLevelXp = this.getXpForLevel(derivedLevel + 1);
+    const currentLevelFloor = this.getXpForLevel(derivedLevel);
+    const levelSpan = Math.max(derivedNextLevelXp - currentLevelFloor, 1);
+    const levelProgress = Math.min(
+      Math.max((derivedTotalXp - currentLevelFloor) / levelSpan, 0),
+      1
+    );
+
     return {
-      currentLevel: record.currentLevel,
-      totalXp: record.totalXp,
-      nextLevelXp: record.nextLevelXp,
-      xpToNextLevel: Math.max(record.nextLevelXp - record.totalXp, 0),
-      levelProgress: record.nextLevelXp > 0 ? Math.min(record.totalXp / record.nextLevelXp, 1) : 0,
+      currentLevel: derivedLevel,
+      totalXp: derivedTotalXp,
+      nextLevelXp: derivedNextLevelXp,
+      xpToNextLevel: Math.max(derivedNextLevelXp - derivedTotalXp, 0),
+      levelProgress,
       currentStreak: record.currentStreak,
       bestStreak: record.bestStreak,
       headline: record.headline,
       currentLevelReward: await prisma.levelReward.findUnique({
         where: {
-          level: record.currentLevel,
+          level: derivedLevel,
         },
       }),
-      focusAreas: record.focusAreas.map((area) => ({
+      focusAreas: managedFocusAreas.map((area) => ({
         id: area.id,
         key: area.key,
         icon: area.icon,
         title: area.title,
+        isSelected: area.isSelected,
         level: area.level,
         currentXp: area.currentXp,
         maxXp: area.maxXp,
@@ -225,6 +276,7 @@ export class ProfileGamificationController {
         focusAreas: {
           create: defaultFocusAreas.map((area, index) => ({
             ...area,
+            isSelected: true,
             level: 1,
             currentXp: 0,
             maxXp: 100,
@@ -237,7 +289,7 @@ export class ProfileGamificationController {
 
   private async backfillDefaultFocusAreas(
     userGamificationId: string,
-    existingAreas: { key: SkillCategory }[]
+    existingAreas: { key: SkillCategory; isSelected?: boolean }[]
   ) {
     const existingKeys = new Set(existingAreas.map((area) => area.key));
     const missingAreas = defaultFocusAreas.filter((area) => !existingKeys.has(area.key));
@@ -252,6 +304,7 @@ export class ProfileGamificationController {
         key: area.key,
         icon: area.icon,
         title: area.title,
+        isSelected: true,
         level: 1,
         currentXp: 0,
         maxXp: 100,
@@ -259,6 +312,28 @@ export class ProfileGamificationController {
         position: existingAreas.length + index,
       })),
     });
+  }
+
+  private normalizeSelectedFocusKeys(selectedKeys: string[] | undefined) {
+    const fallback = defaultFocusAreas.map((area) => area.key);
+    if (!selectedKeys || selectedKeys.length === 0) {
+      return fallback;
+    }
+
+    const keyMap: Record<string, SkillCategory> = {
+      training: 'TRAINING',
+      health: 'HEALTH',
+      job: 'CAREER',
+      learning: 'PRODUCTIVITY',
+      social: 'SOCIAL',
+      finance: 'FINANCE',
+    };
+
+    const mapped = selectedKeys
+      .map((key) => keyMap[key.toLowerCase()])
+      .filter(Boolean);
+
+    return mapped.length > 0 ? mapped : fallback;
   }
 
   private getXpForLevel(level: number) {

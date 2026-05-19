@@ -70,6 +70,7 @@ export default function AuthScreen() {
       const userId = typeof parsed.queryParams?.userId === 'string' ? parsed.queryParams.userId : null;
       const authProvider =
         typeof parsed.queryParams?.provider === 'string' ? parsed.queryParams.provider : provider;
+      const isNewUser = parsed.queryParams?.isNewUser === 'true';
 
       if (!accessToken || !refreshToken || !userId) {
         throw new Error('OAuth-svaret saknade access token, refresh token eller userId.');
@@ -80,6 +81,7 @@ export default function AuthScreen() {
         refreshToken,
         userId,
         provider: authProvider,
+        isNewUser,
       });
 
       router.replace('/(tabs)/profile');

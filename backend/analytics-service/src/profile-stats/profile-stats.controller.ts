@@ -4,6 +4,53 @@ import { PrismaClient } from '../../generated/client';
 
 const prisma = new PrismaClient();
 
+type GoalSummaryResponse = {
+  completedGoals: number;
+  activeGoals: number;
+  completedMilestones: number;
+  totalMilestones: number;
+  averageProgress: string;
+  streakDays: number;
+  completedQuests: number;
+  totalQuestXp: number;
+};
+
+type GamificationResponse = {
+  totalXp: number;
+  currentLevel: number;
+  xpToNextLevel: number;
+  currentStreak: number;
+  bestStreak: number;
+  focusAreas: {
+    key: string;
+    title: string;
+    level: number;
+    currentXp: number;
+    maxXp: number;
+    color: string;
+  }[];
+};
+
+const emptyGoalSummary: GoalSummaryResponse = {
+  completedGoals: 0,
+  activeGoals: 0,
+  completedMilestones: 0,
+  totalMilestones: 0,
+  averageProgress: '0 %',
+  streakDays: 0,
+  completedQuests: 0,
+  totalQuestXp: 0,
+};
+
+const emptyGamification: GamificationResponse = {
+  totalXp: 0,
+  currentLevel: 1,
+  xpToNextLevel: 100,
+  currentStreak: 0,
+  bestStreak: 0,
+  focusAreas: [],
+};
+
 @Controller('profile-stats')
 export class ProfileStatsController {
   @Post('provision')
@@ -84,35 +131,16 @@ export class ProfileStatsController {
           where: { userId },
           orderBy: { position: 'asc' },
         }),
-        axios.get(`${goalsServiceUrl}/goals/${userId}/summary`),
-        axios.get(`${gamificationServiceUrl}/profile-gamification/${userId}`),
+        axios
+          .get<GoalSummaryResponse>(`${goalsServiceUrl}/goals/${userId}/summary`)
+          .catch(() => ({ data: emptyGoalSummary })),
+        axios
+          .get<GamificationResponse>(`${gamificationServiceUrl}/profile-gamification/${userId}`)
+          .catch(() => ({ data: emptyGamification })),
       ]);
 
-    const goalSummary = goalSummaryResponse.data as {
-      completedGoals: number;
-      activeGoals: number;
-      completedMilestones: number;
-      totalMilestones: number;
-      averageProgress: string;
-      streakDays: number;
-      completedQuests: number;
-      totalQuestXp: number;
-    };
-    const gamification = gamificationResponse.data as {
-      totalXp: number;
-      currentLevel: number;
-      xpToNextLevel: number;
-      currentStreak: number;
-      bestStreak: number;
-      focusAreas: {
-        key: string;
-        title: string;
-        level: number;
-        currentXp: number;
-        maxXp: number;
-        color: string;
-      }[];
-    };
+    const goalSummary = goalSummaryResponse.data;
+    const gamification = gamificationResponse.data;
 
     const completionRate =
       goalSummary.totalMilestones > 0

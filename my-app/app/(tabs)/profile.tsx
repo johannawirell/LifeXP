@@ -11,25 +11,28 @@ import { profileStyles as styles } from '@/components/profile/styles';
 import type { ProfileResponse } from '@/components/profile/types';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
-import { deleteJson, fetchJson } from '@/lib/api';
+import { deleteJson, fetchJson, postJson } from '@/lib/api';
 
 const fallbackFocusAreas: ProfileResponse['focusAreas'] = [
   { id: 'training', key: 'TRAINING', icon: 'barbell-outline', title: 'Träning', level: 1, currentXp: 0, maxXp: 100, color: '#73D86A' },
+  { id: 'career', key: 'CAREER', icon: 'briefcase-outline', title: 'Jobb', level: 1, currentXp: 0, maxXp: 100, color: '#6DA6FF' },
   { id: 'productivity', key: 'PRODUCTIVITY', icon: 'school-outline', title: 'Lärande', level: 1, currentXp: 0, maxXp: 100, color: '#6DA6FF' },
   { id: 'social', key: 'SOCIAL', icon: 'people-outline', title: 'Relationer', level: 1, currentXp: 0, maxXp: 100, color: '#FF7EA8' },
   { id: 'health', key: 'HEALTH', icon: 'heart-outline', title: 'Hälsa', level: 1, currentXp: 0, maxXp: 100, color: '#F5C13C' },
-  { id: 'mindfulness', key: 'MINDFULNESS', icon: 'leaf-outline', title: 'Mindset', level: 1, currentXp: 0, maxXp: 100, color: '#B77BFF' },
+  { id: 'finance', key: 'FINANCE', icon: 'wallet-outline', title: 'Ekonomi', level: 1, currentXp: 0, maxXp: 100, color: '#56D2C5' },
 ];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { mode, userId, resetSession } = useSession();
+  const { mode, userId, resetSession, requiresOnboarding, completeOnboarding } = useSession();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCategoryHistoryOpen, setIsCategoryHistoryOpen] = useState(false);
   const [isDeleteAccountConfirmVisible, setIsDeleteAccountConfirmVisible] = useState(false);
+  const [selectedFocusKeys, setSelectedFocusKeys] = useState<string[]>([]);
+  const [isSavingFocusAreas, setIsSavingFocusAreas] = useState(false);
   const [levelUpState, setLevelUpState] = useState<{ level: number } | null>(null);
   const [achievementState, setAchievementState] = useState<{ title: string; rarity: string } | null>(null);
   const previousProfileRef = useRef<ProfileResponse | null>(null);
@@ -130,11 +133,19 @@ export default function ProfileScreen() {
       previousProfileRef.current = data;
       setProfile(data);
     } catch (loadError) {
+      const message = loadError instanceof Error ? loadError.message : 'Unknown error';
+
+      if (message.includes('status 404')) {
+        resetSession();
+        router.replace('/');
+        return;
+      }
+
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [animateAchievement, animateLevelUp, mode, userId]);
+  }, [animateAchievement, animateLevelUp, mode, resetSession, router, userId]);
 
   useEffect(() => {
     void loadProfile();
@@ -166,6 +177,22 @@ export default function ProfileScreen() {
     { enabled: mode !== 'empty' && Boolean(userId) }
   );
 
+  useEffect(() => {
+    if (!requiresOnboarding || !profile) {
+      return;
+    }
+
+    const initialSelected = profile.focusAreas
+      .filter((area) => area.isSelected)
+      .map((area) => area.key.toLowerCase());
+
+    setSelectedFocusKeys(
+      initialSelected.length > 0
+        ? initialSelected
+        : profile.focusAreas.map((area) => area.key.toLowerCase())
+    );
+  }, [profile, requiresOnboarding]);
+
   const deleteAccount = useCallback(async () => {
     if (!userId) {
       return;
@@ -175,11 +202,37 @@ export default function ProfileScreen() {
       await deleteJson(`/profile/${userId}`);
       setIsDeleteAccountConfirmVisible(false);
       resetSession();
+      router.replace('/');
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Unknown error');
       setIsDeleteAccountConfirmVisible(false);
     }
-  }, [resetSession, userId]);
+  }, [resetSession, router, userId]);
+
+  const toggleFocusKey = (key: string) => {
+    setSelectedFocusKeys((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    );
+  };
+
+  const saveFocusAreas = useCallback(async () => {
+    if (!userId || selectedFocusKeys.length === 0) {
+      return;
+    }
+
+    try {
+      setIsSavingFocusAreas(true);
+      await postJson(`/profile/${userId}/focus-areas`, {
+        selectedKeys: selectedFocusKeys,
+      });
+      completeOnboarding();
+      await loadProfile();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unknown error');
+    } finally {
+      setIsSavingFocusAreas(false);
+    }
+  }, [completeOnboarding, loadProfile, selectedFocusKeys, userId]);
 
   if (mode === 'empty') {
     return (
@@ -299,6 +352,7 @@ export default function ProfileScreen() {
                   onPress={() => {
                     setIsSettingsOpen(false);
                     resetSession();
+                    router.replace('/');
                   }}
                   style={styles.settingsMenuItem}>
                   <Ionicons name="log-out-outline" size={18} color="#F7F3FF" />
@@ -543,6 +597,61 @@ export default function ProfileScreen() {
                 <Text style={styles.deleteAccountPrimaryText}>Ta bort konto</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={requiresOnboarding && Boolean(profile)}
+        animationType="fade"
+        transparent
+        onRequestClose={() => undefined}>
+        <View style={styles.categoryModalBackdrop}>
+          <View style={styles.onboardingCard}>
+            <Text style={styles.onboardingTitle}>Välj dina fokuskategorier</Text>
+            <Text style={styles.onboardingText}>
+              Dina val styr din generella level och vilka mål som prioriteras för dig. Välj minst en kategori.
+            </Text>
+            <Pressable
+              onPress={() => setSelectedFocusKeys(focusAreas.map((area) => area.key.toLowerCase()))}
+              style={styles.selectAllButton}>
+              <Text style={styles.selectAllButtonText}>Markera alla</Text>
+            </Pressable>
+            <View style={styles.focusCategoryGrid}>
+              {focusAreas.map((item) => {
+                const normalizedKey = item.key.toLowerCase();
+                const isActive = selectedFocusKeys.includes(normalizedKey);
+
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => toggleFocusKey(normalizedKey)}
+                    style={[
+                      styles.focusCategoryChip,
+                      isActive ? styles.focusCategoryChipActive : null,
+                    ]}>
+                    <Ionicons name={item.icon} size={18} color={isActive ? '#F7F3FF' : item.color} />
+                    <Text
+                      style={[
+                        styles.focusCategoryChipText,
+                        isActive ? styles.focusCategoryChipTextActive : null,
+                      ]}>
+                      {item.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() => void saveFocusAreas()}
+              disabled={selectedFocusKeys.length === 0 || isSavingFocusAreas}
+              style={[
+                styles.onboardingPrimaryButton,
+                selectedFocusKeys.length === 0 || isSavingFocusAreas ? styles.onboardingPrimaryButtonDisabled : null,
+              ]}>
+              <Text style={styles.onboardingPrimaryButtonText}>
+                {isSavingFocusAreas ? 'Sparar...' : 'Fortsätt'}
+              </Text>
+            </Pressable>
           </View>
         </View>
       </Modal>

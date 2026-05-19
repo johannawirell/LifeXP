@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { disconnectLiveUpdatesSocket } from '@/lib/live-updates';
 
@@ -10,6 +11,7 @@ type AuthSessionPayload = {
   refreshToken: string;
   userId: string;
   provider: string;
+  isNewUser?: boolean;
 };
 
 type SessionContextValue = {
@@ -19,8 +21,10 @@ type SessionContextValue = {
   accessToken: string | null;
   refreshToken: string | null;
   authProvider: string | null;
+  requiresOnboarding: boolean;
   startEmptyMode: () => void;
   startAuthenticatedSession: (payload: AuthSessionPayload) => void;
+  completeOnboarding: () => void;
   resetSession: () => void;
 };
 
@@ -67,6 +71,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const clearSession = async () => {
     await AsyncStorage.removeItem(SESSION_STORAGE_KEY);
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      window.sessionStorage.clear();
+
+      if (typeof document !== 'undefined' && document.cookie) {
+        document.cookie.split(';').forEach((cookie) => {
+          const [name] = cookie.split('=');
+          const trimmedName = name?.trim();
+
+          if (!trimmedName) {
+            return;
+          }
+
+          document.cookie = `${trimmedName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        });
+      }
+    }
   };
 
   const value = useMemo<SessionContextValue>(
@@ -82,6 +104,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       accessToken: authSession?.accessToken ?? null,
       refreshToken: authSession?.refreshToken ?? null,
       authProvider: authSession?.provider ?? null,
+      requiresOnboarding: Boolean(authSession?.isNewUser),
       startEmptyMode: () => {
         disconnectLiveUpdatesSocket();
         setAuthSession(null);
@@ -93,6 +116,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setAuthSession(payload);
         setMode('authenticated');
         void persistSession('authenticated', payload);
+      },
+      completeOnboarding: () => {
+        if (!authSession) {
+          return;
+        }
+
+        const nextSession = {
+          ...authSession,
+          isNewUser: false,
+        };
+
+        setAuthSession(nextSession);
+        void persistSession('authenticated', nextSession);
       },
       resetSession: () => {
         disconnectLiveUpdatesSocket();

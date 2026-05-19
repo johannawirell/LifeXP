@@ -823,12 +823,21 @@ export class GoalsQueryService {
     const focusAreas =
       (gamificationResponse?.data as
         | {
-            focusAreas?: { key: string; level: number }[];
+            focusAreas?: { key: string; level: number; isSelected?: boolean }[];
           }
         | undefined)?.focusAreas ?? [];
+    const activeFocusAreas = focusAreas.filter((area) => area.isSelected);
     const sortedTemplates = [...availableTemplates].sort((left, right) => {
-      const leftScore = this.getTemplateSortingScore(left, normalizedCategory, focusAreas);
-      const rightScore = this.getTemplateSortingScore(right, normalizedCategory, focusAreas);
+      const leftScore = this.getTemplateSortingScore(
+        left,
+        normalizedCategory,
+        activeFocusAreas.length > 0 ? activeFocusAreas : focusAreas
+      );
+      const rightScore = this.getTemplateSortingScore(
+        right,
+        normalizedCategory,
+        activeFocusAreas.length > 0 ? activeFocusAreas : focusAreas
+      );
 
       if (leftScore !== rightScore) {
         return leftScore - rightScore;

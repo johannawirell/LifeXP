@@ -16,6 +16,7 @@ export type ProfileResponse = {
     key: string;
     icon: keyof typeof Ionicons.glyphMap;
     title: string;
+    isSelected?: boolean;
     level: number;
     currentXp: number;
     maxXp: number;
