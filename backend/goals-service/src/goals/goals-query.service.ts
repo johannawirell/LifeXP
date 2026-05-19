@@ -1382,16 +1382,16 @@ export class GoalsQueryService {
   }
 
   private getRecommendedDifficultyRank(level: number) {
-    if (level <= 1) {
+    if (level <= 4) {
       return 1;
     }
-    if (level <= 3) {
+    if (level <= 9) {
       return 2;
     }
-    if (level <= 6) {
+    if (level <= 19) {
       return 3;
     }
-    if (level <= 10) {
+    if (level <= 39) {
       return 4;
     }
 
@@ -1422,6 +1422,7 @@ export class GoalsQueryService {
       category: GoalTemplateCategory;
       difficulty: GoalDifficulty;
       subtitle: string[];
+      isPopular: boolean;
       position: number;
     },
     selectedCategory: string,
@@ -1438,10 +1439,12 @@ export class GoalsQueryService {
       1;
     const recommendedRank = this.getRecommendedDifficultyRank(focusLevel);
     const difficultyDistance = Math.abs(this.getDifficultyRank(template.difficulty) - recommendedRank);
+    const categoryPopularityBoost =
+      selectedCategory !== 'popular' && template.isPopular ? -1.5 : 0;
     const overlapBoost =
       selectedCategory !== 'popular' && template.subtitle.includes(selectedCategory) ? -0.25 : 0;
 
-    return difficultyDistance + overlapBoost;
+    return difficultyDistance + categoryPopularityBoost + overlapBoost;
   }
 
   private mapCategoryLabelToSkillCategory(label: string) {

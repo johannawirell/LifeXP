@@ -25,6 +25,7 @@ type GoalTemplateSummary = {
   subtitle: string[];
   summaryDescription: string;
   category: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
   color: string;
   totalXpReward: number;
   summaryDetails: {
@@ -112,6 +113,8 @@ type CreateGoalResponse = {
   message: string;
 };
 
+type DifficultyFilter = 'ALL' | 'EASY' | 'MEDIUM' | 'HARD' | 'EPIC' | 'LEGENDARY';
+
 export default function CreateGoalScreen() {
   const { mode, userId } = useSession();
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
@@ -124,6 +127,9 @@ export default function CreateGoalScreen() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
   const [showTemplateQuests, setShowTemplateQuests] = useState(false);
+  const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false);
+  const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const isCustomGoal = !selectedTemplate && Boolean(draft);
 
   const selectedMilestone =
@@ -226,6 +232,32 @@ export default function CreateGoalScreen() {
 
     return value;
   };
+
+  const filteredTemplates = page?.templates.filter((template) => {
+    const matchesDifficulty =
+      difficultyFilter === 'ALL' || template.difficulty === difficultyFilter;
+
+    if (!matchesDifficulty) {
+      return false;
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    const searchableParts = [
+      template.title,
+      template.summaryDescription,
+      template.category,
+      template.difficulty,
+      ...template.subtitle,
+      ...template.summaryDetails.flatMap((detail) => [detail.label, detail.value]),
+    ];
+
+    return searchableParts.some((part) => part.toLowerCase().includes(query));
+  }) ?? [];
 
   const loadTemplates = useCallback(async (category: string) => {
     try {
@@ -555,7 +587,19 @@ export default function CreateGoalScreen() {
           <Ionicons name="arrow-back" size={24} color="#F5F7FB" />
         </Pressable>
         <Text style={styles.screenTitle}>{selectedTemplate || draft ? 'Redigera mål' : 'Lägg till mål'}</Text>
-        <View style={styles.topBarSpacer} />
+        {isDetailView ? (
+          <View style={styles.topBarSpacer} />
+        ) : (
+          <Pressable
+            style={styles.topBarButton}
+            onPress={() => setIsFilterPanelVisible((current) => !current)}>
+            <Ionicons
+              name={isFilterPanelVisible ? 'close-outline' : 'search-outline'}
+              size={22}
+              color="#F5F7FB"
+            />
+          </Pressable>
+        )}
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -570,6 +614,40 @@ export default function CreateGoalScreen() {
           <>
             <Text style={styles.sectionTitle}>Välj ett mål</Text>
             <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
+
+            {isFilterPanelVisible ? (
+              <View style={styles.discoveryPanel}>
+                <View style={styles.searchRow}>
+                  <Ionicons name="search-outline" size={18} color="#A8B0BC" />
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    style={styles.searchInput}
+                    placeholder="Sök mål, t.ex. löpning eller 5 km"
+                    placeholderTextColor="#6F7887"
+                  />
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.difficultyFilterRow}>
+                  {(['ALL', 'EASY', 'MEDIUM', 'HARD', 'EPIC', 'LEGENDARY'] as DifficultyFilter[]).map((filter) => (
+                    <Pressable
+                      key={filter}
+                      style={[
+                        styles.difficultyFilterChip,
+                        difficultyFilter === filter ? styles.difficultyFilterChipActive : null,
+                      ]}
+                      onPress={() => setDifficultyFilter(filter)}>
+                      <Text
+                        style={[
+                          styles.difficultyFilterChipText,
+                          difficultyFilter === filter ? styles.difficultyFilterChipTextActive : null,
+                        ]}>
+                        {filter === 'ALL' ? 'Alla svårigheter' : filter}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
 
             <Pressable
               style={styles.customGoalButton}
@@ -604,7 +682,7 @@ export default function CreateGoalScreen() {
               ))}
             </ScrollView>
 
-            {page.templates.map((template) => (
+            {filteredTemplates.map((template) => (
               <Pressable key={template.id} style={styles.templateCard} onPress={() => void loadTemplateDetail(template.id)}>
                 <View style={[styles.templateIconWrap, { backgroundColor: `${template.color}22` }]}>
                   <Ionicons name={template.icon} size={28} color={template.color} />
@@ -638,12 +716,12 @@ export default function CreateGoalScreen() {
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
             ))}
-            {page.templates.length === 0 ? (
+            {filteredTemplates.length === 0 ? (
               <View style={styles.emptyTemplateCard}>
                 <Ionicons name="checkmark-done-outline" size={28} color="#A866FF" />
-                <Text style={styles.emptyTemplateTitle}>Inga fler mål i den här kategorin</Text>
+                <Text style={styles.emptyTemplateTitle}>Inga mål matchade filtreringen</Text>
                 <Text style={styles.emptyTemplateText}>
-                  Du har redan aktiva eller avslutade mål här. Skapa ett eget mål om du vill fortsätta bygga vidare.
+                  Testa en annan svårighetsgrad eller ett annat sökord. Du kan också skapa ett eget mål om du vill bygga vidare.
                 </Text>
               </View>
             ) : null}
@@ -972,6 +1050,56 @@ const styles = StyleSheet.create({
     color: '#C9A9FF',
     fontSize: 12,
     fontWeight: '700',
+  },
+  discoveryPanel: {
+    backgroundColor: '#121824',
+    borderColor: '#1F2632',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginHorizontal: 20,
+    marginTop: 18,
+    padding: 14,
+  },
+  searchRow: {
+    alignItems: 'center',
+    backgroundColor: '#0F1520',
+    borderColor: '#252E3D',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    color: '#F5F7FB',
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  difficultyFilterRow: {
+    gap: 10,
+    paddingTop: 14,
+  },
+  difficultyFilterChip: {
+    backgroundColor: '#101722',
+    borderColor: '#222B38',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  difficultyFilterChipActive: {
+    backgroundColor: '#241539',
+    borderColor: '#8B4EF4',
+  },
+  difficultyFilterChipText: {
+    color: '#AEB7C5',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  difficultyFilterChipTextActive: {
+    color: '#F7F3FF',
   },
   sectionTitle: {
     color: '#F5F7FB',
