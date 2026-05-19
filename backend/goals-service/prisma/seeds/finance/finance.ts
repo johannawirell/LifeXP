@@ -1,60 +1,182 @@
 import type { GoalTemplateSeed } from '../template-seed-types';
-
+import { EverydaySavingSharedQuests } from './finance-types';
 export const financeGoalTemplates: GoalTemplateSeed[] = [
+  // EASY
   {
-    title: 'Bygg en buffert',
+    title: 'Minska onödiga utgifter',
     icon: 'wallet-outline',
     subtitle: ['finance'],
-    summaryDescription: 'Spara ihop en trygg ekonomisk buffert steg för steg.',
+    summaryDescription: 'Få bättre kontroll över din ekonomi genom att minska små onödiga köp.',
     detailDescription:
-      'Det här målet hjälper dig att skapa ett stabilare ekonomiskt läge genom att bygga upp en buffert med tydliga sparsteg.',
+      '',
     category: 'FINANCE',
     difficulty: 'EASY',
-    goalXpReward: 180,
-    totalXpReward: 760,
+    goalXpReward: 100,
+    totalXpReward: 600,
     color: '#56D2C5',
     isPopular: true,
     details: [
       { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
       { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
       { label: 'Fokus', value: 'Sparande och trygghet', visibility: 'SUMMARY' },
-      { label: 'Passar dig som', value: 'vill få mer kontroll över oväntade utgifter', visibility: 'DETAIL' },
       { label: 'Metod', value: 'Kartläggning, budget och löpande sparmål', visibility: 'DETAIL' },
     ],
     milestones: [
-      { title: 'Räkna ut hur stor buffert du vill ha' },
-      { title: 'Gå igenom fasta och rörliga utgifter' },
-      { title: 'Sätt upp ett separat buffertsparande' },
-      { title: 'Automatisera en månadsöverföring' },
-      { title: 'Följ upp bufferten varje månad' },
+     {
+        title: 'Kartlägg  utgifter',
+        description: 'Få en överblick över vad dina pengar går till.',
+        xpReward: 50,
+        subtasks: [
+          'Skriv ner alla dina köp under den senaste månaden',
+          'Identifiera minst 3 onödiga utgifter',
+          'Skapa inköpslistor för dina vanliga inköp',
+          'Sätt upp ett maxbelopp för utgifter per vecka'
+        ],
+        tips: [
+          'Finns det abonnemang du inte använder?',
+          'Finns det billigare alternativ till dina vanliga köp?',
+        ],
+      }, {
+        title: 'Första veckan utan onödiga köp',
+        description:'Skapa bättre vanor och minska småutgifter.',
+        xpReward: 100,
+        subtasks: [
+          'Klara en veckans maxbelopp',
+          'Följ dina inköpslistor i en hel vecka',
+        ],
+        tips: [
+          'Håll dig till inköpslistor och maxbelopp',
+          'Undvik takeaway och impulsköp',
+        ],
+      },
+      {
+        title: 'Andra veckan utan onödiga köp',
+        description:'Fortsätt bygga dina ekonomiska vanor.',
+        xpReward: 100,
+        subtasks: [
+          'Klara ännu en vecka inom veckans maxbelopp',
+          'Följ dina inköpslistor i ytterligare en vecka',
+        ],
+        tips: [
+          'Du har redan klarat en vecka, fortsätt så!',
+          'Fira dina framsteg och påminn dig om varför du gör detta',
+        ],
+      }, 
+      {
+        title: 'Tredje veckan utan onödiga köp',
+        description:'Nästan där! Du är redan halvvägs!',
+        xpReward: 100,
+        subtasks: [
+         'Klara ännu en vecka inom veckans maxbelopp',
+         'Följ dina inköpslistor i ytterligare en vecka',
+        ],
+        tips: [
+          'Du har redan klarat två veckor, fortsätt så!', 
+          'Fira dina framsteg och påminn dig om varför du gör detta'],
+      },
+      {
+        title: 'Första månaden utan onödiga köp',
+        description:'Nästan där! Snart har du klara en hel månad av bättre ekonomiska vanor.',
+        xpReward: 250,
+        subtasks: [
+         'Klara ännu en vecka inom veckans maxbelopp',
+         'Följ dina inköpslistor i ytterligare en vecka',
+        ],
+        tips: ['Du är snart i mål, fortsätt så!'],
+      }
     ],
+    quests: EverydaySavingSharedQuests,
   },
+  // MEDIUM
   {
-    title: 'Betala av skulder',
-    icon: 'card-outline',
-    subtitle: ['finance'],
-    summaryDescription: 'Skapa en konkret plan för att minska och bli fri från skulder.',
+    title: 'Bli en cykelpendlare',
+    icon: 'bicycle-outline',
+    subtitle: ['finance', 'training'],
+    summaryDescription:
+      'Minska på dina transportkostnader och spara på miljön genom att börja cykelpendla istället för att åka bil.',
     detailDescription:
-      'Målet bryter ner skuldsanering i tydliga steg så att du kan prioritera rätt, få överblick och följa avbetalningen löpande.',
+      '',
     category: 'FINANCE',
-    difficulty: 'HARD',
-    goalXpReward: 220,
-    totalXpReward: 900,
+    difficulty: 'MEDIUM',
+    goalXpReward: 100,
+    totalXpReward: 600,
     color: '#56D2C5',
-    isPopular: false,
+    isPopular: true,
     details: [
       { label: 'Kategori', value: 'Ekonomi', visibility: 'SUMMARY' },
       { label: 'Upplägg', value: 'utvecklingssteg', visibility: 'SUMMARY' },
-      { label: 'Fokus', value: 'Avbetalning och överblick', visibility: 'SUMMARY' },
-      { label: 'Passar dig som', value: 'vill få kontroll över lån, krediter eller andra skulder', visibility: 'DETAIL' },
-      { label: 'Metod', value: 'Skuldlista, prioritering och uppföljning', visibility: 'DETAIL' },
+      { label: 'Fokus', value: 'Minskade transportkostnader', visibility: 'SUMMARY' },
+      { label: 'Metod', value: 'Planering, cykelpendling och veckomål', visibility: 'DETAIL' },
     ],
     milestones: [
-      { title: 'Lista alla skulder och räntor' },
-      { title: 'Välj avbetalningsstrategi' },
-      { title: 'Sätt en realistisk månadsbudget' },
-      { title: 'Betala extra på den prioriterade skulden' },
-      { title: 'Följ upp framsteg varje månad' },
+      {
+        title: 'Förbered cykelpendling',
+        description: 'Gör det enkelt att välja cykeln istället för bilen.',
+        xpReward: 50,
+        subtasks: [
+          'Räkna ut ungefär vad en bilresa till destinationen kostar',
+          'Se över din cykel, pumpa exempelvis däcken',
+          'Planera hur mycket tid du behöver för att cykla till destinationen',
+        ],
+        tips: [
+          'Planera kläder efter väder dagen innan',
+          'För varje cykelresa sparar du både pengar och miljö'
+        ],
+      },
+      {
+        title: 'Första veckan',
+        description: 'Kom igång med att byta ut några bilresor mot cykel.',
+        xpReward: 50,
+        subtasks: [
+          'Cykla till jobbet minst 1 dag denna vecka',
+          'Undvik bilen för korta vardagsresor när det går',
+        ],
+        tips: [
+          'Börja med en dag, inte hela veckan direkt.',
+          'Se till att du har gott om tid',
+          'Notera hur mycket pengar du sparade på färre bilresor',
+        ],
+      },
+      {
+        title: 'Andra veckan',
+        description: 'Bygg vidare och gör cyklingen mer naturlig i vardagen.',
+        xpReward: 100,
+        subtasks: [
+          'Cykla till destinationen minst 2 dagar denna vecka',
+          'Undvik bilen för korta vardagsresor när det går',
+        ],
+        tips: [
+          'Lägg fram allt du behöver kvällen innan.',
+          'Fokusera på vanan, inte på hastigheten.',
+        ],
+      },
+      {
+        title: 'Tredje veckan',
+        description: 'Fortsätt minska bilresorna och stärk rutinen.',
+        xpReward: 100,
+        subtasks: [
+          'Cykla till destinationen minst 4 dagar denna vecka',
+          'Undvik bilen för korta vardagsresor när det går',
+        ],
+        tips: [
+          'Påminn dig om både ekonomin och hälsovinsten.',
+          'Ha en reservplan för dåligt väder.'
+        ],
+      },
+      {
+        title: 'Första månaden som cykelpendlare',
+        description: 'Gör cykeln till ett naturligt alternativ i vardagen.',
+        xpReward: 250,
+        subtasks: [
+          'Cykla till destinationen varje dag denna vecka',
+          'Undvik bilen för korta vardagsresor när det går',
+        ],
+        tips: [
+          'Du har snart klarat en hel månad, fortsätt så!',
+          'Fira dina framsteg och påminn dig om varför du gör detta'
+        ],
+      },
     ],
   },
+ 
 ];

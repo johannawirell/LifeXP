@@ -53,7 +53,7 @@ export class GoalsController {
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/from-template/${templateId}`, body);
     this.emitUserUpdate({
       userId,
-      resources: ['goals', 'profile', 'statistics'],
+      resources: ['goals', 'profile', 'statistics', 'goal-templates'],
       type: 'invalidate',
     });
 
@@ -66,7 +66,7 @@ export class GoalsController {
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/quests`, body);
     this.emitUserUpdate({
       userId,
-      resources: ['goals', 'profile', 'statistics'],
+      resources: ['goals', 'profile', 'statistics', 'goal-templates'],
       type: 'invalidate',
     });
 
@@ -79,7 +79,7 @@ export class GoalsController {
     const response = await axios.post(`${goalsServiceUrl}/goals/${userId}/custom`, body);
     this.emitUserUpdate({
       userId,
-      resources: ['goals', 'profile', 'statistics'],
+      resources: ['goals', 'profile', 'statistics', 'goal-templates'],
       type: 'invalidate',
     });
 
@@ -160,7 +160,7 @@ export class GoalsController {
     const response = await axios.delete(`${goalsServiceUrl}/goals/${userId}/${goalId}`);
     this.emitUserUpdate({
       userId,
-      resources: ['goals', 'profile', 'statistics'],
+      resources: ['goals', 'profile', 'statistics', 'goal-templates'],
       type: 'invalidate',
     });
 
