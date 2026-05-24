@@ -12,7 +12,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
     summaryDescription: 'Träna regelbundet och bygg styrka över tid.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    focusLabel: 'Muskelmassa och styrka',
+    focusLabel: 'Träningsvana',
     totalXpReward: 700,
     color: CATEGORY_COLORS.training,
     isPopular: true,

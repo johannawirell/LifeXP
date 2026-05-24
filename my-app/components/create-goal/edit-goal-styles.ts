@@ -36,9 +36,14 @@ export const editGoalStyles = StyleSheet.create({
     position: 'relative',
   },
   heroBackground: {
-    borderRadius: 24,
-    minHeight: 258,
-    overflow: 'hidden',
+    borderRadius: 26,
+    bottom: 0,
+    height: '100%',
+    opacity: 0.7,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: '100%',
   },
   heroBackgroundImage: {
     opacity: 0.9,
@@ -54,12 +59,9 @@ export const editGoalStyles = StyleSheet.create({
   detailHeroRow: {
     flexDirection: 'row',
     gap: 18,
+    alignItems: 'flex-start',
     minHeight: 214,
     justifyContent: 'space-between',
-  },
-  detailHeroRowStacked: {
-    minHeight: undefined,
-    flexDirection: 'column',
   },
   detailHeroLeft: {
     flexDirection: 'row',
@@ -70,20 +72,24 @@ export const editGoalStyles = StyleSheet.create({
     borderRadius: 28,
     height: 108,
     justifyContent: 'center',
+    minWidth: 68,
     width: 108,
   },
   detailHeroCopy: {
     flex: 1,
     justifyContent: 'flex-start',
+    minWidth: 0,
     paddingTop: 10,
   },
   heroTitleInput: {
     color: '#F7F9FC',
+    flexShrink: 1,
     fontSize: 24,
     fontWeight: '800',
-    lineHeight: 30,
+    minWidth: 0,
     paddingHorizontal: 0,
     paddingVertical: 0,
+    width: '100%',
   },
   detailMetaPills: {
     alignItems: 'flex-start',
@@ -117,16 +123,12 @@ export const editGoalStyles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 22,
   },
-  detailXpBadgeStacked: {
-    alignSelf: 'stretch',
-    minWidth: undefined,
-    width: '100%',
-  },
   detailXpBadgeValue: {
     color: '#F5F7FB',
     fontSize: 24,
     fontWeight: '800',
     marginTop: 10,
+    textAlign: 'center',
   },
   detailXpBadgeLabel: {
     color: '#E6EAF0',
@@ -134,6 +136,9 @@ export const editGoalStyles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 6,
     textAlign: 'center',
+  },
+  detailXpBadgeLabelCompact: {
+    fontSize: 10,
   },
   heroCategoryRow: {
     flexDirection: 'row',
@@ -169,24 +174,14 @@ export const editGoalStyles = StyleSheet.create({
   overviewGrid: {
     flexDirection: 'row',
   },
-  overviewGridWrapped: {
-    flexWrap: 'wrap',
-    rowGap: 20,
-  },
   overviewGridItem: {
     flex: 1,
     minHeight: 126,
     paddingHorizontal: 18,
   },
-  overviewGridItemWrapped: {
-    flexBasis: '50%',
-    minHeight: 108,
-    paddingBottom: 8,
-    paddingHorizontal: 10,
-  },
   overviewGridItemCompact: {
     minHeight: 100,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   overviewGridDivider: {
     borderRightColor: '#253144',
@@ -279,7 +274,7 @@ export const editGoalStyles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 22,
-    paddingVertical: 10,
+    padding: 10,
   },
   milestoneIndexWrap: {
     alignItems: 'center',

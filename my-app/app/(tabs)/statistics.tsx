@@ -183,8 +183,6 @@ export default function StatisticsScreen() {
         <Text style={styles.screenTitle}>Statistik</Text>
 
         <View style={styles.heroCard}>
-          <View style={styles.heroGlowPrimary} />
-          <View style={styles.heroGlowSecondary} />
           <View style={styles.heroTop}>
             <View>
               <Text style={styles.heroLabel}>Total XP</Text>
@@ -331,26 +329,7 @@ const styles = StyleSheet.create({
     padding: 18,
     position: 'relative',
   },
-  heroGlowPrimary: {
-    backgroundColor: '#8B4EF4',
-    borderRadius: 160,
-    height: 220,
-    opacity: 0.16,
-    position: 'absolute',
-    right: -80,
-    top: -100,
-    width: 220,
-  },
-  heroGlowSecondary: {
-    backgroundColor: '#5E8BFF',
-    borderRadius: 120,
-    height: 160,
-    left: -70,
-    opacity: 0.12,
-    position: 'absolute',
-    top: 40,
-    width: 160,
-  },
+ 
   heroTop: { flexDirection: 'row', justifyContent: 'space-between' },
   heroLabel: { color: '#98A2B3', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   heroValue: { color: '#F5F7FB', fontSize: 28, fontWeight: '800', marginTop: 8 },

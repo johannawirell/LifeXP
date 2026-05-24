@@ -120,15 +120,6 @@ export const goalsScreenStyles = StyleSheet.create({
     padding: 24,
     position: 'relative',
   },
-  goalArtworkGlow: {
-    borderRadius: 220,
-    height: 260,
-    opacity: 0.95,
-    position: 'absolute',
-    right: -80,
-    top: 24,
-    width: 260,
-  },
   goalCardHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',

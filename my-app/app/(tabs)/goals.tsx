@@ -471,7 +471,6 @@ export default function GoalsScreen() {
 
         {goalCards.map((goal) => (
           <Pressable key={goal.id} style={styles.goalCard} onPress={() => void loadGoalDetail(goal.id)}>
-            <View style={[styles.goalArtworkGlow, { backgroundColor: `${goal.color}22` }]} />
             <View style={styles.goalCardHeader}>
               <View style={styles.goalHeader}>
                 <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
