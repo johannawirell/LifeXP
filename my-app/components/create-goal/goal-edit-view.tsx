@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Dispatch, SetStateAction } from 'react';
-import { ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect } from 'react';
+import { Image, ImageBackground, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { editGoalStyles as styles } from './edit-goal-styles';
 import type { EditableTemplateDraft, GoalTemplateDetailResponse } from './types';
@@ -31,8 +32,6 @@ type Props = {
   removeMilestone: (milestoneId: string) => void;
   setShowTemplateQuests: Dispatch<SetStateAction<boolean>>;
   showTemplateQuests: boolean;
-  isCreatingGoal: boolean;
-  onCreateGoal: () => void;
 };
 
 export function GoalEditView({
@@ -50,9 +49,15 @@ export function GoalEditView({
   removeMilestone,
   setShowTemplateQuests,
   showTemplateQuests,
-  isCreatingGoal,
-  onCreateGoal,
 }: Props) {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 820;
+  const isMedium = width >= 820 && width < 1180;
+  const isCompact = width < 720;
+  const titleFontSize = width < 720 ? 22 : width < 1180 ? 24 : 28;
+  const titleLineHeight = titleFontSize + 6;
+  const leftPaneWidth = isNarrow ? '100%' : isMedium ? '62%' : '58%';
+  const resolvedBackground = Image.resolveAssetSource(backgroundImage);
   const overviewItems = (
     selectedTemplate?.overviewItems ?? [
       { id: 'custom-category', label: 'Kategori', value: draft.subtitle, icon: 'pricetag-outline' as const },
@@ -61,6 +66,10 @@ export function GoalEditView({
       { id: 'custom-xp', label: 'Belöning', value: `${computedTotalXpReward} XP`, icon: 'sparkles-outline' as const },
     ]
   ).slice(0, 4);
+
+  useEffect(() => {
+    console.log('[GoalEditView] background.png asset', resolvedBackground);
+  }, [resolvedBackground]);
 
   return (
     <>
@@ -72,11 +81,15 @@ export function GoalEditView({
       ) : null}
 
       <View style={[styles.detailCard, styles.heroCard]}>
-        <ImageBackground source={backgroundImage} style={styles.heroBackground} imageStyle={styles.heroBackgroundImage}>
+        <ImageBackground
+          source={backgroundImage}
+          style={styles.heroBackground}
+          imageStyle={styles.heroBackgroundImage}
+          resizeMode="cover">
           <View style={styles.heroOverlay} />
-          <View style={styles.detailCard}>
-            <View style={styles.detailHeroRow}>
-              <View style={styles.detailHeroLeft}>
+          <View style={styles.heroContent}>
+            <View style={[styles.detailHeroRow, isNarrow ? styles.detailHeroRowStacked : null]}>
+              <View style={[styles.detailHeroLeft, { width: leftPaneWidth }]}>
                 <View style={[styles.detailHeroIconWrap, { backgroundColor: `${draft.color}22` }]}>
                   <Ionicons name={draft.icon} size={46} color="#F7F3FF" />
                 </View>
@@ -84,26 +97,30 @@ export function GoalEditView({
                   <TextInput
                     value={draft.title}
                     onChangeText={(text) => setDraft((current) => (current ? { ...current, title: text } : current))}
-                    style={styles.heroTitleInput}
+                    style={[styles.heroTitleInput, { fontSize: titleFontSize, lineHeight: titleLineHeight }]}
                     placeholder="Måltitel"
                     placeholderTextColor="#6F7887"
                   />
                   <View style={styles.detailMetaPills}>
                     <View style={styles.heroDifficultyPill}>
-                      <Text style={styles.heroDifficultyPillText}>{draft.difficulty}</Text>
+                      <Text style={[styles.heroDifficultyPillText, isCompact ? styles.heroDifficultyPillTextCompact : null]}>
+                        {draft.difficulty}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.heroCategoryRow}>
                     {parseSubtitleTokens(draft.subtitle).map((subtitle) => (
                       <View key={`draft-${subtitle}`} style={styles.heroCategoryBadge}>
                         <View style={styles.heroCategoryDot} />
-                        <Text style={styles.heroCategoryText}>{mapSubtitleLabel(subtitle)}</Text>
+                        <Text style={[styles.heroCategoryText, isCompact ? styles.heroCategoryTextCompact : null]}>
+                          {mapSubtitleLabel(subtitle)}
+                        </Text>
                       </View>
                     ))}
                   </View>
                 </View>
               </View>
-              <View style={styles.detailXpBadge}>
+              <View style={[styles.detailXpBadge, isNarrow ? styles.detailXpBadgeStacked : null]}>
                 <Ionicons name="trophy-outline" size={28} color="#F5C13C" />
                 <Text style={styles.detailXpBadgeValue}>{computedTotalXpReward} XP</Text>
                 <Text style={styles.detailXpBadgeLabel}>total belöning</Text>
@@ -115,18 +132,25 @@ export function GoalEditView({
 
       <View style={styles.detailCard}>
         <Text style={styles.detailCardTitle}>Översikt</Text>
-        <View style={styles.overviewGrid}>
+        <View style={[styles.overviewGrid, isNarrow ? styles.overviewGridWrapped : null]}>
           {overviewItems.map((detail, index, array) => (
             <View
               key={detail.id}
-              style={[styles.overviewGridItem, index < array.length - 1 ? styles.overviewGridDivider : null]}>
+              style={[
+                styles.overviewGridItem,
+                isNarrow ? styles.overviewGridItemWrapped : null,
+                isCompact ? styles.overviewGridItemCompact : null,
+                !isNarrow && index < array.length - 1 ? styles.overviewGridDivider : null,
+              ]}>
               {detail.icon ? (
-                <View style={styles.detailRowIconWrap}>
-                  <Ionicons name={detail.icon} size={22} color="#C9A9FF" />
+                <View style={[styles.detailRowIconWrap, isCompact ? styles.detailRowIconWrapCompact : null]}>
+                  <Ionicons name={detail.icon} size={isCompact ? 18 : 22} color="#C9A9FF" />
                 </View>
               ) : null}
-              <Text style={styles.detailLabel}>{detail.label}</Text>
-              <Text style={styles.overviewGridValue}>{getDynamicDetailValue(detail.label, detail.value)}</Text>
+              <Text style={[styles.detailLabel, isCompact ? styles.detailLabelCompact : null]}>{detail.label}</Text>
+              <Text style={[styles.overviewGridValue, isCompact ? styles.overviewGridValueCompact : null]}>
+                {getDynamicDetailValue(detail.label, detail.value)}
+              </Text>
             </View>
           ))}
         </View>
@@ -152,20 +176,33 @@ export function GoalEditView({
                   <Pressable
                     style={styles.milestoneEditorHeader}
                     onPress={() => setExpandedMilestoneId((current) => (current === milestone.id ? null : milestone.id))}>
-                    <View style={styles.milestoneIndexWrap}>
-                      <Text style={styles.milestoneIndexText}>{index + 1}</Text>
+                    <View style={[styles.milestoneIndexWrap, isCompact ? styles.milestoneIndexWrapCompact : null]}>
+                      <Text style={[styles.milestoneIndexText, isCompact ? styles.milestoneIndexTextCompact : null]}>
+                        {index + 1}
+                      </Text>
                     </View>
-                    <View style={[styles.milestoneMetaIconWrap, { backgroundColor: `${accentColor}22` }]}>
-                      <Ionicons name={milestoneIcon} size={26} color={accentColor} />
+                    <View
+                      style={[
+                        styles.milestoneMetaIconWrap,
+                        isCompact ? styles.milestoneMetaIconWrapCompact : null,
+                        { backgroundColor: `${accentColor}22` },
+                      ]}>
+                      <Ionicons name={milestoneIcon} size={isCompact ? 22 : 26} color={accentColor} />
                     </View>
                     <View style={styles.milestoneTextWrap}>
-                      <Text style={styles.milestoneEditorHeaderText}>{milestone.title}</Text>
+                      <Text style={[styles.milestoneEditorHeaderText, isCompact ? styles.milestoneEditorHeaderTextCompact : null]}>
+                        {milestone.title}
+                      </Text>
                       {milestone.description ? (
-                        <Text style={styles.milestoneDescription}>{milestone.description}</Text>
+                        <Text style={[styles.milestoneDescription, isCompact ? styles.milestoneDescriptionCompact : null]}>
+                          {milestone.description}
+                        </Text>
                       ) : null}
                     </View>
                     <View style={styles.milestoneXpBadge}>
-                      <Text style={styles.milestoneXpValue}>+{milestone.xpReward} XP</Text>
+                      <Text style={[styles.milestoneXpValue, isCompact ? styles.milestoneXpValueCompact : null]}>
+                        +{milestone.xpReward} XP
+                      </Text>
                     </View>
                   </Pressable>
                   <Pressable style={styles.trashButton} onPress={() => removeMilestone(milestone.id)} hitSlop={8}>
@@ -209,16 +246,6 @@ export function GoalEditView({
             ) : null}
           </>
         ) : null}
-
-        <View style={{ marginTop: 24 }}>
-          <Pressable
-            onPress={onCreateGoal}
-            style={[styles.addGoalButton, isCreatingGoal ? styles.addGoalButtonDisabled : null]}
-            disabled={isCreatingGoal}>
-            <Ionicons name="add" size={24} color="#F7F3FF" />
-            <Text style={styles.addGoalButtonText}>{isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}</Text>
-          </Pressable>
-        </View>
       </View>
     </>
   );

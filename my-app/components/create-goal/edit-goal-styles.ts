@@ -37,14 +37,19 @@ export const editGoalStyles = StyleSheet.create({
   },
   heroBackground: {
     borderRadius: 24,
+    minHeight: 258,
     overflow: 'hidden',
   },
   heroBackgroundImage: {
-    opacity: 0.2,
+    opacity: 0.9,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7, 16, 28, 0.72)',
+    backgroundColor: 'rgba(7, 16, 28, 0.2)',
+  },
+  heroContent: {
+    minHeight: 258,
+    padding: 22,
   },
   detailHeroRow: {
     flexDirection: 'row',
@@ -52,8 +57,11 @@ export const editGoalStyles = StyleSheet.create({
     minHeight: 214,
     justifyContent: 'space-between',
   },
+  detailHeroRowStacked: {
+    minHeight: undefined,
+    flexDirection: 'column',
+  },
   detailHeroLeft: {
-    flex: 1,
     flexDirection: 'row',
     gap: 18,
   },
@@ -71,8 +79,9 @@ export const editGoalStyles = StyleSheet.create({
   },
   heroTitleInput: {
     color: '#F7F9FC',
-    fontSize: 31,
+    fontSize: 24,
     fontWeight: '800',
+    lineHeight: 30,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -94,6 +103,9 @@ export const editGoalStyles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.4,
   },
+  heroDifficultyPillTextCompact: {
+    fontSize: 11,
+  },
   detailXpBadge: {
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -104,6 +116,11 @@ export const editGoalStyles = StyleSheet.create({
     minWidth: 178,
     paddingHorizontal: 18,
     paddingVertical: 22,
+  },
+  detailXpBadgeStacked: {
+    alignSelf: 'stretch',
+    minWidth: undefined,
+    width: '100%',
   },
   detailXpBadgeValue: {
     color: '#F5F7FB',
@@ -140,6 +157,9 @@ export const editGoalStyles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
+  heroCategoryTextCompact: {
+    fontSize: 15,
+  },
   detailCardTitle: {
     color: '#F5F7FB',
     fontSize: 22,
@@ -149,10 +169,24 @@ export const editGoalStyles = StyleSheet.create({
   overviewGrid: {
     flexDirection: 'row',
   },
+  overviewGridWrapped: {
+    flexWrap: 'wrap',
+    rowGap: 20,
+  },
   overviewGridItem: {
     flex: 1,
     minHeight: 126,
     paddingHorizontal: 18,
+  },
+  overviewGridItemWrapped: {
+    flexBasis: '50%',
+    minHeight: 108,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
+  },
+  overviewGridItemCompact: {
+    minHeight: 100,
+    paddingHorizontal: 12,
   },
   overviewGridDivider: {
     borderRightColor: '#253144',
@@ -167,16 +201,30 @@ export const editGoalStyles = StyleSheet.create({
     marginBottom: 18,
     width: 52,
   },
+  detailRowIconWrapCompact: {
+    borderRadius: 18,
+    height: 44,
+    marginBottom: 14,
+    width: 44,
+  },
   detailLabel: {
     color: '#D4D9E2',
     fontSize: 13,
     marginBottom: 10,
+  },
+  detailLabelCompact: {
+    fontSize: 12,
+    marginBottom: 8,
   },
   overviewGridValue: {
     color: '#F5F7FB',
     fontSize: 17,
     fontWeight: '800',
     lineHeight: 22,
+  },
+  overviewGridValueCompact: {
+    fontSize: 15,
+    lineHeight: 20,
   },
   milestonesHeaderRow: {
     alignItems: 'center',
@@ -202,16 +250,16 @@ export const editGoalStyles = StyleSheet.create({
   },
   timelineList: {
     marginTop: 8,
-    paddingLeft: 8,
+    paddingLeft: 20,
   },
   milestoneEditorCard: {
     minHeight: 94,
-    paddingLeft: 30,
+    paddingLeft: 52,
     position: 'relative',
   },
   timelineLine: {
     backgroundColor: '#7B3FE6',
-    left: 18,
+    left: 26,
     opacity: 0.65,
     position: 'absolute',
     top: 48,
@@ -230,7 +278,7 @@ export const editGoalStyles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 16,
+    gap: 22,
     paddingVertical: 10,
   },
   milestoneIndexWrap: {
@@ -241,14 +289,22 @@ export const editGoalStyles = StyleSheet.create({
     borderWidth: 1,
     height: 42,
     justifyContent: 'center',
-    left: -30,
+    left: -42,
     position: 'absolute',
     width: 42,
+  },
+  milestoneIndexWrapCompact: {
+    height: 38,
+    left: -38,
+    width: 38,
   },
   milestoneIndexText: {
     color: '#FFF7FF',
     fontSize: 20,
     fontWeight: '800',
+  },
+  milestoneIndexTextCompact: {
+    fontSize: 17,
   },
   milestoneMetaIconWrap: {
     alignItems: 'center',
@@ -256,6 +312,11 @@ export const editGoalStyles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     width: 56,
+  },
+  milestoneMetaIconWrapCompact: {
+    borderRadius: 16,
+    height: 48,
+    width: 48,
   },
   milestoneTextWrap: {
     flex: 1,
@@ -265,16 +326,26 @@ export const editGoalStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
+  milestoneEditorHeaderTextCompact: {
+    fontSize: 16,
+  },
   milestoneDescription: {
     color: '#D0D6DF',
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
   },
+  milestoneDescriptionCompact: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
   milestoneXpValue: {
     color: '#F7E8FF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  milestoneXpValueCompact: {
+    fontSize: 13,
   },
   milestoneXpBadge: {
     backgroundColor: '#563083',

@@ -550,7 +550,10 @@ export default function CreateGoalScreen() {
         )}
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, isDetailView ? styles.contentWithStickyCta : null]}
+        showsVerticalScrollIndicator={false}>
 
         {mode === 'empty' ? (
           <View style={styles.modeBadge}>
@@ -699,11 +702,20 @@ export default function CreateGoalScreen() {
             removeMilestone={removeMilestone}
             setShowTemplateQuests={setShowTemplateQuests}
             showTemplateQuests={showTemplateQuests}
-            isCreatingGoal={isCreatingGoal}
-            onCreateGoal={() => void handleCreateGoal()}
           />
         )}
       </ScrollView>
+      {isDetailView && draft && !isDetailLoading ? (
+        <View style={styles.stickyGoalFooter}>
+          <Pressable
+            onPress={() => void handleCreateGoal()}
+            style={[styles.stickyGoalButton, isCreatingGoal ? styles.stickyGoalButtonDisabled : null]}
+            disabled={isCreatingGoal}>
+            <Ionicons name="add" size={24} color="#F7F3FF" />
+            <Text style={styles.stickyGoalButtonText}>{isCreatingGoal ? 'Lägger till...' : 'Lägg till mål'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <MilestoneEditorModal
         milestone={selectedMilestone}
         onClose={() => setExpandedMilestoneId(null)}
@@ -731,6 +743,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 156,
+  },
+  contentWithStickyCta: {
+    paddingBottom: 220,
   },
   feedbackState: {
     alignItems: 'center',
@@ -794,6 +809,35 @@ const styles = StyleSheet.create({
   },
   topBarSpacer: {
     width: 24,
+  },
+  stickyGoalFooter: {
+    backgroundColor: 'rgba(9, 14, 22, 0.96)',
+    borderTopColor: '#171D28',
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    paddingBottom: 18,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    position: 'absolute',
+    right: 0,
+  },
+  stickyGoalButton: {
+    alignItems: 'center',
+    backgroundColor: '#9A5CF8',
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    paddingVertical: 18,
+  },
+  stickyGoalButtonDisabled: {
+    opacity: 0.6,
+  },
+  stickyGoalButtonText: {
+    color: '#F7F3FF',
+    fontSize: 17,
+    fontWeight: '800',
   },
   modeBadge: {
     alignSelf: 'flex-start',

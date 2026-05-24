@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, Text, View, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LevelUpModal } from '@/components/profile/level-up-modal';
@@ -410,8 +410,12 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.heroCard}>
-          <View style={styles.heroArtwork} />
+        <ImageBackground
+          source={require('@/assets/images/background3.png')}
+          style={styles.heroCard}
+          imageStyle={styles.heroCardImage}
+          resizeMode="contain"
+>
           <View style={styles.heroTop}>
             <View style={styles.avatarWrap}>
               <View style={styles.avatarOuter}>
@@ -453,7 +457,7 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </ImageBackground>
 
         <View style={styles.sectionCard}>
           <SectionHeader title="Dina kategorier & level" action="Visa alla" onPress={() => openCategoryHistory()} />
