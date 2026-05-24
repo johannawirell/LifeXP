@@ -414,7 +414,7 @@ export default function ProfileScreen() {
           source={require('@/assets/images/background3.png')}
           style={styles.heroCard}
           imageStyle={styles.heroCardImage}
-          resizeMode="contain"
+          resizeMode="cover"
 >
           <View style={styles.heroTop}>
             <View style={styles.avatarWrap}>
