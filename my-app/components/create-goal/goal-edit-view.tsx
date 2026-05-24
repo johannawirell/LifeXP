@@ -52,14 +52,15 @@ export function GoalEditView({
   const { width } = useWindowDimensions();
   const isCompact = width < 760;
   const isTight = width < 620;
-  const titleFontSize = width < 480 ? 14 : width < 560 ? 16 : width < 680 ? 18 : width < 820 ? 20 : width < 1180 ? 24 : 28;
+  const titleFontSize =
+    width < 420 ? 12 : width < 520 ? 14 : width < 610 ? 15 : width < 680 ? 17 : width < 820 ? 20 : width < 1180 ? 24 : 28;
   const titleLineHeight = titleFontSize + 6;
-  const leftPaneWidth = isTight ? '67%' : isCompact ? '66%' : width < 1180 ? '62%' : '58%';
+  const leftPaneWidth = width < 610 ? '70%' : isTight ? '67%' : isCompact ? '66%' : width < 1180 ? '62%' : '58%';
   const heroIconSize = width < 480 ? 28 : isTight ? 34 : isCompact ? 40 : 46;
   const heroXpIconSize = isTight ? 22 : isCompact ? 24 : 28;
-  const heroXpValueSize = isTight ? 18 : isCompact ? 20 : 24;
-  const heroXpBadgeWidth = width < 480 ? 110 : isTight ? 124 : isCompact ? 140 : 178;
-  const heroXpBadgePaddingVertical = width < 480 ? 12 : isTight ? 14 : isCompact ? 18 : 22;
+  const heroXpValueSize = width < 610 ? 16 : isTight ? 18 : isCompact ? 20 : 24;
+  const heroXpBadgeWidth = width < 420 ? 92 : width < 610 ? 106 : isTight ? 124 : isCompact ? 140 : 178;
+  const heroXpBadgePaddingVertical = width < 610 ? 10 : isTight ? 14 : isCompact ? 18 : 22;
   const overviewIconSize = isTight ? 16 : isCompact ? 18 : 22;
   const overviewValueSize = isTight ? 13 : isCompact ? 14 : 17;
   const overviewLabelSize = isTight ? 11 : isCompact ? 12 : 13;
