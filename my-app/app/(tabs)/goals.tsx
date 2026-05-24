@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoalCompletionModal } from '@/components/goals/goal-completion-modal';
 import { GoalDetailModal } from '@/components/goals/goal-detail-modal';
+import { AppIcon } from '@/components/ui/app-icon';
 import { goalsScreenStyles as styles } from '@/components/goals/goals-screen-styles';
 import type {
   GoalCard,
@@ -474,7 +475,7 @@ export default function GoalsScreen() {
             <View style={styles.goalCardHeader}>
               <View style={styles.goalHeader}>
                 <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
-                  <Ionicons name={goal.icon as keyof typeof Ionicons.glyphMap} size={30} color={goal.color} />
+                  <AppIcon name={goal.icon} size={30} color={goal.color} />
                 </View>
                 <View style={styles.goalHeaderText}>
                   <Text style={styles.goalTitle}>{goal.title}</Text>

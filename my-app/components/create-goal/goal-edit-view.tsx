@@ -4,6 +4,7 @@ import { ImageBackground, Pressable, Text, TextInput, View, useWindowDimensions 
 
 import { editGoalStyles as styles } from './edit-goal-styles';
 import type { EditableTemplateDraft, GoalTemplateDetailResponse } from './types';
+import { AppIcon } from '../ui/app-icon';
 
 const backgroundImage = require('@/assets/images/background3.png');
 
@@ -99,7 +100,7 @@ export function GoalEditView({
             <View style={styles.detailHeroRow}>
               <View style={[styles.detailHeroLeft, { width: leftPaneWidth }]}>
                 <View style={[styles.detailHeroIconWrap, { backgroundColor: `${draft.color}22` }]}>
-                  <Ionicons name={draft.icon} size={heroIconSize} color="#F7F3FF" />
+                  <AppIcon name={draft.icon} size={heroIconSize} color="#F7F3FF" />
                 </View>
                 <View style={styles.detailHeroCopy}>
                   <TextInput

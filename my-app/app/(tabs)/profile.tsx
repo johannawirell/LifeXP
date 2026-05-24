@@ -9,6 +9,7 @@ import { LevelUpModal } from '@/components/profile/level-up-modal';
 import { SectionHeader } from '@/components/profile/section-header';
 import { profileStyles as styles } from '@/components/profile/styles';
 import type { ProfileResponse } from '@/components/profile/types';
+import { AppIcon } from '@/components/ui/app-icon';
 import { useSession } from '@/context/session-context';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { ApiError, deleteJson, fetchJson, postJson } from '@/lib/api';
@@ -513,7 +514,7 @@ export default function ProfileScreen() {
               onPress={() => openGoalFromProfile(goal.id)}
               style={[styles.goalRow, index < profile.activeGoals.length - 1 ? styles.rowBorder : null]}>
               <View style={[styles.goalIconWrap, { backgroundColor: `${goal.color}22` }]}>
-                <Ionicons name={goal.icon} size={24} color={goal.color} />
+                <AppIcon name={goal.icon} size={24} color={goal.color} />
               </View>
               <View style={styles.goalContent}>
                 <View style={styles.goalTitleRow}>

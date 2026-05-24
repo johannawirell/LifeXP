@@ -48,6 +48,7 @@ export const GOAL_ICONS = {
   cash: 'cash-outline',
   bicycle: 'bicycle-outline',
   ban: 'ban-outline',
+  calendar: 'calendar-outline',
   leaf: 'leaf-outline',
   fitness: 'fitness-outline',
   school: 'school-outline',
@@ -56,6 +57,8 @@ export const GOAL_ICONS = {
   heart: 'heart-outline',
   people: 'people-outline',
   home: 'home-outline',
+  paw: 'paw-outline',
+  timer: 'timer-outline',
   walk: 'walk-outline',
   barbell: 'barbell-outline',
 } as const;

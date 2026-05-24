@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoalEditView } from '@/components/create-goal/goal-edit-view';
 import { MilestoneEditorModal } from '@/components/create-goal/milestone-editor-modal';
+import { AppIcon } from '@/components/ui/app-icon';
 import type {
   CreateGoalResponse,
   DifficultyFilter,
@@ -673,7 +674,7 @@ export default function CreateGoalScreen() {
             {filteredTemplates.map((template) => (
               <Pressable key={template.id} style={styles.templateCard} onPress={() => void loadTemplateDetail(template.id)}>
                 <View style={[styles.templateIconWrap, { backgroundColor: `${template.color}22` }]}>
-                  <Ionicons name={template.icon} size={28} color={template.color} />
+                  <AppIcon name={template.icon} size={28} color={template.color} />
                 </View>
                 <View style={styles.templateContent}>
                   <View style={styles.templateHeaderRow}>
