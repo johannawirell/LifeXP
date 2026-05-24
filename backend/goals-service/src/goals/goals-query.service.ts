@@ -1452,10 +1452,8 @@ export class GoalsQueryService {
         return 'Relationer';
       case 'finance':
         return 'Ekonomi';
-      case 'football':
-        return 'Fotboll';
-      case 'riding':
-        return 'Ridsport';
+      
+    
       case 'training':
         return 'Träning';
       default:

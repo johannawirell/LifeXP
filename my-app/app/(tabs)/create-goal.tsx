@@ -92,10 +92,6 @@ export default function CreateGoalScreen() {
       case 'social':
       case 'relationship':
         return 'Relationer';
-      case 'football':
-        return 'Fotboll';
-      case 'riding':
-        return 'Ridsport';
       case 'cycling': 
         return 'Cykling';
       default:

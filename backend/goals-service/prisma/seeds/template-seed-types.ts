@@ -36,11 +36,7 @@ export const GOAL_SUBTITLES = {
   running: 'running',
   strength: 'strength',
   cycling: 'cycling',
-  health: 'health',
-  football: 'football',
-  riding: 'riding',
   yoga: 'yoga',
-  swimming: 'swimming',
   walking: 'walking',
 
   // JOB SUBTITLES
@@ -48,6 +44,7 @@ export const GOAL_SUBTITLES = {
   // LEARNING SUBTITLES
   learning: 'learning',
   // HEALTH SUBTITLES
+  health: 'health',
   // ECONOMY SUBTITLES
   finance: 'finance',
   // SOCIAL SUBTITLES
