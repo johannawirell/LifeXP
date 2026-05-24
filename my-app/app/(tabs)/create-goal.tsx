@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,6 +30,7 @@ import { useLiveUpdates } from '@/hooks/use-live-updates';
 import { fetchJson, postJson } from '@/lib/api';
 
 export default function CreateGoalScreen() {
+  const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ category?: string | string[] }>();
   const { mode, userId } = useSession();
   const [page, setPage] = useState<GoalTemplatePageResponse | null>(null);
@@ -46,6 +48,12 @@ export default function CreateGoalScreen() {
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const isCustomGoal = !selectedTemplate && Boolean(draft);
+  const categoryCount = page?.categories.length ?? 7;
+  const categoryTrackWidth = Math.max(width - 40, 280);
+  const categoryItemWidth = categoryTrackWidth / categoryCount;
+  const categoryIconSize = width < 420 ? 18 : width < 640 ? 20 : 24;
+  const categoryWrapSize = width < 420 ? 40 : width < 640 ? 44 : 48;
+  const categoryLabelSize = width < 420 ? 9 : width < 640 ? 10 : 11;
 
   const selectedMilestone =
     draft?.milestones.find((milestone) => milestone.id === expandedMilestoneId) ?? null;
@@ -145,6 +153,12 @@ export default function CreateGoalScreen() {
     }
 
     return value;
+  };
+
+  const closeFilters = () => {
+    setIsFilterPanelVisible(false);
+    setDifficultyFilter('ALL');
+    setSearchQuery('');
   };
 
   const filteredTemplates = page?.templates.filter((template) => {
@@ -540,7 +554,14 @@ export default function CreateGoalScreen() {
         ) : (
           <Pressable
             style={styles.topBarButton}
-            onPress={() => setIsFilterPanelVisible((current) => !current)}>
+            onPress={() => {
+              if (isFilterPanelVisible) {
+                closeFilters();
+                return;
+              }
+
+              setIsFilterPanelVisible(true);
+            }}>
             <Ionicons
               name={isFilterPanelVisible ? 'close-outline' : 'search-outline'}
               size={22}
@@ -579,6 +600,39 @@ export default function CreateGoalScreen() {
             <Text style={styles.sectionTitle}>Välj ett mål</Text>
             <Text style={styles.sectionSubtitle}>Välj ett mål eller skapa ditt eget</Text>
 
+            <View style={styles.categoryRow}>
+              {page.categories.map((category) => (
+                <Pressable
+                  key={category.key}
+                  style={[styles.categoryItem, { width: categoryItemWidth }]}
+                  onPress={() => setSelectedCategory(category.key)}>
+                  <View
+                    style={[
+                      styles.categoryIconWrap,
+                      { height: categoryWrapSize, width: categoryWrapSize },
+                      category.key === page.selectedCategory ? styles.categoryIconWrapActive : null,
+                    ]}>
+                    <Ionicons
+                      name={category.icon}
+                      size={categoryIconSize}
+                      color={category.key === page.selectedCategory ? '#A866FF' : '#9AA3B2'}
+                    />
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                    style={[
+                      styles.categoryText,
+                      { fontSize: categoryLabelSize },
+                      category.key === page.selectedCategory ? styles.categoryTextActive : null,
+                    ]}>
+                    {category.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             {isFilterPanelVisible ? (
               <View style={styles.discoveryPanel}>
                 <View style={styles.searchRow}>
@@ -590,11 +644,11 @@ export default function CreateGoalScreen() {
                     placeholder="Sök mål, t.ex. löpning eller 5 km"
                     placeholderTextColor="#6F7887"
                   />
-                  <Pressable onPress={() => setIsFilterPanelVisible(false)} style={styles.searchCloseButton}>
+                  <Pressable onPress={closeFilters} style={styles.searchCloseButton}>
                     <Ionicons name="close-outline" size={18} color="#C8D0DB" />
                   </Pressable>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.difficultyFilterRow}>
+                <View style={styles.difficultyFilterRow}>
                   {(['ALL', 'EASY', 'MEDIUM', 'HARD', 'EPIC', 'LEGENDARY'] as DifficultyFilter[]).map((filter) => (
                     <Pressable
                       key={filter}
@@ -612,30 +666,9 @@ export default function CreateGoalScreen() {
                       </Text>
                     </Pressable>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             ) : null}
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-              {page.categories.map((category) => (
-                <Pressable key={category.key} style={styles.categoryItem} onPress={() => setSelectedCategory(category.key)}>
-                  <View
-                    style={[
-                      styles.categoryIconWrap,
-                      category.key === page.selectedCategory ? styles.categoryIconWrapActive : null,
-                    ]}>
-                    <Ionicons
-                      name={category.icon}
-                      size={24}
-                      color={category.key === page.selectedCategory ? '#A866FF' : '#9AA3B2'}
-                    />
-                  </View>
-                  <Text style={[styles.categoryText, category.key === page.selectedCategory ? styles.categoryTextActive : null]}>
-                    {category.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
 
             {filteredTemplates.map((template) => (
               <Pressable key={template.id} style={styles.templateCard} onPress={() => void loadTemplateDetail(template.id)}>
@@ -887,7 +920,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     marginHorizontal: 20,
-    marginTop: 18,
+    marginTop: 8,
     padding: 14,
   },
   searchRow: {
@@ -916,6 +949,8 @@ const styles = StyleSheet.create({
     width: 28,
   },
   difficultyFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     paddingTop: 14,
   },
@@ -953,29 +988,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   categoryRow: {
-    gap: 22,
+    flexDirection: 'row',
+    marginTop: 18,
     paddingHorizontal: 20,
-    paddingVertical: 18,
   },
   categoryItem: {
     alignItems: 'center',
-    width: 64,
+    paddingHorizontal: 2,
   },
   categoryIconWrap: {
     alignItems: 'center',
     backgroundColor: '#121824',
     borderRadius: 16,
-    height: 52,
+    height: 48,
     justifyContent: 'center',
-    width: 52,
+    width: 48,
   },
   categoryIconWrapActive: {
     backgroundColor: '#1E1930',
   },
   categoryText: {
     color: '#9AA3B2',
-    fontSize: 12,
-    marginTop: 10,
+    fontSize: 11,
+    marginTop: 8,
+    maxWidth: '100%',
     textAlign: 'center',
   },
   categoryTextActive: {

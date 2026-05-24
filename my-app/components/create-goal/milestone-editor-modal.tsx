@@ -35,9 +35,14 @@ export function MilestoneEditorModal({
         <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Redigera milestone</Text>
-            <Pressable onPress={onClose}>
-              <Ionicons name="close" size={22} color="#F5F7FB" />
-            </Pressable>
+            <View style={styles.modalHeaderActions}>
+              <Pressable onPress={onClose} style={styles.modalIconButton}>
+                <Ionicons name="checkmark" size={20} color="#F7F3FF" />
+              </Pressable>
+              <Pressable onPress={onClose} style={styles.modalIconButton}>
+                <Ionicons name="close" size={20} color="#F5F7FB" />
+              </Pressable>
+            </View>
           </View>
           {milestone ? (
             <ScrollView showsVerticalScrollIndicator={false}>

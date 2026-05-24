@@ -91,7 +91,7 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
     focusLabel: 'Minskade transportkostnader',
     totalXpReward: 600,
     color: CATEGORY_COLORS.finance,
-    isPopular: true,
+    isPopular: false,
     milestones: [
       {
         title: 'Förbered cykelpendling',

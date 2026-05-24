@@ -9,7 +9,7 @@ export const runningGoals: GoalTemplateSeed[] = [
     summaryDescription: 'Kom igång med löpning och klara din första kilometer utan paus.',
     category: 'TRAINING',
     difficulty: 'EASY',
-    focusLabel: 'Låg tröskel och första löpvanan',
+    focusLabel: 'Löpning',
     totalXpReward: 420,
     color: CATEGORY_COLORS.training,
     isPopular: true,

@@ -468,6 +468,21 @@ export const editGoalStyles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  modalHeaderActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalIconButton: {
+    alignItems: 'center',
+    backgroundColor: '#182233',
+    borderColor: '#263449',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
   modalTitle: {
     color: '#F5F7FB',
     fontSize: 22,
