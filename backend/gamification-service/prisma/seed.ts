@@ -175,6 +175,66 @@ async function main() {
       },
     },
   });
+
+  await prisma.achievementDefinition.createMany({
+    data: [
+      {
+        code: 'five-k-runner',
+        title: 'Femkilometerslöpare',
+        description: 'Klara målet Springa 5 km.',
+        xpReward: 100,
+        rarity: 'COMMON',
+        icon: 'walk-outline',
+        color: '#73D86A',
+      },
+      {
+        code: 'distance-runner',
+        title: 'Distanslöpare',
+        description: 'Klara målet Springa 10 km.',
+        xpReward: 150,
+        rarity: 'RARE',
+        icon: 'walk-outline',
+        color: '#73D86A',
+      },
+      {
+        code: 'half-marathoner',
+        title: 'Halvmaratonhjälte',
+        description: 'Klara målet Springa halvmaraton.',
+        xpReward: 220,
+        rarity: 'EPIC',
+        icon: 'walk-outline',
+        color: '#A866FF',
+      },
+      {
+        code: 'marathoner',
+        title: 'Maratonlegend',
+        description: 'Klara målet Springa maraton.',
+        xpReward: 300,
+        rarity: 'LEGENDARY',
+        icon: 'walk-outline',
+        color: '#F5C13C',
+      },
+      {
+        code: 'gym-routine',
+        title: 'Gymvanan',
+        description: 'Klara målet Börja gymma regelbundet.',
+        xpReward: 120,
+        rarity: 'COMMON',
+        icon: 'barbell-outline',
+        color: '#73D86A',
+      },
+      {
+        code: 'pushup-starter',
+        title: 'Armhävningsklar',
+        description: 'Klara målet Klara 10 armhävningar.',
+        xpReward: 120,
+        rarity: 'RARE',
+        icon: 'fitness-outline',
+        color: '#73D86A',
+      },
+    ],
+    skipDuplicates: true,
+  });
 }
 
 main()

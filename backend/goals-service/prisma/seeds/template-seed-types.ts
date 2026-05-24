@@ -31,16 +31,27 @@ export const CATEGORY_LABELS: Record<GoalTemplateCategory, string> = {
 };
 
 export const GOAL_SUBTITLES = {
+  // TRAINING SUBTITLES
   training: 'training',
   running: 'running',
   strength: 'strength',
+  cycling: 'cycling',
   health: 'health',
-  learning: 'learning',
-  job: 'job',
-  social: 'social',
-  finance: 'finance',
   football: 'football',
   riding: 'riding',
+  yoga: 'yoga',
+  swimming: 'swimming',
+  walking: 'walking',
+
+  // JOB SUBTITLES
+  job: 'job',
+  // LEARNING SUBTITLES
+  learning: 'learning',
+  // HEALTH SUBTITLES
+  // ECONOMY SUBTITLES
+  finance: 'finance',
+  // SOCIAL SUBTITLES
+  social: 'social',
 } as const;
 
 export const GOAL_ICONS = {

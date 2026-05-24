@@ -9,8 +9,22 @@ const goalsQueryService = new GoalsQueryService(prisma);
 @Controller('goals')
 export class GoalsController {
   @Get('templates/list')
-  getGoalTemplates(@Query('userId') userId?: string, @Query('category') category?: string) {
-    return goalsQueryService.getGoalTemplatePage(userId, category);
+  getGoalTemplates(
+    @Query('userId') userId?: string,
+    @Query('category') category?: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+    @Query('difficulty') difficulty?: string,
+    @Query('search') search?: string,
+    @Query('subcategory') subcategory?: string
+  ) {
+    return goalsQueryService.getGoalTemplatePage(userId, category, {
+      offset: offset ? Number(offset) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      difficulty,
+      search,
+      subcategory,
+    });
   }
 
   @Get('templates/:templateId')

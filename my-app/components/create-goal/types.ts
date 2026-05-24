@@ -38,7 +38,16 @@ export type GoalTemplateSummary = {
 export type GoalTemplatePageResponse = {
   steps: { id: number; label: string; complete: boolean }[];
   categories: { key: string; label: string; icon: IoniconName; active: boolean }[];
+  subcategoryFilters: { key: string; label: string; active: boolean }[];
   selectedCategory: string;
+  selectedSubcategory: string;
+  pagination: {
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+    hasMore: boolean;
+    total: number;
+  };
   templates: GoalTemplateSummary[];
 };
 

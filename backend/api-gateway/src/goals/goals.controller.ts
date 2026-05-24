@@ -52,13 +52,26 @@ export class GoalsController {
   }
 
   @Get('templates/list')
-  async getGoalTemplates(@Query('userId') userId?: string, @Query('category') category?: string) {
+  async getGoalTemplates(
+    @Query('userId') userId?: string,
+    @Query('category') category?: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+    @Query('difficulty') difficulty?: string,
+    @Query('search') search?: string,
+    @Query('subcategory') subcategory?: string
+  ) {
     const goalsServiceUrl = process.env.GOALS_SERVICE_URL ?? 'http://localhost:3002';
     try {
       const response = await axios.get(`${goalsServiceUrl}/goals/templates/list`, {
         params: {
           ...(category ? { category } : {}),
           ...(userId ? { userId } : {}),
+          ...(offset ? { offset } : {}),
+          ...(limit ? { limit } : {}),
+          ...(difficulty ? { difficulty } : {}),
+          ...(search ? { search } : {}),
+          ...(subcategory ? { subcategory } : {}),
         },
       });
 

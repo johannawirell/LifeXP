@@ -5,7 +5,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // EASY
   {
     title: 'Börja gymma regelbundet',
-    icon: 'body-outline',
+    icon: 'fitness-outline',
     subtitle: ['strength'],
     summaryDescription: 'Skapa en hållbar vana och bli bekväm med gymmiljön.',
     category: 'TRAINING',
@@ -77,7 +77,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 
   {
     title: 'Våga gå till gymmet själv',
-    icon: 'body-outline',
+    icon: 'heart-outline',
     subtitle: ['strength'],
     summaryDescription: 'Bygg trygghet och självförtroende i gymmiljön.',
     category: 'TRAINING',
@@ -135,7 +135,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 
   {
     title: 'Klara 10 armhävningar',
-    icon: 'body-outline',
+    icon: 'fitness-outline',
     subtitle: ['strength'],
     summaryDescription: 'Bygg styrka steg för steg tills du klarar 10 armhävningar.',
     category: 'TRAINING',
@@ -207,7 +207,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // EASY
 {
   title: 'Klara 20 kg i bänkpress',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg grundstyrka och lär dig bänkpress steg för steg.',
   category: 'TRAINING',
@@ -264,7 +264,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 50 kg i marklyft',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Lär dig marklyft och bygg grundstyrka steg för steg.',
   category: 'TRAINING',
@@ -321,7 +321,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 50 kg i knäböj',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg styrka och kontroll tills du klarar 50 kg i knäböj.',
   category: 'TRAINING',
@@ -452,7 +452,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // MEDIUM
 {
   title: 'Klara 60 kg i marklyft',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg vidare från grundstyrka och klara 60 kg i marklyft.',
   category: 'TRAINING',
@@ -509,7 +509,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 60 kg i knäböj',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg vidare på din benstyrka och klara 60 kg i knäböj.',
   category: 'TRAINING',
@@ -566,7 +566,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 40 kg i bänkpress',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg pressstyrka och klara 40 kg i bänkpress.',
   category: 'TRAINING',
@@ -625,7 +625,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // HARD
   {
     title: 'Bli starkare i basövningar',
-    icon: 'body-outline',
+    icon: 'fitness-outline',
     subtitle: ['strength'],
     summaryDescription: 'Bygg styrka i knäböj, marklyft och bänkpress.',
     category: 'TRAINING',
@@ -697,7 +697,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // HARD
 {
   title: 'Klara 100 kg i marklyft',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg upp styrkan och tekniken för att marklyfta 100 kg.',
   category: 'TRAINING',
@@ -754,7 +754,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 100 kg i knäböj',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg styrka och stabilitet tills du klarar 100 kg i knäböj.',
   category: 'TRAINING',
@@ -811,7 +811,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 60 kg i bänkpress',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg upp styrka och kontroll tills du klarar 60 kg i bänkpress.',
   category: 'TRAINING',
@@ -871,7 +871,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // EPIC
   {
     title: 'Bygg en stark fysik',
-    icon: 'body-outline',
+    icon: 'fitness-outline',
     subtitle: ['strength'],
     summaryDescription: 'Utveckla styrka, disciplin och en stark kropp genom långsiktig träning.',
     category: 'TRAINING',
@@ -943,7 +943,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // HARD
 {
   title: 'Klara 100 kg i marklyft',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg upp styrkan och tekniken för att marklyfta 100 kg.',
   category: 'TRAINING',
@@ -1000,7 +1000,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 100 kg i knäböj',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg styrka och stabilitet tills du klarar 100 kg i knäböj.',
   category: 'TRAINING',
@@ -1057,7 +1057,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 60 kg i bänkpress',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg upp styrka och kontroll tills du klarar 60 kg i bänkpress.',
   category: 'TRAINING',
@@ -1115,7 +1115,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
   // LEGENDARY
 {
   title: 'Bygg extrem styrka',
-  icon: 'body-outline',
+  icon: 'fitness-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg en mycket stark kropp genom långsiktig, tung och konsekvent styrketräning.',
   category: 'TRAINING',
@@ -1201,7 +1201,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 // LEGENDARY
 {
   title: 'Klara 180 kg i marklyft',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg extrem dragstyrka och klara 180 kg i marklyft.',
   category: 'TRAINING',
@@ -1258,7 +1258,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 180 kg i knäböj',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg extrem benstyrka och klara 180 kg i knäböj.',
   category: 'TRAINING',
@@ -1315,7 +1315,7 @@ export const strengthGoals: GoalTemplateSeed[] = [
 },
 {
   title: 'Klara 120 kg i bänkpress',
-  icon: 'body-outline',
+  icon: 'barbell-outline',
   subtitle: ['strength'],
   summaryDescription: 'Bygg extrem pressstyrka och klara 120 kg i bänkpress.',
   category: 'TRAINING',

@@ -24,3 +24,11 @@ export const runningSharedQuests: GoalTemplateQuestSeed[] = [
 export const strengthSharedQuests: GoalTemplateQuestSeed[] = [
   
 ];
+
+export const cyclingSharedQuests: GoalTemplateQuestSeed[] = [];
+
+export const yogaSharedQuests: GoalTemplateQuestSeed[] = [];
+
+export const swimmingSharedQuests: GoalTemplateQuestSeed[] = [];
+
+export const walkingSharedQuests: GoalTemplateQuestSeed[] = [];

@@ -6,6 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -47,7 +49,10 @@ export default function CreateGoalScreen() {
   const [showTemplateQuests, setShowTemplateQuests] = useState(false);
   const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('ALL');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [templateItems, setTemplateItems] = useState<GoalTemplatePageResponse['templates']>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const isCustomGoal = !selectedTemplate && Boolean(draft);
   const categoryCount = page?.categories.length ?? 7;
   const categoryTrackWidth = Math.max(width - 40, 280);
@@ -91,6 +96,8 @@ export default function CreateGoalScreen() {
         return 'Fotboll';
       case 'riding':
         return 'Ridsport';
+      case 'cycling': 
+        return 'Cykling';
       default:
         return subtitle.charAt(0).toUpperCase() + subtitle.slice(1);
     }
@@ -162,48 +169,41 @@ export default function CreateGoalScreen() {
     setSearchQuery('');
   };
 
-  const filteredTemplates = page?.templates.filter((template) => {
-    const matchesDifficulty =
-      difficultyFilter === 'ALL' || template.difficulty === difficultyFilter;
-
-    if (!matchesDifficulty) {
-      return false;
-    }
-
-    const query = searchQuery.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
-    const searchableParts = [
-      template.title,
-      template.summaryDescription,
-      template.category,
-      template.difficulty,
-      ...template.subtitle,
-      ...template.overviewItems.flatMap((detail) => [detail.label, detail.value]),
-    ];
-
-    return searchableParts.some((part) => part.toLowerCase().includes(query));
-  }) ?? [];
-
-  const loadTemplates = useCallback(async (category: string) => {
+  const loadTemplates = useCallback(async (
+    category: string,
+    options?: { offset?: number; append?: boolean }
+  ) => {
+    const offset = options?.offset ?? 0;
+    const append = options?.append ?? false;
     try {
-      setIsLoading(true);
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
       const query = new URLSearchParams({
         category,
+        offset: String(offset),
+        limit: '10',
         ...(userId ? { userId } : {}),
+        ...(difficultyFilter !== 'ALL' ? { difficulty: difficultyFilter } : {}),
+        ...(subcategoryFilter !== 'all' ? { subcategory: subcategoryFilter } : {}),
+        ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
       });
       const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?${query.toString()}`);
       setPage(data);
+      setTemplateItems((current) => (append ? [...current, ...data.templates] : data.templates));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unknown error');
     } finally {
-      setIsLoading(false);
+      if (append) {
+        setIsLoadingMore(false);
+      } else {
+        setIsLoading(false);
+      }
     }
-  }, [userId]);
+  }, [difficultyFilter, searchQuery, subcategoryFilter, userId]);
 
   const loadTemplateDetail = async (templateId: string) => {
     try {
@@ -484,15 +484,21 @@ export default function CreateGoalScreen() {
         try {
           const query = new URLSearchParams({
             category: selectedCategory,
+            offset: '0',
+            limit: '10',
             ...(userId ? { userId } : {}),
+            ...(difficultyFilter !== 'ALL' ? { difficulty: difficultyFilter } : {}),
+            ...(subcategoryFilter !== 'all' ? { subcategory: subcategoryFilter } : {}),
+            ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
           });
           const data = await fetchJson<GoalTemplatePageResponse>(`/goals/templates/list?${query.toString()}`);
           setPage(data);
+          setTemplateItems(data.templates);
         } catch {
           // Keep current state if a live refresh fails.
         }
       },
-      [selectedCategory, userId]
+      [difficultyFilter, searchQuery, selectedCategory, subcategoryFilter, userId]
     ),
     { enabled: Boolean(userId) }
   );
@@ -502,6 +508,26 @@ export default function CreateGoalScreen() {
       setSelectedCategory(routeCategory);
     }
   }, [routeCategory, selectedCategory]);
+
+  useEffect(() => {
+    setSubcategoryFilter('all');
+  }, [selectedCategory]);
+
+  const handleTemplateScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isDetailView || isLoading || isLoadingMore || !page?.pagination.hasMore) {
+      return;
+    }
+
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+
+    if (distanceFromBottom < 240 && page.pagination.nextOffset !== null) {
+      void loadTemplates(selectedCategory, {
+        offset: page.pagination.nextOffset,
+        append: true,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -575,6 +601,8 @@ export default function CreateGoalScreen() {
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, isDetailView ? styles.contentWithStickyCta : null]}
+        onScroll={handleTemplateScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}>
 
         {mode === 'empty' ? (
@@ -670,8 +698,29 @@ export default function CreateGoalScreen() {
                 </View>
               </View>
             ) : null}
+            {page.subcategoryFilters.length > 0 ? (
+              <View style={styles.subcategoryFilterRow}>
+                {page.subcategoryFilters.map((filter) => (
+                  <Pressable
+                    key={filter.key}
+                    style={[
+                      styles.subcategoryFilterChip,
+                      subcategoryFilter === filter.key ? styles.subcategoryFilterChipActive : null,
+                    ]}
+                    onPress={() => setSubcategoryFilter(filter.key)}>
+                    <Text
+                      style={[
+                        styles.subcategoryFilterChipText,
+                        subcategoryFilter === filter.key ? styles.subcategoryFilterChipTextActive : null,
+                      ]}>
+                      {filter.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
-            {filteredTemplates.map((template) => (
+            {templateItems.map((template) => (
               <Pressable key={template.id} style={styles.templateCard} onPress={() => void loadTemplateDetail(template.id)}>
                 <View style={[styles.templateIconWrap, { backgroundColor: `${template.color}22` }]}>
                   <AppIcon name={template.icon} size={28} color={template.color} />
@@ -705,13 +754,19 @@ export default function CreateGoalScreen() {
                 <Ionicons name="chevron-forward" size={22} color="#D8DEE7" />
               </Pressable>
             ))}
-            {filteredTemplates.length === 0 ? (
+            {templateItems.length === 0 ? (
               <View style={styles.emptyTemplateCard}>
                 <Ionicons name="checkmark-done-outline" size={28} color="#A866FF" />
                 <Text style={styles.emptyTemplateTitle}>Inga mål matchade filtreringen</Text>
                 <Text style={styles.emptyTemplateText}>
                   Testa en annan svårighetsgrad eller ett annat sökord. Du kan också skapa ett eget mål om du vill bygga vidare.
                 </Text>
+              </View>
+            ) : null}
+            {isLoadingMore ? (
+              <View style={styles.loadMoreState}>
+                <ActivityIndicator size="small" color="#A866FF" />
+                <Text style={styles.loadMoreText}>Laddar fler mål...</Text>
               </View>
             ) : null}
           </>
@@ -975,6 +1030,33 @@ const styles = StyleSheet.create({
   difficultyFilterChipTextActive: {
     color: '#F7F3FF',
   },
+  subcategoryFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  subcategoryFilterChip: {
+    backgroundColor: '#101722',
+    borderColor: '#222B38',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  subcategoryFilterChipActive: {
+    backgroundColor: '#1C2033',
+    borderColor: '#A866FF',
+  },
+  subcategoryFilterChipText: {
+    color: '#AEB7C5',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  subcategoryFilterChipTextActive: {
+    color: '#F7F3FF',
+  },
   sectionTitle: {
     color: '#F5F7FB',
     fontSize: 20,
@@ -1055,6 +1137,20 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 8,
     textAlign: 'center',
+  },
+  loadMoreState: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginTop: 16,
+    paddingBottom: 12,
+  },
+  loadMoreText: {
+    color: '#AEB7C5',
+    fontSize: 13,
+    fontWeight: '600',
   },
   templateIconWrap: {
     alignItems: 'center',

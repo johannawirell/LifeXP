@@ -83,7 +83,7 @@ export const financeGoalTemplates: GoalTemplateSeed[] = [
   {
     title: 'Bli en cykelpendlare',
     icon: 'bicycle-outline',
-    subtitle: ['finance', 'training'],
+    subtitle: ['finance', 'cycling'],
     summaryDescription:
       'Minska på dina transportkostnader och spara på miljön genom att börja cykelpendla istället för att åka bil.',
     category: 'FINANCE',

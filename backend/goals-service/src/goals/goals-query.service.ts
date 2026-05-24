@@ -129,7 +129,16 @@ type GoalTemplateCard = {
 type GoalTemplatePageResponse = {
   steps: { id: number; label: string; complete: boolean }[];
   categories: { key: string; label: string; icon: string; active: boolean }[];
+  subcategoryFilters: { key: string; label: string; active: boolean }[];
   selectedCategory: string;
+  selectedSubcategory: string;
+  pagination: {
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+    hasMore: boolean;
+    total: number;
+  };
   templates: GoalTemplateCard[];
 };
 
@@ -214,6 +223,14 @@ type UpdateQuestProgressInput = {
   currentCount?: number;
   completed?: boolean;
   incrementBy?: number;
+};
+
+type GoalTemplatePageOptions = {
+  offset?: number;
+  limit?: number;
+  difficulty?: string;
+  search?: string;
+  subcategory?: string;
 };
 
 type GoalWithMilestones = Prisma.GoalGetPayload<{
@@ -493,6 +510,10 @@ export class GoalsQueryService {
       });
     }
 
+    if (completedGoalTitle) {
+      await this.awardGoalAchievement(userId, completedGoalTitle);
+    }
+
     return {
       page: await this.getGoalsPage(userId),
       reward:
@@ -733,8 +754,21 @@ export class GoalsQueryService {
     return { success: true };
   }
 
-  async getGoalTemplatePage(userId: string | undefined, category = 'popular'): Promise<GoalTemplatePageResponse> {
+  async getGoalTemplatePage(
+    userId: string | undefined,
+    category = 'popular',
+    options?: GoalTemplatePageOptions
+  ): Promise<GoalTemplatePageResponse> {
     const normalizedCategory = category.toLowerCase();
+    const normalizedSubcategory = (options?.subcategory ?? 'all').trim().toLowerCase() || 'all';
+    const normalizedSearch = options?.search?.trim().toLowerCase() ?? '';
+    const normalizedDifficulty =
+      typeof options?.difficulty === 'string' &&
+      ['EASY', 'MEDIUM', 'HARD', 'EPIC', 'LEGENDARY'].includes(options.difficulty.toUpperCase())
+        ? (options.difficulty.toUpperCase() as GoalDifficulty)
+        : null;
+    const limit = this.normalizePageNumber(options?.limit, 10, 1, 50);
+    const offset = this.normalizePageNumber(options?.offset, 0, 0, Number.MAX_SAFE_INTEGER);
     const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';
     const [templates, existingGoals, gamificationResponse] = await Promise.all([
       this.prisma.goalTemplate.findMany({
@@ -792,6 +826,10 @@ export class GoalsQueryService {
         !unavailableTemplateIds.has(template.id) &&
         !unavailableTemplateTitles.has(template.title.trim().toLowerCase())
     );
+    const subcategoryFilters =
+      normalizedCategory === 'training'
+        ? this.buildTemplateSubcategoryFilters(availableTemplates, normalizedSubcategory)
+        : [];
     const focusAreas =
       (gamificationResponse?.data as
         | {
@@ -817,6 +855,26 @@ export class GoalsQueryService {
 
       return left.position - right.position;
     });
+    const filteredTemplates = sortedTemplates.filter((template) => {
+      if (normalizedDifficulty && template.difficulty !== normalizedDifficulty) {
+        return false;
+      }
+
+      if (
+        normalizedSubcategory !== 'all' &&
+        !template.subtitle.map((item) => item.toLowerCase()).includes(normalizedSubcategory)
+      ) {
+        return false;
+      }
+
+      if (normalizedSearch && !this.matchesTemplateSearch(template, normalizedSearch)) {
+        return false;
+      }
+
+      return true;
+    });
+    const pagedTemplates = filteredTemplates.slice(offset, offset + limit);
+    const nextOffset = offset + limit < filteredTemplates.length ? offset + limit : null;
 
     const categories = [
       { key: 'popular', label: 'Populära', icon: 'star-outline', active: normalizedCategory === 'popular' },
@@ -835,8 +893,17 @@ export class GoalsQueryService {
         { id: 3, label: 'Klart!', complete: false },
       ],
       categories,
+      subcategoryFilters,
       selectedCategory: normalizedCategory,
-      templates: sortedTemplates.map((template) => ({
+      selectedSubcategory: normalizedSubcategory,
+      pagination: {
+        limit,
+        offset,
+        nextOffset,
+        hasMore: nextOffset !== null,
+        total: filteredTemplates.length,
+      },
+      templates: pagedTemplates.map((template) => ({
         id: template.id,
         title: template.title,
         icon: template.icon,
@@ -1196,6 +1263,77 @@ export class GoalsQueryService {
       description: input.description,
       category: input.category,
     });
+  }
+
+  private async awardGoalAchievement(userId: string, goalTitle: string) {
+    const gamificationServiceUrl = process.env.GAMIFICATION_SERVICE_URL ?? 'http://localhost:3004';
+
+    await axios.post(`${gamificationServiceUrl}/profile-gamification/goal-achievements`, {
+      userId,
+      goalTitle,
+    });
+  }
+
+  private buildTemplateSubcategoryFilters(
+    templates: Array<{ subtitle: string[] }>,
+    selectedSubcategory: string
+  ) {
+    const uniqueSubcategories = new Set<string>();
+
+    for (const template of templates) {
+      for (const subtitle of template.subtitle) {
+        const normalized = subtitle.trim().toLowerCase();
+        if (!normalized || ['training', 'health', 'job', 'study', 'learning', 'finance', 'social', 'relationship'].includes(normalized)) {
+          continue;
+        }
+
+        uniqueSubcategories.add(normalized);
+      }
+    }
+
+    return [
+      { key: 'all', label: 'Alla', active: selectedSubcategory === 'all' },
+      ...[...uniqueSubcategories]
+        .sort((left, right) => this.mapSubtitleKeyToLabel(left).localeCompare(this.mapSubtitleKeyToLabel(right), 'sv'))
+        .map((key) => ({
+          key,
+          label: this.mapSubtitleKeyToLabel(key),
+          active: key === selectedSubcategory,
+        })),
+    ];
+  }
+
+  private matchesTemplateSearch(
+    template: {
+      title: string;
+      summaryDescription: string;
+      category: GoalTemplateCategory;
+      difficulty: GoalDifficulty;
+      subtitle: string[];
+      milestones: { title: string; description: string | null }[];
+      quests: { title: string; description: string | null }[];
+    },
+    search: string
+  ) {
+    const searchParts = [
+      template.title,
+      template.summaryDescription,
+      template.difficulty,
+      this.mapCategoryEnumToLabel(template.category),
+      ...template.subtitle.map((subtitle) => this.mapSubtitleKeyToLabel(subtitle)),
+      ...template.milestones.flatMap((milestone) => [milestone.title, milestone.description ?? '']),
+      ...template.quests.flatMap((quest) => [quest.title, quest.description ?? '']),
+    ];
+
+    return searchParts.some((part) => part.toLowerCase().includes(search));
+  }
+
+  private normalizePageNumber(value: number | undefined, fallback: number, min: number, max: number) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return fallback;
+    }
+
+    return Math.min(Math.max(Math.trunc(value), min), max);
   }
 
   private mapCategoryKeyToEnum(category: string): GoalTemplateCategory {

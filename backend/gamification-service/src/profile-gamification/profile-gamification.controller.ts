@@ -12,6 +12,15 @@ const defaultFocusAreas = [
   { key: 'FINANCE', icon: 'wallet-outline', title: 'Ekonomi', color: '#56D2C5' },
 ] as const;
 
+const goalAchievementCodeByTitle: Record<string, string[]> = {
+  'springa 5 km': ['five-k-runner'],
+  'springa 10 km': ['distance-runner'],
+  'springa halvmaraton': ['half-marathoner'],
+  'springa maraton': ['marathoner'],
+  'börja gymma regelbundet': ['gym-routine'],
+  'klara 10 armhävningar': ['pushup-starter'],
+};
+
 type AwardXpInput = {
   userId: string;
   amount: number;
@@ -81,6 +90,60 @@ export class ProfileGamificationController {
           subtitle: achievement.description ?? '',
           color: achievement.color ?? '#A866FF',
           icon: achievement.icon ?? 'trophy-outline',
+          position: await prisma.userAchievement.count({
+            where: {
+              userGamificationId: profile.id,
+            },
+          }),
+        },
+      });
+    }
+
+    return this.getGamification(body.userId);
+  }
+
+  @Post('goal-achievements')
+  async awardGoalAchievements(@Body() body: { userId: string; goalTitle: string }) {
+    const profile = await this.ensureProfile(body.userId);
+    const normalizedTitle = body.goalTitle.trim().toLowerCase();
+    const definitionCodes = goalAchievementCodeByTitle[normalizedTitle] ?? [];
+
+    if (definitionCodes.length === 0) {
+      return this.getGamification(body.userId);
+    }
+
+    const definitions = await prisma.achievementDefinition.findMany({
+      where: {
+        code: {
+          in: definitionCodes,
+        },
+      },
+    });
+    const existingAwards = await prisma.userAchievement.findMany({
+      where: {
+        userGamificationId: profile.id,
+        achievementDefinitionId: {
+          in: definitions.map((definition) => definition.id),
+        },
+      },
+      select: {
+        achievementDefinitionId: true,
+      },
+    });
+    const existingDefinitionIds = new Set(existingAwards.map((award) => award.achievementDefinitionId));
+
+    for (const definition of definitions) {
+      if (existingDefinitionIds.has(definition.id)) {
+        continue;
+      }
+
+      await prisma.userAchievement.create({
+        data: {
+          userGamificationId: profile.id,
+          achievementDefinitionId: definition.id,
+          subtitle: definition.description ?? '',
+          color: definition.color ?? '#A866FF',
+          icon: definition.icon ?? 'trophy-outline',
           position: await prisma.userAchievement.count({
             where: {
               userGamificationId: profile.id,
