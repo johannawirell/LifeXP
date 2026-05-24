@@ -94,6 +94,8 @@ export default function CreateGoalScreen() {
         return 'Relationer';
       case 'cycling': 
         return 'Cykling';
+      case 'walking':
+        return 'Vandring';
       default:
         return subtitle.charAt(0).toUpperCase() + subtitle.slice(1);
     }
@@ -107,6 +109,10 @@ export default function CreateGoalScreen() {
         return <Ionicons name="barbell-outline" size={14} color={color} />;
       case 'health':
         return <Ionicons name="heart-outline" size={14} color={color} />;
+      case 'cycling':
+        return <Ionicons name="bicycle-outline" size={14} color={color} />;
+      case 'walking':
+        return <Ionicons name="walk-outline" size={14} color={color} />;
       case 'football':
         return <Ionicons name="football-outline" size={14} color={color} />;
       case 'riding':
